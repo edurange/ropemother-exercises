@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ropemother-exercises"
+version = "0.1.0.dev1"
+description = "Exercise code for learning message-based design with ropemother."
+readme = "README.md"
+requires-python = ">=3.13"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    {name = "Joe Granville", email = "874605+jwgranville@users.noreply.github.com"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+]
+
+[tool.setuptools.packages.find]
+include = ["ropemother_exercises*"]
+
+[tool.setuptools.package-data]
+"ropemother_exercises.image.target" = [
+    "glyph_candidates.json",
+    "prepared_bitmaps.json",
+]
+"ropemother_exercises.tty.application" = [
+    "scripted_input.jsonl",
+]
+
+[project.optional-dependencies]
+pillow = [
+    "pillow",
+]
+test = [
+    "pytest",
+]
+dev = [
+    "black",
+    "pylint",
+    "pytest",
+]
+
+[project.urls]
+Source = "https://github.com/edurange/ropemother-exercises"
+Issues = "https://github.com/edurange/ropemother-exercises/issues"
+
+[tool.black]
+line-length = 79
+target-version = ["py313"]
+
+[tool.pylint.main]
+py-version = "3.13"

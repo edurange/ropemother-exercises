@@ -1,0 +1,188 @@
+#!/usr/bin/env python3
+# ropemother_exercises/image/examples/reconstruction.py
+
+"""Show how angular projections contribute to an image reconstruction."""
+
+from ropemother_exercises.image.application.render import (
+    maximum_intensity,
+    render_horizontal_profile,
+    render_intensity_image,
+    render_quadrant_bitmap,
+    render_text_row,
+    render_vertical_profile,
+)
+from ropemother_exercises.image.tomography.images import Bitmap, ImageFrame
+from ropemother_exercises.image.tomography.measurements import (
+    measure_angular_projection,
+)
+from ropemother_exercises.image.tomography.reconstruction import (
+    geometric_covered_intensity,
+    image_observation_from_angular_projection,
+    normalize_projection,
+)
+
+__author__ = "Joe Granville"
+__email__ = "874605+jwgranville@users.noreply.github.com"
+__date__ = "2026-08-25T03:10:10+00:00"
+__license__ = "MIT"
+__version__ = "0.1.0.dev1"
+__status__ = "Prototype"
+
+
+def _example_target() -> Bitmap:
+    frame = ImageFrame(width=32, height=32)
+    filled_cells = []
+
+    for cell in frame.cells():
+        inside_x = 4 <= cell.x <= 27
+        inside_y = 4 <= cell.y <= 27
+        on_forward_diagonal = abs(cell.x - cell.y) <= 1
+        on_reverse_diagonal = abs(cell.x + cell.y - 31) <= 1
+
+        if inside_x and inside_y:
+            if on_forward_diagonal or on_reverse_diagonal:
+                filled_cells.append(cell)
+
+    return Bitmap(frame=frame, filled_cells=filled_cells)
+
+
+def run_reconstruction_explanation(target: Bitmap | None = None) -> None:
+    if target is None:
+        target = _example_target()
+
+    frame = target.frame
+    sample_count = 4096
+
+    projection_0 = measure_angular_projection(
+        run_id="explanation",
+        observation_id="0-degrees",
+        target=target,
+        angle_degrees=0.0,
+        bin_count=frame.width,
+        sample_count=sample_count,
+        seed=11,
+    )
+    projection_90 = measure_angular_projection(
+        run_id="explanation",
+        observation_id="90-degrees",
+        target=target,
+        angle_degrees=90.0,
+        bin_count=frame.width,
+        sample_count=sample_count,
+        seed=13,
+    )
+    projection_45 = measure_angular_projection(
+        run_id="explanation",
+        observation_id="45-degrees",
+        target=target,
+        angle_degrees=45.0,
+        bin_count=frame.width,
+        sample_count=sample_count,
+        seed=12,
+    )
+    projection_135 = measure_angular_projection(
+        run_id="explanation",
+        observation_id="135-degrees",
+        target=target,
+        angle_degrees=135.0,
+        bin_count=frame.width,
+        sample_count=sample_count,
+        seed=14,
+    )
+
+    observation_0 = image_observation_from_angular_projection(projection_0)
+    observation_90 = image_observation_from_angular_projection(projection_90)
+    observation_45 = image_observation_from_angular_projection(projection_45)
+    observation_135 = image_observation_from_angular_projection(projection_135)
+
+    orthogonals = (observation_0, observation_90)
+    orthogonals_and_diagonals = (*orthogonals, observation_45, observation_135)
+
+    orthogonal_reconstruction = geometric_covered_intensity(
+        frame, *orthogonals
+    )
+    four_angle_reconstruction = geometric_covered_intensity(
+        frame, *orthogonals_and_diagonals
+    )
+
+    profile_0 = normalize_projection(
+        projection_0.intensity_sums, projection_0.sample_counts
+    )
+    profile_90 = normalize_projection(
+        projection_90.intensity_sums, projection_90.sample_counts
+    )
+    evidence_maximum = maximum_intensity(
+        observation_0.intensity_image, observation_90.intensity_image
+    )
+    reconstruction_maximum = maximum_intensity(
+        orthogonal_reconstruction, four_angle_reconstruction
+    )
+
+    target_rendering = render_quadrant_bitmap(target)
+    profile_0_rendering = render_horizontal_profile(
+        profile_0, display_maximum=evidence_maximum
+    )
+    profile_90_top_to_bottom = tuple(reversed(profile_90))
+    profile_90_rendering = render_vertical_profile(
+        profile_90_top_to_bottom, display_maximum=evidence_maximum
+    )
+    back_projection_0 = render_intensity_image(
+        observation_0.intensity_image,
+        frame,
+        display_maximum=evidence_maximum,
+    )
+    back_projection_90 = render_intensity_image(
+        observation_90.intensity_image,
+        frame,
+        display_maximum=evidence_maximum,
+    )
+    orthogonal_rendering = render_intensity_image(
+        orthogonal_reconstruction,
+        frame,
+        display_maximum=reconstruction_maximum,
+    )
+    four_angle_rendering = render_intensity_image(
+        four_angle_reconstruction,
+        frame,
+        display_maximum=reconstruction_maximum,
+    )
+
+    target_size = f"{frame.width}×{frame.height}"
+    target_block = (
+        f"Known example target ({target_size}, packed)\n{target_rendering}"
+    )
+    profile_0_block = f"0° projection\n{profile_0_rendering}"
+    back_projection_0_block = f"0° back-projection\n{back_projection_0}"
+    orthogonal_block = f"Orthogonal reconstruction\n{orthogonal_rendering}"
+    back_projection_90_block = f"90° back-projection\n{back_projection_90}"
+    profile_90_block = f"90°\n{profile_90_rendering}"
+
+    down_arrow = "↓".center(frame.width)
+    side_arrow = "\n" * (frame.height // 2 + 1) + "←"
+
+    orthogonal_row = render_text_row(
+        orthogonal_block,
+        side_arrow,
+        back_projection_90_block,
+        side_arrow,
+        profile_90_block,
+        gap=1,
+    )
+
+    four_angle_block = f"Four-angle reconstruction\n{four_angle_rendering}"
+
+    print(
+        f"{target_block}\n\n"
+        f"{profile_0_block}\n"
+        f"{down_arrow}\n"
+        f"{back_projection_0_block}\n"
+        f"{down_arrow}\n"
+        f"{orthogonal_row}\n\n"
+        f"Add 45° and 135° views\n"
+        f"{down_arrow}\n"
+        f"{four_angle_block}"
+    )
+
+
+if __name__ == "__main__":
+    run_reconstruction_explanation()
