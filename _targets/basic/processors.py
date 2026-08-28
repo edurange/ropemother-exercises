@@ -17,7 +17,7 @@ from ropemother_exercises.basic.events import (
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-07-18T20:17:31+00:00"
+__date__ = "2026-08-28T15:23:43+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
@@ -40,10 +40,11 @@ class WordCountProcessor:
             msg_type=WORDS_COUNTED_MSG_TYPE,
         )
 
-    def process_one(self) -> None:
-        message = self._receiver.receive()
-        word_count = count_words(message.payload)
-        self._emitter.emit(word_count)
+    def run(self) -> None:
+        while True:
+            message = self._receiver.receive()
+            word_count = count_words(message.payload)
+            self._emitter.emit(word_count)
 
 
 def count_words(text: str) -> int:

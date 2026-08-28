@@ -670,6 +670,7 @@ def run_word_counter() -> None:
 
     try:
         processor = WordCountProcessor(bus)
+        print("Word-count processor is ready.")
         processor.run()
     except KeyboardInterrupt:
         pass
@@ -721,6 +722,8 @@ def display_word_counts() -> None:
             msg_producer=WORD_COUNTER_MSG_PRODUCER,
             msg_type=WORDS_COUNTED_MSG_TYPE,
         )
+
+        print("Live display is ready.")
 
         while True:
             submitted_message = text_receiver.receive()
@@ -776,16 +779,9 @@ The source publishes one event and exits. The processor and display can remain r
 
 ## Run the participants independently
 
-Use separate terminals for the broker, processor, display, and finite source commands while first examining the topology.
+Use separate terminals for the **Broker**, **Word counter**, **Live display**, and **Source/history** roles while first examining the topology.
 
-| Terminal | Long-lived role or reusable task                   |
-| -------- | -------------------------------------------------- |
-| 1        | Broker                                             |
-| 2        | Word-count processor                               |
-| 3        | Live display                                       |
-| 4        | One-shot source commands and later history queries |
-
-Terminals 1 through 3 hold persistent participants. Start each one once and leave it waiting. Terminal 4 is the reusable command terminal. Publishing another source event should wake the already-running processor and display through their subscriptions; it should not require another processor or display launch.
+The Broker, Word counter, and Live display are persistent participants. Start each one once and leave it waiting. The Source/history terminal is reused for finite source commands and later history queries. Publishing another source event should wake the already-running processor and display through their subscriptions; it should not require another processor or display launch.
 
 In the broker terminal, start a history-enabled broker with an isolated temporary runtime:
 
@@ -817,7 +813,7 @@ Start the display in another terminal:
 python -m ropemother_exercises.basic.run_display
 ```
 
-Both processes now wait independently for matching messages. Neither prints a readiness line: an empty terminal without a returned shell prompt means that the participant is still running and waiting. If the shell prompt returns or a traceback appears, that participant is no longer available.
+Both processes now wait independently for matching messages. The processor prints `Word-count processor is ready.` and the display prints `Live display is ready.` before waiting for their first messages. If the shell prompt returns or a traceback appears, that participant is no longer available.
 
 Start these receivers before publishing; a live subscription does not automatically replay earlier broadcasts.
 
@@ -1010,7 +1006,7 @@ Because this walkthrough started the broker with `--temporary`, its temporary ru
 >
 > - Shift in emphasis: messaging mechanics to event design.
 > - Distinctions: source observations versus derived determinations; stable correlation coordinates; private processor state versus shared history; peer interpretations of common evidence.
-> - Keep source observations unchanged while timing, command reconstruction, regex analysis, reconciliation, and repair are added downstream.
+> - Keep source observations unchanged while timing, cadence grouping, command reconstruction, regex analysis, reconciliation, and decoding are added downstream.
 
 ## Inspect the prepared source model
 
@@ -1031,7 +1027,7 @@ The prepared TTY source publishes four kinds of observations:
 
 These are source observations. They do not contain reconstructed commands, typing intervals, regex results, corrections, or other later interpretations.
 
-### Look under the hood at local history
+**Look under the hood at local history**
 
 > **Authoring note**
 >
@@ -1139,7 +1135,7 @@ TTYSessionEnded(session_id='session-1', observation_index=17, observed_at_ns=230
 
 The two one-byte reads at observations 13 and 14 are intentionally worth remembering: together they encode `é`, but neither source observation contains a complete UTF-8 code point by itself.
 
-### Event records, identities, and portable data
+**Event records, identities, and portable data**
 
 `TTYReadObserved` is an immutable value describing one observation. `session_id` associates that value with a longer-lived session, while `observation_index` and `observed_at_ns` locate the observation within the recorded evidence. A downstream processor can correlate observations without receiving or mutating a shared `Session` object.
 
@@ -1274,7 +1270,7 @@ The important parts of this longer file follow the processor's message path. The
 
 The processor keeps only the previous raw-read time required for its next calculation. The resulting `InputTiming` still carries the source observation index and time so later processors can relate the derived fact back to source evidence.
 
-`InputTimingCompleted` is a different kind of derived event: it declares that the source session has ended and that no later `InputTiming` event for that session should arrive. A downstream timing analysis can therefore finalize session-scoped work from the timing stream itself instead of also subscribing to the source's `TTYSessionEnded` event or depending on the length of this particular fixture.
+`InputTimingCompleted` is a different kind of derived event: it declares that the source session has ended and that no later `InputTiming` event for that session should arrive. The next cadence processor can therefore finalize session-scoped work from the timing stream itself instead of also subscribing to the source's `TTYSessionEnded` event or depending on the length of this particular fixture.
 
 The source observer in the first `run_local.py` was only for the initial inspection. Remove `source_results`, `_display_source_sample()`, and the source-topic imports before continuing.
 
@@ -1330,15 +1326,103 @@ InputTiming(session_id='session-1', observation_index=11, observed_at_ns=1600000
 InputTimingCompleted(session_id='session-1', boundary_observation_index=17, completed_at_ns=2300000000)
 ```
 
-### Why the local runner drains until quiet
+**Why the local runner drains until quiet**
 
 Basic showed long-running processors reacting independently. The TTY fixture instead supplies a finite recorded source and runs several local processors cooperatively. Each `process_available()` call consumes whatever is already waiting for that processor. A complete round that performs no work means this finite local topology has become quiet.
 
 That condition is intentionally narrow. An empty local queue does not prove that a general distributed or externally driven application is finished: later messages may still arrive, messages may be in flight, and some feedback systems never become quiet. The later graph exercise will revisit local quiescence in a topology where scheduling order itself is part of the experiment.
 
+## Group timing intervals into cadence spans
+
+Timing made elapsed intervals available as a derived stream. Add a prepared processor that consumes that stream and groups contiguous intervals under one simple numeric rule. This is the first step toward possible cadence analyses, not a classification of behavior.
+
+> **Authoring note**
+>
+> - Cadence grouping is part of the required TTY path.
+> - Keep this activity at the level of deriving and grouping timing values.
+> - Classifying cadence regimes, comparing grouping policies, or attaching behavioral meaning to the spans belongs in optional later work.
+
+Copy the prepared implementation into the exercise package:
+
+```sh
+cp _targets/tty/cadence.py ropemother_exercises/tty/cadence.py
+```
+
+Open the copied file and locate four parts before adding it to the composition:
+
+- `InputCadenceProcessor` subscribes to the timing stream rather than the original TTY source.
+- `publish_configuration()` records the prepared relative-deviation rule as an event.
+- `intervals_fit_cadence()` keeps a candidate span together only when its minimum and maximum intervals remain within the configured distance of the candidate mean.
+- `InputTimingCompleted` tells the processor to emit any pending final span and release its session-local state.
+
+The prepared setting is `Fraction(20, 100)`, or 20 percent. The grouping rule is intentionally transparent: it preserves a simple description of timing structure without assigning a behavioral label to that structure.
+
+Update the timing-related imports in `run_local.py`:
+
+```python
+from ropemother_exercises.tty.cadence import (
+    PREPARED_MAXIMUM_RELATIVE_DEVIATION,
+    InputCadenceProcessor,
+)
+from ropemother_exercises.tty.events import (
+    CADENCE_MSG_TOPIC,
+    TIMING_MSG_TOPIC,
+)
+from ropemother_exercises.tty.timing import InputTimingProcessor
+```
+
+Construct the cadence processor and its result receiver immediately after the timing processor:
+
+```python
+cadence_processor = InputCadenceProcessor(
+    bus, PREPARED_MAXIMUM_RELATIVE_DEVIATION
+)
+cadence_results = bus.subscribe(msg_topic=CADENCE_MSG_TOPIC)
+```
+
+Publish the grouping rule before emitting the prepared source:
+
+```python
+cadence_processor.publish_configuration()
+source.emit_all()
+```
+
+Give cadence processing an opportunity to consume newly derived timing events immediately after timing processing in each round:
+
+```python
+round_work_count += timing_processor.process_available()
+round_work_count += cadence_processor.process_available()
+```
+
+Display cadence after the timing stream:
+
+```python
+_display_available_payloads(timing_results)
+_display_available_payloads(cadence_results)
+```
+
+Run the composition again:
+
+```sh
+python -m ropemother_exercises.tty.run_local
+```
+
+The cadence output begins with its configuration and then reports grouped timing spans. Distinctive lines include:
+
+```text
+InputCadenceConfigured(maximum_relative_deviation=Fraction(1, 5))
+InputCadenceSpan(session_id='session-1', span_index=0, first_observation_index=0, last_observation_index=3, started_at_ns=0, ended_at_ns=300000000, interval_count=3, mean_interval_ns=Fraction(100000000, 1), minimum_interval_ns=100000000, maximum_interval_ns=100000000)
+InputCadenceSpan(session_id='session-1', span_index=1, first_observation_index=3, last_observation_index=4, started_at_ns=300000000, ended_at_ns=650000000, interval_count=1, mean_interval_ns=Fraction(350000000, 1), minimum_interval_ns=350000000, maximum_interval_ns=350000000)
+InputCadenceSpan(session_id='session-1', span_index=4, first_observation_index=11, last_observation_index=15, started_at_ns=1600000000, ended_at_ns=2040000000, interval_count=4, mean_interval_ns=Fraction(110000000, 1), minimum_interval_ns=110000000, maximum_interval_ns=110000000)
+```
+
+The first span groups three consecutive 100 ms intervals. The following 350 ms interval does not fit that group and begins another span. The processor makes the same kind of numeric decision as later timing intervals arrive, and `InputTimingCompleted` closes the final pending span.
+
+This creates the first two-processor derivation chain in the TTY exercise: `TTYReadObserved -> InputTimingProcessor -> InputTiming -> InputCadenceProcessor -> InputCadenceSpan`. Cadence therefore demonstrates that a derived event stream can become reusable evidence for another processor. Richer work can later classify or compare cadence regimes, correlate spans with other event boundaries, or substitute a different grouping policy without changing the source or timing processor.
+
 ## Add prepared command reconstruction
 
-Timing is one interpretation of the raw-read stream. A higher-level command requires several source streams and a different notion of boundary.
+Cadence shows that a derived timing stream can support another processor. A higher-level command asks a different question: it combines several source streams around a different notion of boundary.
 
 Open:
 
@@ -1350,17 +1434,13 @@ Focus first on the constructor and the `ReconstructedCommand` event in `events.p
 
 The internal state machine is prepared support here. Its responsibility is still visible at the message boundary:
 
-```text
-TTYReadObserved
-CanonicalLineObserved
-TTYWriteObserved
-TTYSessionEnded
-        |
-        v
-CommandReconstructionProcessor
-        |
-        v
-ReconstructedCommand
+```mermaid
+flowchart TD
+    reads["TTYReadObserved"] --> processor["CommandReconstructionProcessor"]
+    line["CanonicalLineObserved"] --> processor
+    writes["TTYWriteObserved"] --> processor
+    ended["TTYSessionEnded"] --> processor
+    processor --> command["ReconstructedCommand"]
 ```
 
 Add these imports to `run_local.py`:
@@ -1370,12 +1450,13 @@ from ropemother_exercises.tty.application.reconstruction import (
     CommandReconstructionProcessor,
 )
 from ropemother_exercises.tty.events import (
+    CADENCE_MSG_TOPIC,
     COMMAND_MSG_TOPIC,
     TIMING_MSG_TOPIC,
 )
 ```
 
-Construct the reconstructor and its result receiver after the timing processor:
+Construct the reconstructor and its result receiver after the cadence processor:
 
 ```python
 reconstruction_processor = CommandReconstructionProcessor(bus)
@@ -1388,7 +1469,7 @@ Give the reconstructor an opportunity to work in every processing round:
 round_work_count += reconstruction_processor.process_available()
 ```
 
-Display its results after timing:
+Display its results after cadence:
 
 ```python
 _display_available_payloads(command_results)
@@ -1400,7 +1481,7 @@ Run the composition:
 python -m ropemother_exercises.tty.run_local
 ```
 
-After the timing output, the two reconstructed commands should be:
+After the timing and cadence output, the two reconstructed commands should be:
 
 ```text
 ReconstructedCommand(session_id='session-1', command_index=0, input_text='echo hello\n', output_text='hello\n', started_at_ns=0, ended_at_ns=2060000000, input_start_index=0, line_observation_index=8, boundary_observation_index=16)
@@ -1409,7 +1490,7 @@ ReconstructedCommand(session_id='session-1', command_index=1, input_text='cd /tm
 
 The first canonical line is observed at source index 8, but the first command is not complete at index 8. Later write observations belong to its output, and the next canonical-line observation at index 16 establishes the boundary that closes the first command. The session-end event closes the second command.
 
-The source therefore does not need to decide that a `ReconstructedCommand` exists. Reconstruction is a derived interpretation over lower-level evidence, and it can be introduced without changing the source or timing processor.
+The source therefore does not need to decide that a `ReconstructedCommand` exists. Reconstruction is a derived interpretation over lower-level evidence, and it can be introduced without changing the source, timing processor, or cadence processor.
 
 ## Implement regex analysis downstream of reconstructed commands
 
@@ -1631,7 +1712,7 @@ RegexAnalysis(session_id='session-1', command_index=1, matched_pattern_indices=(
 
 Regex analysis is downstream of command reconstruction, not part of it. Replacing the regex policy, adding another command-level analysis, or removing regex analysis entirely does not require the reconstructor to learn about those interpretations.
 
-### Event design at the command boundary
+**Event design at the command boundary**
 
 The same underlying activity now has several representations with different responsibilities:
 
@@ -1794,31 +1875,28 @@ Before continuing, compare `read_observation_indices` exactly. The first tuple m
 
 The first result identifies two positions that exist only in the raw input: observation 3 contains the extra `p`, and observation 4 contains the delete byte that removes it. The canonical line needs no corresponding replacement bytes. The second raw input already agrees with its canonical line.
 
-### Live messages and recorded history are complementary views
+**Live messages and recorded history are complementary views**
 
 Reconciliation uses both forms of access in the same processor:
 
-```text
-live canonical-line event
-        |
-        v
-InputReconciliationProcessor
-        |
-        +-- request --> shared history
-        |                  |
-        |<-- earlier reads-+
-        |
-        v
-InputReconciliation
+```mermaid
+flowchart TD
+    line["live canonical-line event"]
+    processor["InputReconciliationProcessor"]
+
+    line --> processor
+    processor --> result["InputReconciliation"]
+    processor -->|request| history["shared history"]
+    history -->|earlier reads| processor
 ```
 
 The live subscription answers what has just happened. The event store answers what related evidence has already happened. Neither replaces the other: messaging supplies current flow, while history makes earlier facts available to processors that did not need to cache every source event privately.
 
 This also preserves auditability. The raw observations, canonical line, command reconstruction, and reconciliation remain distinct facts. A correction is not applied by silently rewriting the original read events.
 
-## Add the supplied code-point repair
+## Decode characters that span raw input observations
 
-The two source reads at observations 13 and 14 expose another boundary problem: the bytes of one UTF-8 code point were divided across two messages. Nothing in the source contract promises that a raw-read observation ends on a character boundary.
+The two one-byte reads remembered from the source inspection contain `b'\xc3'` and `b'\xa9'`. Together they encode `é`, but a processor that decodes each `TTYReadObserved` independently cannot recognize that character. Nothing in the source contract promises that a raw-read observation ends on a character boundary. This is a representation-boundary problem rather than a correction to the source: the source accurately recorded the bytes it observed.
 
 The decoder is supplied because incremental text decoding is not the message-architecture lesson. Copy the prepared implementation into the exercise package:
 
@@ -1837,6 +1915,7 @@ Add these imports to `run_local.py`:
 ```python
 from ropemother_exercises.tty.code_points import RawInputCodePointProcessor
 from ropemother_exercises.tty.events import (
+    CADENCE_MSG_TOPIC,
     CODE_POINT_MSG_TOPIC,
     COMMAND_MSG_TOPIC,
     RECONCILIATION_MSG_TOPIC,
@@ -1846,7 +1925,7 @@ from ropemother_exercises.tty.events import (
 )
 ```
 
-Add the code-point branch beside the other source-level interpretations: construct `code_point_processor` immediately after `timing_processor`, and add `code_point_results` immediately after `timing_results`:
+Add the code-point branch beside the other source-level interpretations: construct `code_point_processor` immediately after `cadence_processor`, and add `code_point_results` immediately after `cadence_results`:
 
 ```python
 code_point_processor = RawInputCodePointProcessor(bus)
@@ -1859,10 +1938,11 @@ Inside the `try` block, publish its decoding policy alongside the regex configur
 code_point_processor.publish_configuration()
 ```
 
-In the quiescence loop, add the code-point processor immediately after the timing processor:
+In the quiescence loop, keep cadence immediately after timing and add the code-point processor after cadence:
 
 ```python
 round_work_count += timing_processor.process_available()
+round_work_count += cadence_processor.process_available()
 round_work_count += code_point_processor.process_available()
 ```
 
@@ -1879,10 +1959,11 @@ def _display_code_point_results(receiver: Receiver) -> None:
             print(payload)
 ```
 
-In the result-display block, call it immediately after the timing output:
+In the result-display block, call it immediately after the cadence output:
 
 ```python
 _display_available_payloads(timing_results)
+_display_available_payloads(cadence_results)
 _display_code_point_results(code_point_results)
 ```
 
@@ -1893,34 +1974,24 @@ RawInputDecodingConfigured(encoding='utf-8', error_policy='strict')
 RawInputCodePoint(session_id='session-1', code_point_index=21, code_point='é', first_observation_index=13, first_byte_offset=0, last_observation_index=14, last_byte_offset=0, completed_at_ns=1930000000)
 ```
 
-The original source events remain byte observations. Command reconstruction, timing, reconciliation, and regex analysis remain unchanged. A newly recognized representation problem was handled by another processor behind the existing source boundary.
+The original source events remain byte observations. Timing, cadence grouping, command reconstruction, reconciliation, and regex analysis remain unchanged. A newly recognized representation problem was handled by another processor behind the existing source boundary.
 
 ## Review the TTY network
 
 The completed TTY path now has several interpretations of the same evidence:
 
-```text
-raw reads + session end
-        |
-        +--> input timing
-        |
-        +--> raw-input code points
+```mermaid
+flowchart TD
+    reads["raw reads + session end"] --> timing["input timing"]
+    timing --> cadence["input cadence"]
+    reads --> codepoints["raw-input code points"]
 
-raw reads + lines + writes + end
-        |
-        v
-command reconstruction
-        |
-        v
-regex analysis
+    tty["raw reads + lines + writes + end"]
+    reconstruction["command reconstruction"]
+    tty --> reconstruction --> regex["regex analysis"]
 
-canonical line
-        |
-        v
-input reconciliation
-        ^
-        |
-shared history of source events
+    line["canonical line"] --> reconciliation["input reconciliation"]
+    history["shared history of source events"] --> reconciliation
 ```
 
 The processors also illustrate several different state strategies:
@@ -1928,18 +1999,19 @@ The processors also illustrate several different state strategies:
 | Processor                        | Live input                                  | Local working state                   | Shared history | Derived output                         |
 | -------------------------------- | ------------------------------------------- | ------------------------------------- | -------------- | -------------------------------------- |
 | `InputTimingProcessor`           | raw reads, session end                      | previous read time per session        | no             | timing events, timing completion       |
+| `InputCadenceProcessor`          | timing events, timing completion             | pending cadence span per session      | no             | cadence configuration and spans        |
 | `CommandReconstructionProcessor` | reads, canonical lines, writes, session end | pending command per session           | no             | reconstructed commands                 |
 | `RegexAnalysisProcessor`         | reconstructed commands                      | configured pattern policy             | no             | regex configuration and analyses       |
 | `InputReconciliationProcessor`   | canonical lines                             | current operation only                | yes            | input reconciliations                  |
 | `RawInputCodePointProcessor`     | raw reads, session end                      | incremental decoder state per session | no             | decoding configuration and code points |
 
-No single state strategy is intrinsically correct for every processor. Timing only needs the previous timestamp. Reconstruction naturally accumulates a pending command. Reconciliation benefits from shared recorded evidence because the same reads may be useful to other present or future interpretations as well.
+No single state strategy is intrinsically correct for every processor. Timing only needs the previous timestamp. Cadence keeps a pending span while compatible timing intervals arrive. Reconstruction naturally accumulates a pending command. Reconciliation benefits from shared recorded evidence because the same reads may be useful to other present or future interpretations as well.
 
 As a final independence check, temporarily remove the code-point branch from `run_local.py`: comment out its construction, configuration publication, `process_available()` line, and display call. Run the composition again.
 
-Timing, command reconstruction, reconciliation, and regex analysis should produce the same results as before. Restore the code-point branch afterward.
+Timing, cadence grouping, command reconstruction, reconciliation, and regex analysis should produce the same results as before. Restore the code-point branch afterward.
 
-The source was not rewritten to support timing, command analysis, reconciliation, or UTF-8 repair. The processors also do not form one mandatory linear pipeline: some consume source observations in parallel, one consumes another processor's derived event, and one combines a live event with shared history.
+The source was not rewritten to support timing, cadence grouping, command analysis, reconciliation, or UTF-8 decoding. The processors also do not form one mandatory linear pipeline: some consume source observations in parallel, some consume another processor's derived events, and one combines a live event with shared history.
 
 # Graph Reachability
 
@@ -2068,22 +2140,13 @@ path(A, B) + arc(B, C) -> path(A, C)
 
 The same rule must work regardless of which fact becomes available first:
 
-```text
-new arc B -> C
-      |
-      v
-find known paths ending at B
-      |
-      v
-path A -> C
+```mermaid
+flowchart LR
+    new_arc["new arc B → C"] --> paths["find known paths ending at B"]
+    paths --> from_arc["path A … C"]
 
-new path A -> B
-      |
-      v
-find known arcs starting at B
-      |
-      v
-path A -> C
+    new_path["new path A … B"] --> arcs["find known arcs starting at B"]
+    arcs --> from_path["path A … C"]
 ```
 
 Start with the pure relation between one compatible path and arc. In `ropemother_exercises/graph/processors.py`, add this function after `direct_path_from_arc()`:
@@ -2256,11 +2319,6 @@ The existing runner already represents each scheduling opportunity as a named ca
 class GraphProcessorStep:
     step_name: str
     process: collections.abc.Callable[[], int]
-
-for round_index in range(max_rounds):
-    round_work_count = run_fixed_order_round(...)
-    if round_work_count == 0:
-        return tuple(trace)
 ```
 
 Each processor method used as a step calls `receive_nowait()` once. A step therefore consumes zero or one queued event. A round is quiet only when every step finds no message to consume.
@@ -2329,13 +2387,78 @@ def graph_processor_steps(
     return (direct_step, arc_extension_step, path_extension_step)
 ```
 
+The final comparison will show not only the completed reachability set, but also when new path facts become available. Keep the existing scheduling trace and add the paths first recorded during each round to `GraphRunResult`:
+
+```python
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class GraphRunResult:
+    run_id: str
+    graph: Graph
+    paths: tuple[PathFound, ...]
+    trace: tuple[TraceEntry, ...]
+    new_paths_by_round: tuple[tuple[PathFound, ...], ...]
+```
+
+Replace `run_fixed_order()` with:
+
+```python
+def run_fixed_order(
+    graph: Graph, *, run_id: str, max_rounds: int = 20
+) -> GraphRunResult:
+    runtime = create_graph_runtime()
+    runtime.source.emit_graph(run_id=run_id, graph=graph)
+
+    trace, new_paths_by_round = run_fixed_order_until_quiet(
+        runtime,
+        run_id=run_id,
+        graph_id=graph.graph_id,
+        max_rounds=max_rounds,
+    )
+    paths = runtime.graph_facts.paths_for_run(run_id, graph.graph_id)
+
+    result = GraphRunResult(
+        run_id=run_id,
+        graph=graph,
+        paths=paths,
+        trace=trace,
+        new_paths_by_round=new_paths_by_round,
+    )
+    return result
+```
+
+Replace `run_fixed_order_until_quiet()` with:
+
+```python
+def run_fixed_order_until_quiet(
+    runtime: GraphRuntime, *, run_id: str, graph_id: str, max_rounds: int
+) -> tuple[tuple[TraceEntry, ...], tuple[tuple[PathFound, ...], ...]]:
+    trace = []
+    new_paths_by_round = []
+    known_path_count = 0
+
+    for round_index in range(max_rounds):
+        round_work_count = run_fixed_order_round(
+            runtime, round_index=round_index, trace=trace
+        )
+        paths = runtime.graph_facts.paths_for_run(run_id, graph_id)
+        new_paths_by_round.append(paths[known_path_count:])
+        known_path_count = len(paths)
+
+        if round_work_count == 0:
+            return (tuple(trace), tuple(new_paths_by_round))
+
+    raise GraphRunError("graph processor steps did not become quiet")
+```
+
+`known_path_count` marks how much of the history-backed path result was already present after the previous round. The slice therefore records only facts that first appeared during the current round. The final quiet round is retained as an empty path batch.
+
 Run the activity again:
 
 ```sh
 python -m ropemother_exercises.graph.reachability
 ```
 
-Expected output now contains all six reachable pairs:
+Expected output still presents the completed fixed-order result as all six reachable pairs:
 
 ```text
 Declared arcs
@@ -2356,7 +2479,7 @@ The extension processor emits `A -> C` and `B -> D`, then receives derived path 
 
 The feedback stops because `GraphFacts.path_is_known()` prevents an already recorded source-target reachability fact from being emitted again. Once every possible fact for this finite graph has been recorded and every queued event has been consumed, a complete scheduling round performs no work.
 
-### Quiescence is a property of this execution model
+**Quiescence is a property of this execution model**
 
 The runner's `round_work_count == 0` test is useful because the graph source is finite, all communication is local, every scheduling step checks an in-memory queue immediately, and duplicate suppression makes this feedback topology terminate.
 
@@ -2381,13 +2504,21 @@ def run_random_order(
     runtime = create_graph_runtime()
     runtime.source.emit_graph(run_id=run_id, graph=graph)
 
-    trace = run_random_order_until_quiet(
-        runtime, seed=seed, max_rounds=max_rounds
+    trace, new_paths_by_round = run_random_order_until_quiet(
+        runtime,
+        run_id=run_id,
+        graph_id=graph.graph_id,
+        seed=seed,
+        max_rounds=max_rounds,
     )
     paths = runtime.graph_facts.paths_for_run(run_id, graph.graph_id)
 
     result = GraphRunResult(
-        run_id=run_id, graph=graph, paths=paths, trace=trace
+        run_id=run_id,
+        graph=graph,
+        paths=paths,
+        trace=trace,
+        new_paths_by_round=new_paths_by_round,
     )
     return result
 ```
@@ -2396,19 +2527,32 @@ Add the randomized quiescence loop before `graph_processor_steps()`:
 
 ```python
 def run_random_order_until_quiet(
-    runtime: GraphRuntime, *, seed: int, max_rounds: int
-) -> tuple[TraceEntry, ...]:
+    runtime: GraphRuntime,
+    *,
+    run_id: str,
+    graph_id: str,
+    seed: int,
+    max_rounds: int,
+) -> tuple[tuple[TraceEntry, ...], tuple[tuple[PathFound, ...], ...]]:
     rng = random.Random(seed)
     trace = []
+    new_paths_by_round = []
+    known_path_count = 0
 
     for round_index in range(max_rounds):
         round_work_count = run_random_order_round(
             runtime, rng=rng, round_index=round_index, trace=trace
         )
+        paths = runtime.graph_facts.paths_for_run(run_id, graph_id)
+        new_paths_by_round.append(paths[known_path_count:])
+        known_path_count = len(paths)
+
         if round_work_count == 0:
-            return tuple(trace)
+            result = (tuple(trace), tuple(new_paths_by_round))
+            return result
 
     raise GraphRunError("graph processor steps did not become quiet")
+
 
 def run_random_order_round(
     runtime: GraphRuntime,
@@ -2442,29 +2586,86 @@ from ropemother_exercises.graph.runner import (
 )
 ```
 
-Add this helper after `path_facts()`:
+Add these display helpers after `path_facts()`:
 
 ```python
-def display_first_round(label: str, result: GraphRunResult) -> None:
-    print(label)
+def format_path_cell(
+    paths: tuple[PathFound, ...], *, direct: bool
+) -> str:
+    if direct:
+        selected_paths = tuple(path for path in paths if path.hop_count == 1)
+        separator = "→"
+    else:
+        selected_paths = tuple(path for path in paths if path.hop_count > 1)
+        separator = "…"
+
+    if not selected_paths:
+        cell = " - "
+    elif len(selected_paths) == 1:
+        path = selected_paths[0]
+        cell = f"{path.source}{separator}{path.target}"
+    else:
+        cell = f"x{len(selected_paths)}"
+
+    return f"{cell:^3}"
+
+
+def round_activity_counts(result: GraphRunResult) -> tuple[int, ...]:
+    counts = [0] * len(result.new_paths_by_round)
 
     for entry in result.trace:
-        if entry.round_index != 0:
-            break
+        counts[entry.round_index] += entry.work_count
 
-        print(f"{entry.step_name}: {entry.work_count}")
+    return tuple(counts)
+
+
+def display_path_rounds(label: str, result: GraphRunResult) -> None:
+    round_labels = "  ".join(
+        f"{round_index:^3}"
+        for round_index in range(1, len(result.new_paths_by_round) + 1)
+    )
+    direct_cells = "  ".join(
+        format_path_cell(paths, direct=True)
+        for paths in result.new_paths_by_round
+    )
+    extended_cells = "  ".join(
+        format_path_cell(paths, direct=False)
+        for paths in result.new_paths_by_round
+    )
+    activity_cells = "  ".join(
+        f"{count:^3}" for count in round_activity_counts(result)
+    )
+
+    label_width = 13
+
+    print(label)
+    print(f"{'':{label_width}}Round")
+    print(f"{'':{label_width}}{round_labels}")
+    print(f"{'Direct':{label_width}}{direct_cells}")
+    print(f"{'Extended':{label_width}}{extended_cells}")
+    print(f"{'Activity':{label_width}}{activity_cells}")
 ```
 
-In `run_reachability()`, keep the existing declared-arc and fixed-order output. Immediately after the loop that prints `fixed_path_facts`, add two randomized runs and compare them with the fixed result:
+The display uses one compact cell per round. A direct fact such as `A→B` is a one-hop reachability fact derived from a declared arc. An extended fact such as `A…C` was produced through the feedback rule. `xN` means that more than one extended fact was emitted during that round, while `-` means no new fact of that row's kind was emitted. `Activity` counts queued events consumed during the round; a final activity count of `0` is the quiet round.
+
+`run_reachability()` now performs several independent runs. Rename the source-only run identifier to make that role explicit:
+
+```python
+source_run_id = "source-facts"
+source.emit_graph(run_id=source_run_id, graph=graph)
+declared_arcs = graph_facts.arcs_for_run(source_run_id, graph.graph_id)
+```
+
+Keep the existing declared-arc and fixed-order output. Immediately after the loop that prints `fixed_path_facts`, add two randomized runs and compare them with the fixed result:
 
 ```python
 seed_one_result = run_random_order(graph, run_id="random-seed-1", seed=1)
 seed_five_result = run_random_order(graph, run_id="random-seed-5", seed=5)
 
 print()
-display_first_round("Seed 1, first round", seed_one_result)
+display_path_rounds("Seed 1", seed_one_result)
 print()
-display_first_round("Seed 5, first round", seed_five_result)
+display_path_rounds("Seed 5", seed_five_result)
 
 seed_one_path_facts = path_facts(seed_one_result.paths)
 seed_five_path_facts = path_facts(seed_five_result.paths)
@@ -2498,38 +2699,40 @@ B -> C; hop count 1
 B -> D; hop count 2
 C -> D; hop count 1
 
-Seed 1, first round
-extend paths from arcs: 1
-extend paths from paths: 0
-direct path processor: 1
+Seed 1
+             Round
+              1    2    3    4    5    6    7    8
+Direct       A→B  B→C  C→D   -    -    -    -    -
+Extended      -   A…C  x2    -    -    -    -    -
+Activity      2    3    3    1    1    1    1    0
 
-Seed 5, first round
-direct path processor: 1
-extend paths from arcs: 1
-extend paths from paths: 1
+Seed 5
+             Round
+              1    2    3    4    5    6    7
+Direct       A→B  B→C  C→D   -    -    -    -
+Extended     A…C  A…D  B…D   -    -    -    -
+Activity      3    3    3    1    1    1    0
 
 Same reachability: True
 ```
 
-The first-round traces differ even though the source graph and source arc order are the same. Under seed 1 the extension processor sees an arc before the direct processor has published a path that can use it. Under seed 5 a direct path is available early enough for the path-extension step to consume useful work during the same round.
+The same direct facts appear in both executions, but extended reachability becomes available in different rounds. Under seed 1 no extended fact is emitted in round 1, then `A…C` appears in round 2 and two longer facts appear together in round 3. Under seed 5, `A…C` is already established in round 1 and the remaining longer facts appear one at a time.
 
-Those differences change when facts become available, but not which reachability facts eventually exist. Both schedules continue until quiet and recover the same six `PathFound` facts from shared history.
+After the final new fact appears, activity continues while already queued events are consumed. Duplicate suppression prevents those events from adding the same reachability facts again. The final `0` shows the first round in which no processor consumed an event, so the local execution is quiet.
 
-The event history therefore contains more information than the final reachability set: it records one particular derivation order. The final projection answers a different question—what reachability facts were established after the computation converged.
+Both schedules nevertheless recover the same six `PathFound` facts. The execution history records how each run arrived there; the final reachability projection records what was established after the computation converged.
 
 ## Review the graph network
 
 The completed network has one source and two processors:
 
-```text
-GraphSource -> ArcDeclared
-
-ArcDeclared -> DirectPathsProcessor -> PathFound
-
-ArcDeclared -> ExtendPathsProcessor
-PathFound -> ExtendPathsProcessor
-ExtendPathsProcessor -> PathFound
-PathFound -> ExtendPathsProcessor  (feedback)
+```mermaid
+flowchart LR
+    source["GraphSource"] --> arc["ArcDeclared"]
+    arc --> direct["DirectPathsProcessor"] --> path["PathFound"]
+    arc --> extend["ExtendPathsProcessor"]
+    path --> extend
+    extend --> path
 ```
 
 Both processors use the same history-backed `GraphFacts` view before emitting a path candidate.
@@ -2585,20 +2788,12 @@ Read `run_reconstruction_explanation()` from top to bottom. It performs four ord
 
 The example calls these functions directly because its job is to explain the reconstruction model, not the application architecture. The live application wraps the same kind of prepared transformation behind message boundaries:
 
-```text
-sensor definition
-      |
-      v
-attached sensor source
-      |
-      v
-ImageObservation
-      |
-      v
-fusion processor
-      |
-      v
-ImageReconstructed
+```mermaid
+flowchart TD
+    definition["sensor definition"] --> source["attached sensor source"]
+    source --> observation["ImageObservation"]
+    observation --> fusion["fusion processor"]
+    fusion --> reconstructed["ImageReconstructed"]
 ```
 
 This separation is important. The sensing mathematics and fusion mathematics can remain prepared while the application is reorganized around independently running participants.
@@ -3472,32 +3667,25 @@ The reconstruction and sample-depth examples are explanatory references to read 
 
 The completed path has several independent roles connected by stable message boundaries:
 
-```text
-Sensor definitions
-      |
-      v
-Sensor sources
-      |
-      +--> projection observations --> history
-      |
-      +--> ImageObservation --> fusion processor
-      |                          |
-      |                          v
-      |                  ImageReconstructed
-      |                          |
-      |                          +--> completion --> history
-      |
-      +--> sensor contributions --> run identity service
+```mermaid
+flowchart TD
+    definitions["Sensor definitions"] --> sources["Sensor sources"]
+    sources --> projections["projection observations"] --> history["history"]
+    sources --> observations["ImageObservation"] --> fusion["fusion processor"]
+    fusion --> reconstructed["ImageReconstructed"]
+    reconstructed --> completion["completion"] --> history
+    sources --> contributions["sensor contributions"]
+    contributions --> identity["run identity service"]
 ```
 
 Completed work can then be interpreted through independent request/reply services:
 
-```text
-terminal / clients
-      |
-      +--> reconstruction-report service --> history
-      |
-      +--> dashboard service -------------> history
+```mermaid
+flowchart LR
+    clients["terminal / clients"]
+    history["history"]
+    clients --> report["reconstruction-report service"] --> history
+    clients --> dashboard["dashboard service"] --> history
 ```
 
 | Participant / boundary           | Primary input                           | Result or responsibility                                    |

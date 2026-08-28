@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # _targets/basic/run_display.py
 
-"""Display one submitted text event and its derived word count."""
+"""Display submitted text events and their derived word counts."""
 
-from ropemother.service import connect_message_bus
+from ropemother import connect_message_bus
 
 from ropemother_exercises.basic.events import (
     SOURCE_MSG_PRODUCER,
@@ -16,14 +16,15 @@ from ropemother_exercises.basic.events import (
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-07-21T14:57:38+00:00"
+__date__ = "2026-08-28T15:59:42+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
 
 
-def display_word_count() -> None:
+def display_word_counts() -> None:
     bus = connect_message_bus()
+
     try:
         text_receiver = bus.subscribe(
             msg_topic=TEXT_MSG_TOPIC,
@@ -36,14 +37,20 @@ def display_word_count() -> None:
             msg_type=WORDS_COUNTED_MSG_TYPE,
         )
 
-        submitted_message = text_receiver.receive()
-        counted_message = word_count_receiver.receive()
+        print("Live display is ready.")
 
-        print(f"submitted text: {submitted_message.payload}")
-        print(f"word count: {counted_message.payload}")
+        while True:
+            submitted_message = text_receiver.receive()
+            counted_message = word_count_receiver.receive()
+
+            print(f"submitted text: {submitted_message.payload}")
+            print(f"word count: {counted_message.payload}")
+            print()
+    except KeyboardInterrupt:
+        pass
     finally:
         bus.close()
 
 
 if __name__ == "__main__":
-    display_word_count()
+    display_word_counts()

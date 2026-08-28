@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 
+# Local Python environments
+.venv/
+
 # OS and file-browser metadata
 .DS_Store
 ._*

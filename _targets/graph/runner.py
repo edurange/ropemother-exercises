@@ -62,6 +62,7 @@ class GraphRunResult:
     graph: Graph
     paths: tuple[PathFound, ...]
     trace: tuple[TraceEntry, ...]
+    new_paths_by_round: tuple[tuple[PathFound, ...], ...]
 
 
 def create_graph_runtime() -> GraphRuntime:
@@ -111,11 +112,20 @@ def run_fixed_order(
     runtime = create_graph_runtime()
     runtime.source.emit_graph(run_id=run_id, graph=graph)
 
-    trace = run_fixed_order_until_quiet(runtime, max_rounds=max_rounds)
+    trace, new_paths_by_round = run_fixed_order_until_quiet(
+        runtime,
+        run_id=run_id,
+        graph_id=graph.graph_id,
+        max_rounds=max_rounds,
+    )
     paths = runtime.graph_facts.paths_for_run(run_id, graph.graph_id)
 
     result = GraphRunResult(
-        run_id=run_id, graph=graph, paths=paths, trace=trace
+        run_id=run_id,
+        graph=graph,
+        paths=paths,
+        trace=trace,
+        new_paths_by_round=new_paths_by_round,
     )
     return result
 
@@ -126,29 +136,49 @@ def run_random_order(
     runtime = create_graph_runtime()
     runtime.source.emit_graph(run_id=run_id, graph=graph)
 
-    trace = run_random_order_until_quiet(
-        runtime, seed=seed, max_rounds=max_rounds
+    trace, new_paths_by_round = run_random_order_until_quiet(
+        runtime,
+        run_id=run_id,
+        graph_id=graph.graph_id,
+        seed=seed,
+        max_rounds=max_rounds,
     )
     paths = runtime.graph_facts.paths_for_run(run_id, graph.graph_id)
 
     result = GraphRunResult(
-        run_id=run_id, graph=graph, paths=paths, trace=trace
+        run_id=run_id,
+        graph=graph,
+        paths=paths,
+        trace=trace,
+        new_paths_by_round=new_paths_by_round,
     )
     return result
 
 
 def run_random_order_until_quiet(
-    runtime: GraphRuntime, *, seed: int, max_rounds: int
-) -> tuple[TraceEntry, ...]:
+    runtime: GraphRuntime,
+    *,
+    run_id: str,
+    graph_id: str,
+    seed: int,
+    max_rounds: int,
+) -> tuple[tuple[TraceEntry, ...], tuple[tuple[PathFound, ...], ...]]:
     rng = random.Random(seed)
     trace = []
+    new_paths_by_round = []
+    known_path_count = 0
 
     for round_index in range(max_rounds):
         round_work_count = run_random_order_round(
             runtime, rng=rng, round_index=round_index, trace=trace
         )
+        paths = runtime.graph_facts.paths_for_run(run_id, graph_id)
+        new_paths_by_round.append(paths[known_path_count:])
+        known_path_count = len(paths)
+
         if round_work_count == 0:
-            return tuple(trace)
+            result = (tuple(trace), tuple(new_paths_by_round))
+            return result
 
     raise GraphRunError("graph processor steps did not become quiet")
 
@@ -184,16 +214,22 @@ def graph_processor_steps(
 
 
 def run_fixed_order_until_quiet(
-    runtime: GraphRuntime, *, max_rounds: int
-) -> tuple[TraceEntry, ...]:
+    runtime: GraphRuntime, *, run_id: str, graph_id: str, max_rounds: int
+) -> tuple[tuple[TraceEntry, ...], tuple[tuple[PathFound, ...], ...]]:
     trace = []
+    new_paths_by_round = []
+    known_path_count = 0
 
     for round_index in range(max_rounds):
         round_work_count = run_fixed_order_round(
             runtime, round_index=round_index, trace=trace
         )
+        paths = runtime.graph_facts.paths_for_run(run_id, graph_id)
+        new_paths_by_round.append(paths[known_path_count:])
+        known_path_count = len(paths)
+
         if round_work_count == 0:
-            return tuple(trace)
+            return (tuple(trace), tuple(new_paths_by_round))
 
     raise GraphRunError("graph processor steps did not become quiet")
 

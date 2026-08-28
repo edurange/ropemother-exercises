@@ -18,7 +18,7 @@ from ropemother_exercises.graph.source import GraphSource
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-06T14:59:23+00:00"
+__date__ = "2026-08-28T21:01:29+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
@@ -49,14 +49,61 @@ def path_facts(
     return tuple(sorted(facts))
 
 
-def display_first_round(label: str, result: GraphRunResult) -> None:
-    print(label)
+def format_path_cell(
+    paths: tuple[PathFound, ...], *, direct: bool
+) -> str:
+    if direct:
+        selected_paths = tuple(path for path in paths if path.hop_count == 1)
+        separator = "→"
+    else:
+        selected_paths = tuple(path for path in paths if path.hop_count > 1)
+        separator = "…"
+
+    if not selected_paths:
+        cell = " - "
+    elif len(selected_paths) == 1:
+        path = selected_paths[0]
+        cell = f"{path.source}{separator}{path.target}"
+    else:
+        cell = f"x{len(selected_paths)}"
+
+    return f"{cell:^3}"
+
+
+def round_activity_counts(result: GraphRunResult) -> tuple[int, ...]:
+    counts = [0] * len(result.new_paths_by_round)
 
     for entry in result.trace:
-        if entry.round_index != 0:
-            break
+        counts[entry.round_index] += entry.work_count
 
-        print(f"{entry.step_name}: {entry.work_count}")
+    return tuple(counts)
+
+
+def display_path_rounds(label: str, result: GraphRunResult) -> None:
+    round_labels = "  ".join(
+        f"{round_index:^3}"
+        for round_index in range(1, len(result.new_paths_by_round) + 1)
+    )
+    direct_cells = "  ".join(
+        format_path_cell(paths, direct=True)
+        for paths in result.new_paths_by_round
+    )
+    extended_cells = "  ".join(
+        format_path_cell(paths, direct=False)
+        for paths in result.new_paths_by_round
+    )
+    activity_cells = "  ".join(
+        f"{count:^3}" for count in round_activity_counts(result)
+    )
+
+    label_width = 13
+
+    print(label)
+    print(f"{'':{label_width}}Round")
+    print(f"{'':{label_width}}{round_labels}")
+    print(f"{'Direct':{label_width}}{direct_cells}")
+    print(f"{'Extended':{label_width}}{extended_cells}")
+    print(f"{'Activity':{label_width}}{activity_cells}")
 
 
 def run_reachability() -> None:
@@ -88,9 +135,9 @@ def run_reachability() -> None:
     seed_five_result = run_random_order(graph, run_id="random-seed-5", seed=5)
 
     print()
-    display_first_round("Seed 1, first round", seed_one_result)
+    display_path_rounds("Seed 1", seed_one_result)
     print()
-    display_first_round("Seed 5, first round", seed_five_result)
+    display_path_rounds("Seed 5", seed_five_result)
 
     seed_one_path_facts = path_facts(seed_one_result.paths)
     seed_five_path_facts = path_facts(seed_five_result.paths)
