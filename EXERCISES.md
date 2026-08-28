@@ -1,6 +1,6 @@
-# Ropemother Exercises
+# Ropemother exercises
 
-These exercises introduce message-based software design with Ropemother. They assume basic Python reading and small edits. They do not assume prior experience with message brokers, distributed systems, service-oriented architecture, event sourcing, image processing, graph processing, or eduRange internals.
+These exercises introduce message-based software design with `ropemother`. They assume basic Python reading and small edits. They do not assume prior experience with message brokers, distributed systems, service-oriented architecture, event sourcing, image processing, graph processing, or eduRange internals.
 
 Work through the sections in order:
 
@@ -10,7 +10,7 @@ Work through the sections in order:
 4. Graph Reachability
 5. Image Reconstruction — Full Self-Paced Path
 
-Run commands from the repository root with Python 3.13 or newer. If Ropemother is not already installed in the Python environment used for the exercises, install it with:
+Run commands from the repository root with Python 3.13 or newer. If `ropemother` is not already installed in the Python environment used for the exercises, install it with:
 
 ```sh
 python -m pip install ropemother
@@ -1050,7 +1050,7 @@ Basic used a prepared broker history profile so the first history query could fo
 | `LocalMessageBusHost`    | Runs the local broker with capture, formats, and the history extension        |
 | `host.client()`          | Returns the ordinary endpoint factory used by the source and later processors |
 
-The relationships are the lesson; memorizing this constructor sequence is not. A later helper or factory may wrap the same setup to make another example shorter. That wrapper is an example convenience, not a declaration that ordinary Ropemother history use has one canonical construction path.
+The relationships are the lesson; memorizing this constructor sequence is not. A later helper or factory may wrap the same setup to make another example shorter. That wrapper is an example convenience, not a declaration that ordinary `ropemother` history use has one canonical construction path.
 
 Create the first version of:
 
@@ -1738,7 +1738,7 @@ self._history = preconfigured_history_client(bus)
 self._emitter = bus.register_emitter(...)
 ```
 
-`preconfigured_history_client()` binds the built-in broker-history service's prepared topics, producers, message types, and formats so this example can focus on selecting evidence. It is an example convenience, not the canonical history API for every Ropemother application. The general endpoint-factory surface remains `create_history_client(...)` when an application defines or selects another history service profile.
+`preconfigured_history_client()` binds the built-in broker-history service's prepared topics, producers, message types, and formats so this example can focus on selecting evidence. It is an example convenience, not the canonical history API for every `ropemother` application. The general endpoint-factory surface remains `create_history_client(...)` when an application defines or selects another history service profile.
 
 The processing path then makes the two evidence sources explicit:
 
@@ -2660,7 +2660,7 @@ Image application host is ready. Make sure to run the independent services separ
 export ROPEMOTHER_CONNECTION_DESCRIPTOR=ropemother+unix:///...
 ```
 
-The descriptor is the connection address for this running broker. It tells a client which transport and endpoint to use; it does not copy the broker or its history into the new process. Ropemother's `connect_message_bus()` reads `ROPEMOTHER_CONNECTION_DESCRIPTOR`, so separate programs that receive the same descriptor can join the same running message bus without being started by one another.
+The descriptor is the connection address for this running broker. It tells a client which transport and endpoint to use; it does not copy the broker or its history into the new process. The `connect_message_bus()` function from `ropemother` reads `ROPEMOTHER_CONNECTION_DESCRIPTOR`, so separate programs that receive the same descriptor can join the same running message bus without being started by one another.
 
 Copy and run the printed `export ROPEMOTHER_CONNECTION_DESCRIPTOR=...` command in the same shell.
 

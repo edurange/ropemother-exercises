@@ -1,6 +1,6 @@
-# Ropemother Exercises
+# Ropemother exercises
 
-Hands-on exercises for learning message-based software design with [Ropemother](https://pypi.org/project/ropemother/). The current draft is one scaffolded sequence beginning with the 90-minute CCSC Northwest image-reconstruction exercise, followed by Basic Messaging, TTY Processing, Graph Reachability, and a fuller return to the image application.
+Hands-on exercises for learning message-based software design with the `ropemother` Python package. The current draft is one scaffolded sequence beginning with the 90-minute CCSC Northwest image-reconstruction exercise, followed by Basic Messaging, TTY Processing, Graph Reachability, and a fuller return to the image application.
 
 The exercise code is intended to run directly from a source checkout. The exercise package itself does not need to be installed before following the instructions. `EXERCISES.md` introduces the minimum working context again where it is needed; this README provides fuller setup and troubleshooting support rather than serving as a prerequisite lesson.
 
@@ -23,7 +23,7 @@ git clone https://github.com/edurange/ropemother-exercises.git
 cd ropemother-exercises
 ```
 
-Install Ropemother:
+Install `ropemother` from PyPI:
 
 ```sh
 python -m pip install ropemother
@@ -66,4 +66,3 @@ The CCSCNW exercise is both the conference route and the introduction to the lon
 The exercises are under active development. Commands and participant-facing material are being rehearsed before the workshop and may still change.
 
 Problems with the exercises can be reported through the [GitHub issue tracker](https://github.com/edurange/ropemother-exercises/issues). Changes to the exercises or supporting code should follow [CONTRIBUTING.md](CONTRIBUTING.md).
-

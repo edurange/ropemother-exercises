@@ -2,7 +2,9 @@
 
 This repository is maintained primarily for eduRange teaching and workshop use. If you find a problem with an exercise, please start by opening an issue. Please discuss substantial changes before opening a pull request; the exercises and supporting code are still changing, and review capacity is limited.
 
-Changes to the Ropemother library itself belong in the [Ropemother repository](https://github.com/edurange/ropemother).
+Changes to the `ropemother` library itself belong in its repository:
+
+<https://github.com/edurange/ropemother>
 
 ## Before submitting Python changes
 
@@ -29,7 +31,7 @@ A fuller automated test suite and CI/CD workflow are still in development. Until
 
 Participant instructions and runnable code should agree. When an exercise asks participants to create or substantially edit a file, keep an appropriate completed reference under `_targets/` synchronized with the participant path.
 
-Participant-facing exercise code should use ordinary public Ropemother interfaces unless an exercise is specifically teaching a public extension point. If an exercise seems to require bus internals or a workaround for a missing public interface, that may need discussion in the exercise or Ropemother design before the workaround is added.
+Participant-facing exercise code should use ordinary public `ropemother` interfaces unless an exercise is specifically teaching a public extension point. If an exercise seems to require bus internals or a workaround for a missing public interface, that may need discussion in the exercise or the design of `ropemother` before the workaround is added.
 
 ## Reporting exercise problems
 
