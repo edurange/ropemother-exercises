@@ -20,24 +20,11 @@ Run commands from the repository root with Python 3.13 or newer. If `ropemother`
 python -m pip install ropemother
 ```
 
-[README.md](README.md) contains fuller setup, editor, shell/platform, and troubleshooting guidance for independent use. It is supplementary: the exercise instructions still introduce the working arrangement and concepts needed at the point where they are used.
-
-> **Authoring notes**
->
-> - Inline notes are for human curriculum review.
-> - Use them when nearby context helps a reviewer judge prerequisites, learning objectives, evidence, rhetorical opportunities, participant difficulties, or unresolved support.
-> - Keep them terse and itemized where possible.
-> - Keep them focused on instructional design rather than drafting history.
+[README.md](README.md) contains fuller setup, editor, shell/platform, and troubleshooting guidance for independent use.
 
 # Image Reconstruction — Guided Introduction
 
-> **Authoring notes**
->
-> - Audience floor: basic Python assignment, function calls, keyword arguments, and simple loops. Do not assume shell job control, environment variables, message buses, request/reply, history, service architecture, or image reconstruction.
-> - Protect the four-angle run, explicit completion, report request, eight-angle run, later finite client, and dashboard restart/edit. These are the minimum architectural consequences the live route is meant to expose.
-> - Treat this as a live task sheet. Participants will repeatedly look away at terminals, Python, and an editor; headings and nearby expected output should make it easy to recover their place.
-
-This is the opening exercise in the sequence and a guided route through the image application. Keep these instructions visible beside the terminals while working through the steps.
+Keep these instructions visible beside the terminals while working through the guided image steps.
 
 The exercise uses two terminal windows or tabs:
 
@@ -85,12 +72,6 @@ Switch to the workspace terminal and run the same complete `export ROPEMOTHER_CO
 
 If a later client says that the bus contact is missing, rerun the complete export command in that client's shell. If the application or either report service did not print the readiness text above, stop here and get that process running before moving on.
 
-> **Authoring note**
->
-> - Supplementary presenter material: `python -m ropemother_exercises.image.examples.reconstruction`.
-> - Good placement: while the room is getting terminals situated.
-> - Keep it supplementary; do not make it a required participant detour.
-
 ## 2. Open the interactive image workspace
 
 In the workspace terminal, start the prepared workspace:
@@ -104,12 +85,6 @@ The workspace connects to the application, attaches prepared 0° and 90° angula
 Leave this interpreter open. The Python prompt should return after the reconstruction is printed; the current run is still open and the next measurements will add evidence to it.
 
 The variables used in the next steps are already prepared, including `target`, `frame`, `samples_per_sensor`, `bus`, `run_receiver`, `report_client`, and the 0° and 90° sensor sources.
-
-> **Authoring note**
->
-> - Supplementary presenter material: `sensor_0.show_bins(frame)` when sensor geometry needs a visual explanation.
-> - It can be demonstrated here without becoming part of the required route.
-> - Possible follow-up material: perspective-bin comparisons and fuller geometry discussion.
 
 ## 3. Add a 45° sensor source
 
@@ -275,12 +250,6 @@ The printed report is the result to compare with the earlier four-angle run. Com
 
 The application history now contains a manually assembled four-source run and an eight-source run that reused those four participants and added four generated participants.
 
-> **Authoring note**
->
-> - Optional live insertion point: one coached reconstruction variation between the eight-angle run and the terminal-client transition.
-> - Omit it cleanly when pace is tight; it is not part of the common participant route.
-> - Candidate supplements: perspective sensors, `show_bins()`, the prepared measurement-budget example, and—once the public workflow exists—participant-to-participant target sharing.
-
 ## 9. Inspect the completed work from another client
 
 Leave the Python interpreter open in the workspace terminal and switch to the application terminal. The next commands are separate finite-lived clients; they do not read the variables in the open interpreter.
@@ -304,11 +273,6 @@ Request the dashboard:
 ```
 
 These commands should show work that was completed earlier even though they are running as different clients. The exercise history lasts for the lifetime of the running image application. Restarting a report service or leaving the interactive workspace does not remove it; stopping the image application does.
-
-> **Authoring note**
->
-> - Stronger lifetime variant: exit the workspace before the finite-client commands so the later client visibly outlives the exploratory Python process.
-> - Default live route: leave the workspace open so participants can return to the attached sensors during exploration.
 
 ## 10. Stop, change, and restart only the dashboard
 
@@ -387,13 +351,6 @@ python -m ropemother_exercises.image.service.report &
 
 A fresh workspace can be opened if the earlier interpreter was exited, but remember that starting it immediately begins a new run with the prepared 0° and 90° measurements.
 
-> **Authoring note**
->
-> - Open time may branch into reconstruction, dashboard, or report work.
-> - For participants who need more structure, offer one concrete next action rather than only a menu.
-> - Presenter supplements can include the prepared reconstruction and measurement-budget examples.
-> - `_targets/image/dashboard.py` is a reference after an attempt, not the required endpoint.
-
 ## 12. Review what changed
 
 Before cleanup, compare the changes made during the exercise with the parts of the application that did not need to change:
@@ -407,12 +364,6 @@ Before cleanup, compare the changes made during the exercise with the parts of t
 - One downstream presentation policy changed without repeating the measurements.
 
 Then consider: **which of those changes would have required editing a shared processing path in a more tightly coupled program?**
-
-> **Authoring note**
->
-> - Introduce architectural vocabulary after the consequences have been experienced.
-> - Useful terms: producer, processor, message boundary, fan-out, request/reply, history, stable contract, substitution, localized change.
-> - Domain analogies can remain presenter material; no participant-facing terminology table is needed here.
 
 ## 13. Stop the local image application
 
@@ -434,12 +385,6 @@ kill -INT $(jobs -p)
 
 
 # Basic Messaging
-
-> **Authoring note**
->
-> - Role in sequence: first systematic treatment of the public messaging mechanisms after the introductory image exercise.
-> - Establishes: publish/subscribe, independent process lifetimes, fan-out, the freestanding broker, and shared history as a request/reply-shaped service.
-> - Later sections should reuse these mechanics for new architectural purposes rather than reteach them in full.
 
 ## What a message bus changes
 
@@ -484,7 +429,7 @@ flowchart TB
     broker -->|IPC| processor
 ```
 
-The exercises do not present broader cross-system transport as a turnkey Ropemother feature. A bus with a suitable transport can extend the same messaging relationship farther; the examples here demonstrate the local-process case.
+Current Ropemother examples here use local in-process delivery and local IPC through the freestanding broker. Message-bus architectures can extend the same relationship across broader system boundaries when suitable transports exist, but current Ropemother does not provide turnkey remote cross-system transport.
 
 ## Inspect the prepared message contracts
 
@@ -553,7 +498,7 @@ emitter = bus.register_emitter(
 )
 ```
 
-`TRANSPORT_ONLY` keeps this first example focused on live delivery. The subscription describes which messages the receiver wants; `msg_producer=SOURCE_MSG_PRODUCER` filters for messages from `text-source` rather than assigning that identity to the receiver.
+`TRANSPORT_ONLY` uses live delivery without capture for this exchange. The subscription describes which messages the receiver wants; `msg_producer=SOURCE_MSG_PRODUCER` filters for messages from `text-source` rather than assigning that identity to the receiver.
 
 Publish one value and inspect the readable message that arrives:
 
@@ -570,7 +515,7 @@ Publish one value and inspect the readable message that arrives:
 'foo bar baz'
 ```
 
-The objects used in this first exchange form the first small Ropemother API surface in the exercise. This diagram is about the concrete calls above, not general messaging vocabulary:
+The objects used in this first exchange form a small endpoint-facing Ropemother API surface:
 
 ```mermaid
 flowchart LR
@@ -713,7 +658,7 @@ Exit the interpreter:
 exit()
 ```
 
-The processor itself will be exercised as an independently running participant rather than called once from the same control flow as the source.
+Run the processor as an independently running participant rather than calling it once from the same control flow as the source.
 
 ## Create the freestanding processor runner
 
@@ -998,7 +943,7 @@ demo.basic.word-count | word-counter | words-counted | 4
 demo.basic.word-count | word-counter | words-counted | 5
 ```
 
-The third source event and its derived result are present even though the live display was gone when they were published. The history client did not need to be subscribed at that time; it asks the broker's prepared history service for recorded evidence after the fact. This is the first service-shaped interaction in the extended sequence: unlike a broadcast subscription, one query is sent in order to receive the corresponding result. `preconfigured_history_client()` selects the built-in profile to expedite this example; it is not presented as the one canonical way to construct every history client. TTY deliberately opens the corresponding host and service composition before later examples use convenience wrappers again.
+The third source event and its derived result are present even though the live display was gone when they were published. The history client did not need to be subscribed at that time; it asks the broker's prepared history service for recorded evidence after the fact. Unlike a broadcast subscription, one query is sent in order to receive the corresponding result. `preconfigured_history_client()` selects Ropemother's built-in history-service profile for this query.
 
 ## Compare the live view with the event history
 
@@ -1071,12 +1016,6 @@ Because this walkthrough started the broker with `--temporary`, its temporary ru
 
 # TTY Processing
 
-> **Authoring note**
->
-> - Shift in emphasis: messaging mechanics to event design.
-> - Distinctions: source observations versus derived determinations; stable correlation coordinates; private processor state versus shared history; peer interpretations of common evidence.
-> - Keep source observations unchanged while timing, cadence grouping, command reconstruction, regex analysis, reconciliation, and decoding are added downstream.
-
 ## Inspect the prepared source model
 
 Open:
@@ -1098,14 +1037,7 @@ These are source observations. They do not contain reconstructed commands, typin
 
 **Look under the hood at local history**
 
-> **Authoring note**
->
-> - Deliberate exception to the otherwise turnkey history presentation.
-> - Intended reveal: a capture-backed readable history view exposed through a request/reply service.
-> - Do not expose: symbol IDs, raw capture records, or other bus internals.
-> - Keep this activity only if it clarifies what later history convenience helpers are wrapping.
-
-Basic used a prepared broker history profile so the first history query could focus on selecting and interpreting recorded messages. This exercise deliberately assembles the public pieces behind that convenience before returning to application processors.
+In Basic, `preconfigured_history_client()` selected a ready-made broker-history profile. Here, assemble the public capture, history, and request/reply service pieces that provide that capability before returning to application processors.
 
 | Object                   | Responsibility in this local composition                                      |
 | ------------------------ | ----------------------------------------------------------------------------- |
@@ -1115,7 +1047,7 @@ Basic used a prepared broker history profile so the first history query could fo
 | `LocalMessageBusHost`    | Runs the local broker with capture, formats, and the history extension        |
 | `host.client()`          | Returns the ordinary endpoint factory used by the source and later processors |
 
-The relationships are the lesson; memorizing this constructor sequence is not. A later helper or factory may wrap the same setup to make another example shorter. That wrapper is an example convenience, not a declaration that ordinary `ropemother` history use has one canonical construction path.
+Read the constructor sequence as three connected responsibilities: capture records traffic, readable history indexes it, and a request/reply extension exposes it. You do not need to memorize the exact constructor calls. Helpers such as `preconfigured_history_client()` can select a prepared service profile when an application does not need to assemble these pieces itself.
 
 Create the first version of:
 
@@ -1202,13 +1134,13 @@ TTYReadObserved(session_id='session-1', observation_index=14, observed_at_ns=193
 TTYSessionEnded(session_id='session-1', observation_index=17, observed_at_ns=2300000000)
 ```
 
-The two one-byte reads at observations 13 and 14 are intentionally worth remembering: together they encode `é`, but neither source observation contains a complete UTF-8 code point by itself.
+Keep the two one-byte reads at observations 13 and 14 in mind: together they encode `é`, but neither source observation contains a complete UTF-8 code point by itself.
 
 **Event records, identities, and portable data**
 
 `TTYReadObserved` is an immutable value describing one observation. `session_id` associates that value with a longer-lived session, while `observation_index` and `observed_at_ns` locate the observation within the recorded evidence. A downstream processor can correlate observations without receiving or mutating a shared `Session` object.
 
-The Python dataclasses in `events.py` are also not the only representation of these messages. The prepared `formats.py` maps the runtime values to portable projections suitable for capture and transport. For example, source `bytes` become Base64 fields in the JSON projection. The guided TTY path uses those formats without implementing them; a later format-focused activity can examine that boundary directly.
+The Python dataclasses in `events.py` are also not the only representation of these messages. The prepared `formats.py` maps the runtime values to portable projections suitable for capture and transport. For example, source `bytes` become Base64 fields in the JSON projection. This exercise uses those prepared formats while working with the runtime event values.
 
 This separation leaves two design questions visible throughout the exercise: what fact deserves its own event, and what context must that event preserve so an unanticipated later processor can interpret it independently?
 
@@ -1380,6 +1312,64 @@ def _display_available_payloads(receiver: Receiver) -> None:
         print(message.payload)
 ```
 
+Before running, `run_local.py` should now read:
+
+```python
+"""Run the TTY exercise with a local hosted message bus."""
+
+from ropemother import InMemoryCaptureSink
+from ropemother.broker import Receiver
+from ropemother.capture import InMemoryCaptureHistory
+from ropemother.service import BrokerHistoryExtension, LocalMessageBusHost
+
+from ropemother_exercises.tty.application.source import scripted_tty_source
+from ropemother_exercises.tty.events import TIMING_MSG_TOPIC
+from ropemother_exercises.tty.formats import TTY_PORTABLE_FORMATS
+from ropemother_exercises.tty.timing import InputTimingProcessor
+
+
+def run_local_tty_processing() -> None:
+    capture_sink = InMemoryCaptureSink()
+    history = InMemoryCaptureHistory(
+        capture_sink, extra_formats=TTY_PORTABLE_FORMATS
+    )
+    host = LocalMessageBusHost(
+        BrokerHistoryExtension(history),
+        capture_sink=capture_sink,
+        extra_formats=TTY_PORTABLE_FORMATS,
+    )
+    host.start()
+    bus = host.client()
+
+    source = scripted_tty_source(bus)
+    timing_processor = InputTimingProcessor(bus)
+
+    timing_results = bus.subscribe(msg_topic=TIMING_MSG_TOPIC)
+
+    try:
+        source.emit_all()
+
+        while True:
+            round_work_count = 0
+            round_work_count += timing_processor.process_available()
+
+            if round_work_count == 0:
+                break
+
+        _display_available_payloads(timing_results)
+    finally:
+        host.close()
+
+
+def _display_available_payloads(receiver: Receiver) -> None:
+    for message in receiver.receive_available():
+        print(message.payload)
+
+
+if __name__ == "__main__":
+    run_local_tty_processing()
+```
+
 Run the composition again:
 
 ```sh
@@ -1399,17 +1389,11 @@ InputTimingCompleted(session_id='session-1', boundary_observation_index=17, comp
 
 Basic showed long-running processors reacting independently. The TTY fixture instead supplies a finite recorded source and runs several local processors cooperatively. Each `process_available()` call consumes whatever is already waiting for that processor. A complete round that performs no work means this finite local topology has become quiet.
 
-That condition is intentionally narrow. An empty local queue does not prove that a general distributed or externally driven application is finished: later messages may still arrive, messages may be in flight, and some feedback systems never become quiet. The later graph exercise will revisit local quiescence in a topology where scheduling order itself is part of the experiment.
+That condition is narrow. An empty local queue does not prove that a general distributed or externally driven application is finished: later messages may still arrive, messages may be in flight, and some feedback systems never become quiet. The Graph exercise later revisits local quiescence in a topology where scheduling order itself is part of the experiment.
 
 ## Group timing intervals into cadence spans
 
 Timing made elapsed intervals available as a derived stream. Add a prepared processor that consumes that stream and groups contiguous intervals under one simple numeric rule. This is the first step toward possible cadence analyses, not a classification of behavior.
-
-> **Authoring note**
->
-> - Cadence grouping is part of the required TTY path.
-> - Keep this activity at the level of deriving and grouping timing values.
-> - Classifying cadence regimes, comparing grouping policies, or attaching behavioral meaning to the spans belongs in optional later work.
 
 Copy the prepared implementation into the exercise package:
 
@@ -1424,7 +1408,7 @@ Open the copied file and locate four parts before adding it to the composition:
 - `intervals_fit_cadence()` keeps a candidate span together only when its minimum and maximum intervals remain within the configured distance of the candidate mean.
 - `InputTimingCompleted` tells the processor to emit any pending final span and release its session-local state.
 
-The prepared setting is `Fraction(20, 100)`, or 20 percent. The grouping rule is intentionally transparent: it preserves a simple description of timing structure without assigning a behavioral label to that structure.
+The prepared setting is `Fraction(20, 100)`, or 20 percent. The grouping rule preserves a simple description of timing structure without assigning a behavioral label to that structure.
 
 Update the timing-related imports in `run_local.py`:
 
@@ -1468,6 +1452,78 @@ Display cadence after the timing stream:
 ```python
 _display_available_payloads(timing_results)
 _display_available_payloads(cadence_results)
+```
+
+Before running, `run_local.py` should now read:
+
+```python
+"""Run the TTY exercise with a local hosted message bus."""
+
+from ropemother import InMemoryCaptureSink
+from ropemother.broker import Receiver
+from ropemother.capture import InMemoryCaptureHistory
+from ropemother.service import BrokerHistoryExtension, LocalMessageBusHost
+
+from ropemother_exercises.tty.application.source import scripted_tty_source
+from ropemother_exercises.tty.events import (
+    CADENCE_MSG_TOPIC,
+    TIMING_MSG_TOPIC,
+)
+from ropemother_exercises.tty.formats import TTY_PORTABLE_FORMATS
+from ropemother_exercises.tty.cadence import (
+    PREPARED_MAXIMUM_RELATIVE_DEVIATION,
+    InputCadenceProcessor,
+)
+from ropemother_exercises.tty.timing import InputTimingProcessor
+
+
+def run_local_tty_processing() -> None:
+    capture_sink = InMemoryCaptureSink()
+    history = InMemoryCaptureHistory(
+        capture_sink, extra_formats=TTY_PORTABLE_FORMATS
+    )
+    host = LocalMessageBusHost(
+        BrokerHistoryExtension(history),
+        capture_sink=capture_sink,
+        extra_formats=TTY_PORTABLE_FORMATS,
+    )
+    host.start()
+    bus = host.client()
+
+    source = scripted_tty_source(bus)
+    timing_processor = InputTimingProcessor(bus)
+    cadence_processor = InputCadenceProcessor(
+        bus, PREPARED_MAXIMUM_RELATIVE_DEVIATION
+    )
+
+    timing_results = bus.subscribe(msg_topic=TIMING_MSG_TOPIC)
+    cadence_results = bus.subscribe(msg_topic=CADENCE_MSG_TOPIC)
+
+    try:
+        cadence_processor.publish_configuration()
+        source.emit_all()
+
+        while True:
+            round_work_count = 0
+            round_work_count += timing_processor.process_available()
+            round_work_count += cadence_processor.process_available()
+
+            if round_work_count == 0:
+                break
+
+        _display_available_payloads(timing_results)
+        _display_available_payloads(cadence_results)
+    finally:
+        host.close()
+
+
+def _display_available_payloads(receiver: Receiver) -> None:
+    for message in receiver.receive_available():
+        print(message.payload)
+
+
+if __name__ == "__main__":
+    run_local_tty_processing()
 ```
 
 Run the composition again:
@@ -1542,6 +1598,86 @@ Display its results after cadence:
 
 ```python
 _display_available_payloads(command_results)
+```
+
+Before running, `run_local.py` should now read:
+
+```python
+"""Run the TTY exercise with a local hosted message bus."""
+
+from ropemother import InMemoryCaptureSink
+from ropemother.broker import Receiver
+from ropemother.capture import InMemoryCaptureHistory
+from ropemother.service import BrokerHistoryExtension, LocalMessageBusHost
+
+from ropemother_exercises.tty.application.reconstruction import (
+    CommandReconstructionProcessor,
+)
+from ropemother_exercises.tty.application.source import scripted_tty_source
+from ropemother_exercises.tty.events import (
+    CADENCE_MSG_TOPIC,
+    COMMAND_MSG_TOPIC,
+    TIMING_MSG_TOPIC,
+)
+from ropemother_exercises.tty.formats import TTY_PORTABLE_FORMATS
+from ropemother_exercises.tty.cadence import (
+    PREPARED_MAXIMUM_RELATIVE_DEVIATION,
+    InputCadenceProcessor,
+)
+from ropemother_exercises.tty.timing import InputTimingProcessor
+
+
+def run_local_tty_processing() -> None:
+    capture_sink = InMemoryCaptureSink()
+    history = InMemoryCaptureHistory(
+        capture_sink, extra_formats=TTY_PORTABLE_FORMATS
+    )
+    host = LocalMessageBusHost(
+        BrokerHistoryExtension(history),
+        capture_sink=capture_sink,
+        extra_formats=TTY_PORTABLE_FORMATS,
+    )
+    host.start()
+    bus = host.client()
+
+    source = scripted_tty_source(bus)
+    timing_processor = InputTimingProcessor(bus)
+    cadence_processor = InputCadenceProcessor(
+        bus, PREPARED_MAXIMUM_RELATIVE_DEVIATION
+    )
+    reconstruction_processor = CommandReconstructionProcessor(bus)
+
+    timing_results = bus.subscribe(msg_topic=TIMING_MSG_TOPIC)
+    cadence_results = bus.subscribe(msg_topic=CADENCE_MSG_TOPIC)
+    command_results = bus.subscribe(msg_topic=COMMAND_MSG_TOPIC)
+
+    try:
+        cadence_processor.publish_configuration()
+        source.emit_all()
+
+        while True:
+            round_work_count = 0
+            round_work_count += timing_processor.process_available()
+            round_work_count += cadence_processor.process_available()
+            round_work_count += reconstruction_processor.process_available()
+
+            if round_work_count == 0:
+                break
+
+        _display_available_payloads(timing_results)
+        _display_available_payloads(cadence_results)
+        _display_available_payloads(command_results)
+    finally:
+        host.close()
+
+
+def _display_available_payloads(receiver: Receiver) -> None:
+    for message in receiver.receive_available():
+        print(message.payload)
+
+
+if __name__ == "__main__":
+    run_local_tty_processing()
 ```
 
 Run the composition:
@@ -1771,6 +1907,96 @@ Display the regex stream after the command results:
 _display_available_payloads(regex_results)
 ```
 
+Before running, `run_local.py` should now read:
+
+```python
+"""Run the TTY exercise with a local hosted message bus."""
+
+from ropemother import InMemoryCaptureSink
+from ropemother.broker import Receiver
+from ropemother.capture import InMemoryCaptureHistory
+from ropemother.service import BrokerHistoryExtension, LocalMessageBusHost
+
+from ropemother_exercises.tty.application.reconstruction import (
+    CommandReconstructionProcessor,
+)
+from ropemother_exercises.tty.application.source import scripted_tty_source
+from ropemother_exercises.tty.events import (
+    CADENCE_MSG_TOPIC,
+    COMMAND_MSG_TOPIC,
+    REGEX_MSG_TOPIC,
+    TIMING_MSG_TOPIC,
+)
+from ropemother_exercises.tty.formats import TTY_PORTABLE_FORMATS
+from ropemother_exercises.tty.cadence import (
+    PREPARED_MAXIMUM_RELATIVE_DEVIATION,
+    InputCadenceProcessor,
+)
+from ropemother_exercises.tty.regex_analysis import (
+    PREPARED_PATTERNS,
+    RegexAnalysisProcessor,
+)
+from ropemother_exercises.tty.timing import InputTimingProcessor
+
+
+def run_local_tty_processing() -> None:
+    capture_sink = InMemoryCaptureSink()
+    history = InMemoryCaptureHistory(
+        capture_sink, extra_formats=TTY_PORTABLE_FORMATS
+    )
+    host = LocalMessageBusHost(
+        BrokerHistoryExtension(history),
+        capture_sink=capture_sink,
+        extra_formats=TTY_PORTABLE_FORMATS,
+    )
+    host.start()
+    bus = host.client()
+
+    source = scripted_tty_source(bus)
+    timing_processor = InputTimingProcessor(bus)
+    cadence_processor = InputCadenceProcessor(
+        bus, PREPARED_MAXIMUM_RELATIVE_DEVIATION
+    )
+    reconstruction_processor = CommandReconstructionProcessor(bus)
+    regex_processor = RegexAnalysisProcessor(bus, PREPARED_PATTERNS)
+
+    timing_results = bus.subscribe(msg_topic=TIMING_MSG_TOPIC)
+    cadence_results = bus.subscribe(msg_topic=CADENCE_MSG_TOPIC)
+    command_results = bus.subscribe(msg_topic=COMMAND_MSG_TOPIC)
+    regex_results = bus.subscribe(msg_topic=REGEX_MSG_TOPIC)
+
+    try:
+        regex_processor.publish_configuration()
+        cadence_processor.publish_configuration()
+        source.emit_all()
+
+        while True:
+            round_work_count = 0
+            round_work_count += timing_processor.process_available()
+            round_work_count += cadence_processor.process_available()
+            round_work_count += reconstruction_processor.process_available()
+            round_work_count += regex_processor.process_available()
+
+            if round_work_count == 0:
+                break
+
+        _display_available_payloads(timing_results)
+        _display_available_payloads(cadence_results)
+        _display_available_payloads(command_results)
+        _display_available_payloads(regex_results)
+    finally:
+        host.close()
+
+
+def _display_available_payloads(receiver: Receiver) -> None:
+    for message in receiver.receive_available():
+        print(message.payload)
+
+
+if __name__ == "__main__":
+    run_local_tty_processing()
+```
+
 Run the composition. The regex output should be:
 
 ```text
@@ -1798,7 +2024,7 @@ A useful event contract preserves enough identity and provenance for independent
 
 The raw input and canonical line are related evidence, but they are not identical. The first command in the fixture contains a raw correction sequence: the reads contain `echo help`, a delete byte, then `lo`, while the canonical line is simply `echo hello`.
 
-Reconciliation should not become a prerequisite for command reconstruction. Instead, add another processor that receives each canonical line, queries the shared event history for the corresponding raw reads, and emits a peer analysis of the difference.
+Keep command reconstruction independent of reconciliation. Add another processor that receives each canonical line, queries the shared event history for the corresponding raw reads, and emits a peer analysis of the difference.
 
 Open the supplied starter:
 
@@ -1874,7 +2100,7 @@ The selection applies several independent constraints:
 | `read.observation_index < line.observation_index` | Excludes reads that occurred after the current canonical line  | Yes; otherwise the first result includes later input       |
 | Sort by `observation_index`                       | Restores deterministic source order                            | The expected tuples demonstrate the required order         |
 
-The fixture's single session means that removing the `session_id` checks would not change the output below. Those checks matter when the shared history also contains observations from another session; they keep each line correlated with its own source evidence without adding another session to this normal exercise.
+The fixture's single session means that removing the `session_id` checks would not change the output below. Those checks matter when the shared history also contains observations from another session; they keep each line correlated with its own source evidence even though the current fixture contains only one session.
 
 Before wiring the processor into `run_local.py`, trace the part of the longer file that defines its architectural boundary. The constructor combines one live subscription, one prepared history client, and one derived-event emitter:
 
@@ -1888,7 +2114,7 @@ self._history = preconfigured_history_client(bus)
 self._emitter = bus.register_emitter(...)
 ```
 
-`preconfigured_history_client()` binds the built-in broker-history service's prepared topics, producers, message types, and formats so this example can focus on selecting evidence. It is an example convenience, not the canonical history API for every `ropemother` application. The general endpoint-factory surface remains `create_history_client(...)` when an application defines or selects another history service profile.
+`preconfigured_history_client()` binds the built-in broker-history service's prepared topics, producers, message types, and formats. Use `create_history_client(...)` when an application defines or selects another history-service profile.
 
 The processing path then makes the two evidence sources explicit:
 
@@ -1911,7 +2137,9 @@ from ropemother_exercises.tty.events import (
     REGEX_MSG_TOPIC,
     TIMING_MSG_TOPIC,
 )
-from ropemother_exercises.tty.reconciliation import InputReconciliationProcessor
+from ropemother_exercises.tty.reconciliation import (
+    InputReconciliationProcessor,
+)
 ```
 
 Immediately after the existing regex processor and result receiver assignments, construct the reconciliation processor and its result receiver:
@@ -1931,6 +2159,104 @@ Display its results before regex output:
 
 ```python
 _display_available_payloads(reconciliation_results)
+```
+
+Before running, `run_local.py` should now read:
+
+```python
+"""Run the TTY exercise with a local hosted message bus."""
+
+from ropemother import InMemoryCaptureSink
+from ropemother.broker import Receiver
+from ropemother.capture import InMemoryCaptureHistory
+from ropemother.service import BrokerHistoryExtension, LocalMessageBusHost
+
+from ropemother_exercises.tty.application.reconstruction import (
+    CommandReconstructionProcessor,
+)
+from ropemother_exercises.tty.application.source import scripted_tty_source
+from ropemother_exercises.tty.events import (
+    CADENCE_MSG_TOPIC,
+    COMMAND_MSG_TOPIC,
+    RECONCILIATION_MSG_TOPIC,
+    REGEX_MSG_TOPIC,
+    TIMING_MSG_TOPIC,
+)
+from ropemother_exercises.tty.formats import TTY_PORTABLE_FORMATS
+from ropemother_exercises.tty.cadence import (
+    PREPARED_MAXIMUM_RELATIVE_DEVIATION,
+    InputCadenceProcessor,
+)
+from ropemother_exercises.tty.reconciliation import (
+    InputReconciliationProcessor,
+)
+from ropemother_exercises.tty.regex_analysis import (
+    PREPARED_PATTERNS,
+    RegexAnalysisProcessor,
+)
+from ropemother_exercises.tty.timing import InputTimingProcessor
+
+
+def run_local_tty_processing() -> None:
+    capture_sink = InMemoryCaptureSink()
+    history = InMemoryCaptureHistory(
+        capture_sink, extra_formats=TTY_PORTABLE_FORMATS
+    )
+    host = LocalMessageBusHost(
+        BrokerHistoryExtension(history),
+        capture_sink=capture_sink,
+        extra_formats=TTY_PORTABLE_FORMATS,
+    )
+    host.start()
+    bus = host.client()
+
+    source = scripted_tty_source(bus)
+    timing_processor = InputTimingProcessor(bus)
+    cadence_processor = InputCadenceProcessor(
+        bus, PREPARED_MAXIMUM_RELATIVE_DEVIATION
+    )
+    reconstruction_processor = CommandReconstructionProcessor(bus)
+    regex_processor = RegexAnalysisProcessor(bus, PREPARED_PATTERNS)
+    reconciliation_processor = InputReconciliationProcessor(bus)
+
+    timing_results = bus.subscribe(msg_topic=TIMING_MSG_TOPIC)
+    cadence_results = bus.subscribe(msg_topic=CADENCE_MSG_TOPIC)
+    command_results = bus.subscribe(msg_topic=COMMAND_MSG_TOPIC)
+    regex_results = bus.subscribe(msg_topic=REGEX_MSG_TOPIC)
+    reconciliation_results = bus.subscribe(msg_topic=RECONCILIATION_MSG_TOPIC)
+
+    try:
+        regex_processor.publish_configuration()
+        cadence_processor.publish_configuration()
+        source.emit_all()
+
+        while True:
+            round_work_count = 0
+            round_work_count += timing_processor.process_available()
+            round_work_count += cadence_processor.process_available()
+            round_work_count += reconstruction_processor.process_available()
+            round_work_count += reconciliation_processor.process_available()
+            round_work_count += regex_processor.process_available()
+
+            if round_work_count == 0:
+                break
+
+        _display_available_payloads(timing_results)
+        _display_available_payloads(cadence_results)
+        _display_available_payloads(command_results)
+        _display_available_payloads(reconciliation_results)
+        _display_available_payloads(regex_results)
+    finally:
+        host.close()
+
+
+def _display_available_payloads(receiver: Receiver) -> None:
+    for message in receiver.receive_available():
+        print(message.payload)
+
+
+if __name__ == "__main__":
+    run_local_tty_processing()
 ```
 
 Run the composition. The reconciliation output should be:
@@ -1967,7 +2293,7 @@ This also preserves auditability. The raw observations, canonical line, command 
 
 The two one-byte reads remembered from the source inspection contain `b'\xc3'` and `b'\xa9'`. Together they encode `é`, but a processor that decodes each `TTYReadObserved` independently cannot recognize that character. Nothing in the source contract promises that a raw-read observation ends on a character boundary. This is a representation-boundary problem rather than a correction to the source: the source accurately recorded the bytes it observed.
 
-The decoder is supplied because incremental text decoding is not the message-architecture lesson. Copy the prepared implementation into the exercise package:
+The incremental decoder is supplied. Copy the prepared implementation into the exercise package:
 
 ```sh
 cp _targets/tty/code_points.py ropemother_exercises/tty/code_points.py
@@ -2036,6 +2362,122 @@ _display_available_payloads(cadence_results)
 _display_code_point_results(code_point_results)
 ```
 
+Before running, `run_local.py` should now read:
+
+```python
+"""Run the TTY exercise with a local hosted message bus."""
+
+from ropemother import InMemoryCaptureSink
+from ropemother.broker import Receiver
+from ropemother.capture import InMemoryCaptureHistory
+from ropemother.service import BrokerHistoryExtension, LocalMessageBusHost
+
+from ropemother_exercises.tty.application.reconstruction import (
+    CommandReconstructionProcessor,
+)
+from ropemother_exercises.tty.application.source import scripted_tty_source
+from ropemother_exercises.tty.events import (
+    CADENCE_MSG_TOPIC,
+    CODE_POINT_MSG_TOPIC,
+    COMMAND_MSG_TOPIC,
+    RECONCILIATION_MSG_TOPIC,
+    REGEX_MSG_TOPIC,
+    TIMING_MSG_TOPIC,
+    RawInputCodePoint,
+)
+from ropemother_exercises.tty.formats import TTY_PORTABLE_FORMATS
+from ropemother_exercises.tty.cadence import (
+    PREPARED_MAXIMUM_RELATIVE_DEVIATION,
+    InputCadenceProcessor,
+)
+from ropemother_exercises.tty.code_points import RawInputCodePointProcessor
+from ropemother_exercises.tty.reconciliation import (
+    InputReconciliationProcessor,
+)
+from ropemother_exercises.tty.regex_analysis import (
+    PREPARED_PATTERNS,
+    RegexAnalysisProcessor,
+)
+from ropemother_exercises.tty.timing import InputTimingProcessor
+
+
+def run_local_tty_processing() -> None:
+    capture_sink = InMemoryCaptureSink()
+    history = InMemoryCaptureHistory(
+        capture_sink, extra_formats=TTY_PORTABLE_FORMATS
+    )
+    host = LocalMessageBusHost(
+        BrokerHistoryExtension(history),
+        capture_sink=capture_sink,
+        extra_formats=TTY_PORTABLE_FORMATS,
+    )
+    host.start()
+    bus = host.client()
+
+    source = scripted_tty_source(bus)
+    timing_processor = InputTimingProcessor(bus)
+    cadence_processor = InputCadenceProcessor(
+        bus, PREPARED_MAXIMUM_RELATIVE_DEVIATION
+    )
+    code_point_processor = RawInputCodePointProcessor(bus)
+    reconstruction_processor = CommandReconstructionProcessor(bus)
+    regex_processor = RegexAnalysisProcessor(bus, PREPARED_PATTERNS)
+    reconciliation_processor = InputReconciliationProcessor(bus)
+
+    timing_results = bus.subscribe(msg_topic=TIMING_MSG_TOPIC)
+    cadence_results = bus.subscribe(msg_topic=CADENCE_MSG_TOPIC)
+    code_point_results = bus.subscribe(msg_topic=CODE_POINT_MSG_TOPIC)
+    command_results = bus.subscribe(msg_topic=COMMAND_MSG_TOPIC)
+    regex_results = bus.subscribe(msg_topic=REGEX_MSG_TOPIC)
+    reconciliation_results = bus.subscribe(msg_topic=RECONCILIATION_MSG_TOPIC)
+
+    try:
+        regex_processor.publish_configuration()
+        cadence_processor.publish_configuration()
+        code_point_processor.publish_configuration()
+        source.emit_all()
+
+        while True:
+            round_work_count = 0
+            round_work_count += timing_processor.process_available()
+            round_work_count += cadence_processor.process_available()
+            round_work_count += code_point_processor.process_available()
+            round_work_count += reconstruction_processor.process_available()
+            round_work_count += reconciliation_processor.process_available()
+            round_work_count += regex_processor.process_available()
+
+            if round_work_count == 0:
+                break
+
+        _display_available_payloads(timing_results)
+        _display_available_payloads(cadence_results)
+        _display_code_point_results(code_point_results)
+        _display_available_payloads(command_results)
+        _display_available_payloads(reconciliation_results)
+        _display_available_payloads(regex_results)
+    finally:
+        host.close()
+
+
+def _display_available_payloads(receiver: Receiver) -> None:
+    for message in receiver.receive_available():
+        print(message.payload)
+
+
+def _display_code_point_results(receiver: Receiver) -> None:
+    for message in receiver.receive_available():
+        payload = message.payload
+
+        if not isinstance(payload, RawInputCodePoint):
+            print(payload)
+        elif payload.first_observation_index != payload.last_observation_index:
+            print(payload)
+
+
+if __name__ == "__main__":
+    run_local_tty_processing()
+```
+
 Run the composition. The code-point branch should contribute exactly these visible lines:
 
 ```text
@@ -2083,12 +2525,6 @@ Timing, cadence grouping, command reconstruction, reconciliation, and regex anal
 The source was not rewritten to support timing, cadence grouping, command analysis, reconciliation, or UTF-8 decoding. The processors also do not form one mandatory linear pipeline: some consume source observations in parallel, some consume another processor's derived events, and one combines a live event with shared history.
 
 # Graph Reachability
-
-> **Authoring note**
->
-> - Introduces: feedback, duplicate suppression, convergence, and quiescence.
-> - Fixed-order and randomized runners are pedagogical scheduling models, not claims about general distributed termination.
-> - Intended evidence: different schedules may produce different intermediate histories while converging to the same final reachability facts.
 
 ## Run the direct-path baseline
 
@@ -2373,6 +2809,194 @@ class ExtendPathsProcessor:
 
 The two receivers make the feedback topology explicit. New source arcs can extend paths learned earlier, while every `PathFound` event can extend over arcs learned earlier. The path subscription does not filter by producer, so it receives paths produced by both the direct processor and the extension processor itself.
 
+At this point, `ropemother_exercises/graph/processors.py` should read:
+
+```python
+#!/usr/bin/env python3
+# ropemother_exercises/graph/processors.py
+
+"""Reachability processors for the graph exercise."""
+
+from ropemother.broker import Emitter, Receiver
+from ropemother.client import MessageEndpointFactory
+
+from ropemother_exercises.graph.events import (
+    ARC_DECLARED_MSG_TYPE,
+    ARC_MSG_TOPIC,
+    DIRECT_MSG_PRODUCER,
+    EXTEND_MSG_PRODUCER,
+    PATH_FOUND_MSG_TYPE,
+    PATH_MSG_TOPIC,
+    SOURCE_MSG_PRODUCER,
+    ArcDeclared,
+    PathFound,
+)
+from ropemother_exercises.graph.facts import GraphFacts
+from ropemother_exercises.graph.formats import PATH_FOUND_FORMAT
+
+__author__ = "Joe Granville"
+__email__ = "874605+jwgranville@users.noreply.github.com"
+__date__ = "2026-08-19T04:06:02+00:00"
+__license__ = "MIT"
+__version__ = "0.1.0.dev1"
+__status__ = "Prototype"
+
+
+class DirectPathsProcessor:
+    """Derive one-hop paths from declared arcs."""
+    _receiver: Receiver
+    _emitter: Emitter
+    _facts: GraphFacts
+
+    def __init__(self, bus: MessageEndpointFactory, facts: GraphFacts) -> None:
+        self._receiver = bus.subscribe(
+            msg_topic=ARC_MSG_TOPIC,
+            msg_producer=SOURCE_MSG_PRODUCER,
+            msg_type=ARC_DECLARED_MSG_TYPE,
+        )
+        self._emitter = bus.register_emitter(
+            msg_topic=PATH_MSG_TOPIC,
+            msg_producer=DIRECT_MSG_PRODUCER,
+            msg_type=PATH_FOUND_MSG_TYPE,
+            payload_format=PATH_FOUND_FORMAT,
+        )
+        self._facts = facts
+
+    def process_arc_if_available(self) -> int:
+        message = self._receiver.receive_nowait()
+
+        if message is None:
+            work_count = 0
+        else:
+            candidate = direct_path_from_arc(message.payload)
+            self._emit_if_new(candidate)
+            work_count = 1
+
+        return work_count
+
+    def _emit_if_new(self, path: PathFound) -> int:
+        if self._facts.path_is_known(path):
+            emitted_count = 0
+        else:
+            self._emitter.emit(path)
+            emitted_count = 1
+
+        return emitted_count
+
+
+class ExtendPathsProcessor:
+    """Extend known paths across known arcs."""
+    _arc_receiver: Receiver
+    _path_receiver: Receiver
+    _emitter: Emitter
+    _facts: GraphFacts
+
+    def __init__(self, bus: MessageEndpointFactory, facts: GraphFacts) -> None:
+        self._arc_receiver = bus.subscribe(
+            msg_topic=ARC_MSG_TOPIC,
+            msg_producer=SOURCE_MSG_PRODUCER,
+            msg_type=ARC_DECLARED_MSG_TYPE,
+        )
+        self._path_receiver = bus.subscribe(
+            msg_topic=PATH_MSG_TOPIC, msg_type=PATH_FOUND_MSG_TYPE
+        )
+        self._emitter = bus.register_emitter(
+            msg_topic=PATH_MSG_TOPIC,
+            msg_producer=EXTEND_MSG_PRODUCER,
+            msg_type=PATH_FOUND_MSG_TYPE,
+            payload_format=PATH_FOUND_FORMAT,
+        )
+        self._facts = facts
+
+    def process_arc_if_available(self) -> int:
+        message = self._arc_receiver.receive_nowait()
+
+        if message is None:
+            work_count = 0
+        else:
+            self._extend_known_paths_over_arc(message.payload)
+            work_count = 1
+
+        return work_count
+
+    def process_path_if_available(self) -> int:
+        message = self._path_receiver.receive_nowait()
+
+        if message is None:
+            work_count = 0
+        else:
+            self._extend_path_over_known_arcs(message.payload)
+            work_count = 1
+
+        return work_count
+
+    def _extend_known_paths_over_arc(self, arc: ArcDeclared) -> int:
+        emitted_count = 0
+        known_paths = self._facts.paths_ending_at(
+            run_id=arc.run_id,
+            graph_id=arc.graph_id,
+            target=arc.source,
+        )
+
+        for path in known_paths:
+            candidate = extend_path_over_arc(path, arc)
+            emitted_count += self._emit_if_new(candidate)
+
+        return emitted_count
+
+    def _extend_path_over_known_arcs(self, path: PathFound) -> int:
+        emitted_count = 0
+        known_arcs = self._facts.arcs_starting_at(
+            run_id=path.run_id,
+            graph_id=path.graph_id,
+            source=path.target,
+        )
+
+        for arc in known_arcs:
+            candidate = extend_path_over_arc(path, arc)
+            emitted_count += self._emit_if_new(candidate)
+
+        return emitted_count
+
+    def _emit_if_new(self, path: PathFound) -> int:
+        if self._facts.path_is_known(path):
+            emitted_count = 0
+        else:
+            self._emitter.emit(path)
+            emitted_count = 1
+
+        return emitted_count
+
+
+def direct_path_from_arc(arc: ArcDeclared) -> PathFound:
+    path = PathFound(
+        run_id=arc.run_id,
+        graph_id=arc.graph_id,
+        source=arc.source,
+        target=arc.target,
+        hop_count=1,
+    )
+    return path
+
+
+def extend_path_over_arc(path: PathFound, arc: ArcDeclared) -> PathFound:
+    if path.run_id != arc.run_id:
+        raise ValueError("path and arc must belong to the same run")
+    if path.graph_id != arc.graph_id:
+        raise ValueError("path and arc must belong to the same graph")
+    if path.target != arc.source:
+        raise ValueError("path target must match arc source")
+
+    extended = PathFound(
+        run_id=path.run_id,
+        graph_id=path.graph_id,
+        source=path.source,
+        target=arc.target,
+        hop_count=path.hop_count + 1,
+    )
+    return extended
+```
+
 ## Add extension to the fixed-order runner
 
 Open:
@@ -2521,6 +3145,186 @@ def run_fixed_order_until_quiet(
 
 `known_path_count` marks how much of the history-backed path result was already present after the previous round. The slice therefore records only facts that first appeared during the current round. The final quiet round is retained as an empty path batch.
 
+Before running, `ropemother_exercises/graph/runner.py` should now read:
+
+```python
+#!/usr/bin/env python3
+# ropemother_exercises/graph/runner.py
+
+"""Reusable graph exercise runners and execution scaffolding."""
+
+import collections.abc
+import dataclasses
+
+from ropemother import DirectMessageBus, InMemoryCaptureSink
+from ropemother.capture import MessageHistory, history_for
+
+from ropemother_exercises.graph.processors import (
+    DirectPathsProcessor,
+    ExtendPathsProcessor,
+)
+from ropemother_exercises.exceptions import BusExerciseBaseException
+from ropemother_exercises.graph.events import PathFound
+from ropemother_exercises.graph.facts import GraphFacts
+from ropemother_exercises.graph.model import Graph
+from ropemother_exercises.graph.source import GraphSource
+
+__author__ = "Joe Granville"
+__email__ = "874605+jwgranville@users.noreply.github.com"
+__date__ = "2026-08-19T04:14:21+00:00"
+__license__ = "MIT"
+__version__ = "0.1.0.dev1"
+__status__ = "Prototype"
+
+
+class GraphRunError(RuntimeError, BusExerciseBaseException):
+    """Raised when a graph runner cannot finish normally."""
+    pass
+
+
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class TraceEntry:
+    round_index: int
+    step_name: str
+    work_count: int
+
+
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class GraphProcessorStep:
+    step_name: str
+    process: collections.abc.Callable[[], int]
+
+
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class GraphRuntime:
+    bus: DirectMessageBus
+    history: MessageHistory
+    graph_facts: GraphFacts
+    source: GraphSource
+    direct_processor: DirectPathsProcessor
+    extend_processor: ExtendPathsProcessor
+
+
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class GraphRunResult:
+    run_id: str
+    graph: Graph
+    paths: tuple[PathFound, ...]
+    trace: tuple[TraceEntry, ...]
+    new_paths_by_round: tuple[tuple[PathFound, ...], ...]
+
+
+def create_graph_runtime() -> GraphRuntime:
+    bus = DirectMessageBus(capture_sink=InMemoryCaptureSink())
+    history = history_for(bus)
+    graph_facts = GraphFacts(history)
+
+    source = GraphSource(bus)
+    direct_processor = DirectPathsProcessor(bus, graph_facts)
+    extend_processor = ExtendPathsProcessor(bus, graph_facts)
+
+    runtime = GraphRuntime(
+        bus=bus,
+        history=history,
+        graph_facts=graph_facts,
+        source=source,
+        direct_processor=direct_processor,
+        extend_processor=extend_processor,
+    )
+    return runtime
+
+
+def run_processor_steps(
+    steps: collections.abc.Iterable[GraphProcessorStep],
+    *,
+    round_index: int,
+    trace: list[TraceEntry],
+) -> int:
+    round_work_count = 0
+
+    for step in steps:
+        step_work_count = step.process()
+        trace_entry = TraceEntry(
+            round_index=round_index,
+            step_name=step.step_name,
+            work_count=step_work_count,
+        )
+        trace.append(trace_entry)
+        round_work_count += step_work_count
+
+    return round_work_count
+
+
+def run_fixed_order(
+    graph: Graph, *, run_id: str, max_rounds: int = 20
+) -> GraphRunResult:
+    runtime = create_graph_runtime()
+    runtime.source.emit_graph(run_id=run_id, graph=graph)
+
+    trace, new_paths_by_round = run_fixed_order_until_quiet(
+        runtime,
+        run_id=run_id,
+        graph_id=graph.graph_id,
+        max_rounds=max_rounds,
+    )
+    paths = runtime.graph_facts.paths_for_run(run_id, graph.graph_id)
+
+    result = GraphRunResult(
+        run_id=run_id,
+        graph=graph,
+        paths=paths,
+        trace=trace,
+        new_paths_by_round=new_paths_by_round,
+    )
+    return result
+
+
+def graph_processor_steps(
+    runtime: GraphRuntime,
+) -> tuple[GraphProcessorStep, ...]:
+    direct_step = GraphProcessorStep(
+        step_name="direct path processor",
+        process=runtime.direct_processor.process_arc_if_available,
+    )
+    arc_extension_step = GraphProcessorStep(
+        step_name="extend paths from arcs",
+        process=runtime.extend_processor.process_arc_if_available,
+    )
+    path_extension_step = GraphProcessorStep(
+        step_name="extend paths from paths",
+        process=runtime.extend_processor.process_path_if_available,
+    )
+    return (direct_step, arc_extension_step, path_extension_step)
+
+
+def run_fixed_order_until_quiet(
+    runtime: GraphRuntime, *, run_id: str, graph_id: str, max_rounds: int
+) -> tuple[tuple[TraceEntry, ...], tuple[tuple[PathFound, ...], ...]]:
+    trace = []
+    new_paths_by_round = []
+    known_path_count = 0
+
+    for round_index in range(max_rounds):
+        round_work_count = run_fixed_order_round(
+            runtime, round_index=round_index, trace=trace
+        )
+        paths = runtime.graph_facts.paths_for_run(run_id, graph_id)
+        new_paths_by_round.append(paths[known_path_count:])
+        known_path_count = len(paths)
+
+        if round_work_count == 0:
+            return (tuple(trace), tuple(new_paths_by_round))
+
+    raise GraphRunError("graph processor steps did not become quiet")
+
+
+def run_fixed_order_round(
+    runtime: GraphRuntime, *, round_index: int, trace: list[TraceEntry]
+) -> int:
+    steps = graph_processor_steps(runtime)
+    return run_processor_steps(steps, round_index=round_index, trace=trace)
+```
+
 Run the activity again:
 
 ```sh
@@ -2552,7 +3356,7 @@ The feedback stops because `GraphFacts.path_is_known()` prevents an already reco
 
 The runner's `round_work_count == 0` test is useful because the graph source is finite, all communication is local, every scheduling step checks an in-memory queue immediately, and duplicate suppression makes this feedback topology terminate.
 
-It is not a general distributed termination detector. In another system, an empty local queue might only mean that a message has not arrived yet or is still in flight. The graph exercise makes the stopping assumption visible rather than generalizing it beyond the model being run.
+It is not a general distributed termination detector. In another system, an empty local queue might only mean that a message has not arrived yet or is still in flight. The stopping assumption applies to this controlled local model, not to distributed execution in general.
 
 ## Randomize processor scheduling
 
@@ -2636,6 +3440,252 @@ def run_random_order_round(
 ```
 
 Nothing about the source changes. `GraphSource.emit_graph()` still publishes the three declared arcs in the same order. Only the order in which waiting processors are given one opportunity to consume work changes.
+
+At this point, `ropemother_exercises/graph/runner.py` should read:
+
+```python
+#!/usr/bin/env python3
+# ropemother_exercises/graph/runner.py
+
+"""Reusable graph exercise runners and execution scaffolding."""
+
+import collections.abc
+import dataclasses
+import random
+
+from ropemother import DirectMessageBus, InMemoryCaptureSink
+from ropemother.capture import MessageHistory, history_for
+
+from ropemother_exercises.graph.processors import (
+    DirectPathsProcessor,
+    ExtendPathsProcessor,
+)
+from ropemother_exercises.exceptions import BusExerciseBaseException
+from ropemother_exercises.graph.events import PathFound
+from ropemother_exercises.graph.facts import GraphFacts
+from ropemother_exercises.graph.model import Graph
+from ropemother_exercises.graph.source import GraphSource
+
+__author__ = "Joe Granville"
+__email__ = "874605+jwgranville@users.noreply.github.com"
+__date__ = "2026-08-19T04:14:21+00:00"
+__license__ = "MIT"
+__version__ = "0.1.0.dev1"
+__status__ = "Prototype"
+
+
+class GraphRunError(RuntimeError, BusExerciseBaseException):
+    """Raised when a graph runner cannot finish normally."""
+    pass
+
+
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class TraceEntry:
+    round_index: int
+    step_name: str
+    work_count: int
+
+
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class GraphProcessorStep:
+    step_name: str
+    process: collections.abc.Callable[[], int]
+
+
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class GraphRuntime:
+    bus: DirectMessageBus
+    history: MessageHistory
+    graph_facts: GraphFacts
+    source: GraphSource
+    direct_processor: DirectPathsProcessor
+    extend_processor: ExtendPathsProcessor
+
+
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class GraphRunResult:
+    run_id: str
+    graph: Graph
+    paths: tuple[PathFound, ...]
+    trace: tuple[TraceEntry, ...]
+    new_paths_by_round: tuple[tuple[PathFound, ...], ...]
+
+
+def create_graph_runtime() -> GraphRuntime:
+    bus = DirectMessageBus(capture_sink=InMemoryCaptureSink())
+    history = history_for(bus)
+    graph_facts = GraphFacts(history)
+
+    source = GraphSource(bus)
+    direct_processor = DirectPathsProcessor(bus, graph_facts)
+    extend_processor = ExtendPathsProcessor(bus, graph_facts)
+
+    runtime = GraphRuntime(
+        bus=bus,
+        history=history,
+        graph_facts=graph_facts,
+        source=source,
+        direct_processor=direct_processor,
+        extend_processor=extend_processor,
+    )
+    return runtime
+
+
+def run_processor_steps(
+    steps: collections.abc.Iterable[GraphProcessorStep],
+    *,
+    round_index: int,
+    trace: list[TraceEntry],
+) -> int:
+    round_work_count = 0
+
+    for step in steps:
+        step_work_count = step.process()
+        trace_entry = TraceEntry(
+            round_index=round_index,
+            step_name=step.step_name,
+            work_count=step_work_count,
+        )
+        trace.append(trace_entry)
+        round_work_count += step_work_count
+
+    return round_work_count
+
+
+def run_fixed_order(
+    graph: Graph, *, run_id: str, max_rounds: int = 20
+) -> GraphRunResult:
+    runtime = create_graph_runtime()
+    runtime.source.emit_graph(run_id=run_id, graph=graph)
+
+    trace, new_paths_by_round = run_fixed_order_until_quiet(
+        runtime,
+        run_id=run_id,
+        graph_id=graph.graph_id,
+        max_rounds=max_rounds,
+    )
+    paths = runtime.graph_facts.paths_for_run(run_id, graph.graph_id)
+
+    result = GraphRunResult(
+        run_id=run_id,
+        graph=graph,
+        paths=paths,
+        trace=trace,
+        new_paths_by_round=new_paths_by_round,
+    )
+    return result
+
+
+def run_random_order(
+    graph: Graph, *, run_id: str, seed: int, max_rounds: int = 20
+) -> GraphRunResult:
+    runtime = create_graph_runtime()
+    runtime.source.emit_graph(run_id=run_id, graph=graph)
+
+    trace, new_paths_by_round = run_random_order_until_quiet(
+        runtime,
+        run_id=run_id,
+        graph_id=graph.graph_id,
+        seed=seed,
+        max_rounds=max_rounds,
+    )
+    paths = runtime.graph_facts.paths_for_run(run_id, graph.graph_id)
+
+    result = GraphRunResult(
+        run_id=run_id,
+        graph=graph,
+        paths=paths,
+        trace=trace,
+        new_paths_by_round=new_paths_by_round,
+    )
+    return result
+
+
+def run_random_order_until_quiet(
+    runtime: GraphRuntime,
+    *,
+    run_id: str,
+    graph_id: str,
+    seed: int,
+    max_rounds: int,
+) -> tuple[tuple[TraceEntry, ...], tuple[tuple[PathFound, ...], ...]]:
+    rng = random.Random(seed)
+    trace = []
+    new_paths_by_round = []
+    known_path_count = 0
+
+    for round_index in range(max_rounds):
+        round_work_count = run_random_order_round(
+            runtime, rng=rng, round_index=round_index, trace=trace
+        )
+        paths = runtime.graph_facts.paths_for_run(run_id, graph_id)
+        new_paths_by_round.append(paths[known_path_count:])
+        known_path_count = len(paths)
+
+        if round_work_count == 0:
+            result = (tuple(trace), tuple(new_paths_by_round))
+            return result
+
+    raise GraphRunError("graph processor steps did not become quiet")
+
+
+def run_random_order_round(
+    runtime: GraphRuntime,
+    *,
+    rng: random.Random,
+    round_index: int,
+    trace: list[TraceEntry],
+) -> int:
+    steps = list(graph_processor_steps(runtime))
+    rng.shuffle(steps)
+    return run_processor_steps(steps, round_index=round_index, trace=trace)
+
+
+def graph_processor_steps(
+    runtime: GraphRuntime,
+) -> tuple[GraphProcessorStep, ...]:
+    direct_step = GraphProcessorStep(
+        step_name="direct path processor",
+        process=runtime.direct_processor.process_arc_if_available,
+    )
+    arc_extension_step = GraphProcessorStep(
+        step_name="extend paths from arcs",
+        process=runtime.extend_processor.process_arc_if_available,
+    )
+    path_extension_step = GraphProcessorStep(
+        step_name="extend paths from paths",
+        process=runtime.extend_processor.process_path_if_available,
+    )
+    return (direct_step, arc_extension_step, path_extension_step)
+
+
+def run_fixed_order_until_quiet(
+    runtime: GraphRuntime, *, run_id: str, graph_id: str, max_rounds: int
+) -> tuple[tuple[TraceEntry, ...], tuple[tuple[PathFound, ...], ...]]:
+    trace = []
+    new_paths_by_round = []
+    known_path_count = 0
+
+    for round_index in range(max_rounds):
+        round_work_count = run_fixed_order_round(
+            runtime, round_index=round_index, trace=trace
+        )
+        paths = runtime.graph_facts.paths_for_run(run_id, graph_id)
+        new_paths_by_round.append(paths[known_path_count:])
+        known_path_count = len(paths)
+
+        if round_work_count == 0:
+            return (tuple(trace), tuple(new_paths_by_round))
+
+    raise GraphRunError("graph processor steps did not become quiet")
+
+
+def run_fixed_order_round(
+    runtime: GraphRuntime, *, round_index: int, trace: list[TraceEntry]
+) -> int:
+    steps = graph_processor_steps(runtime)
+    return run_processor_steps(steps, round_index=round_index, trace=trace)
+```
 
 ## Compare two schedules
 
@@ -2746,6 +3796,164 @@ same_reachability = (
 print(f"\nSame reachability: {same_reachability}")
 ```
 
+Before running, `ropemother_exercises/graph/reachability.py` should now read:
+
+```python
+#!/usr/bin/env python3
+# ropemother_exercises/graph/reachability.py
+
+"""Run the graph reachability activity."""
+
+from ropemother import DirectMessageBus, InMemoryCaptureSink
+from ropemother.capture import history_for
+
+from ropemother_exercises.graph.runner import (
+    GraphRunResult,
+    run_fixed_order,
+    run_random_order,
+)
+from ropemother_exercises.graph.events import PathFound
+from ropemother_exercises.graph.facts import GraphFacts
+from ropemother_exercises.graph.model import Arc, Graph
+from ropemother_exercises.graph.source import GraphSource
+
+__author__ = "Joe Granville"
+__email__ = "874605+jwgranville@users.noreply.github.com"
+__date__ = "2026-08-06T15:31:18+00:00"
+__license__ = "MIT"
+__version__ = "0.1.0.dev1"
+__status__ = "Prototype"
+
+
+def create_reachability_graph() -> Graph:
+    graph = Graph(
+        graph_id="reachability-graph",
+        nodes=("A", "B", "C", "D"),
+        arcs=(
+            Arc(source="A", target="B"),
+            Arc(source="B", target="C"),
+            Arc(source="C", target="D"),
+        ),
+    )
+    return graph
+
+
+def path_facts(
+    paths: tuple[PathFound, ...]
+) -> tuple[tuple[str, str, int], ...]:
+    facts = []
+
+    for path in paths:
+        fact = (path.source, path.target, path.hop_count)
+        facts.append(fact)
+
+    return tuple(sorted(facts))
+
+
+def format_path_cell(
+    paths: tuple[PathFound, ...], *, direct: bool
+) -> str:
+    if direct:
+        selected_paths = tuple(path for path in paths if path.hop_count == 1)
+        separator = "→"
+    else:
+        selected_paths = tuple(path for path in paths if path.hop_count > 1)
+        separator = "…"
+
+    if not selected_paths:
+        cell = " - "
+    elif len(selected_paths) == 1:
+        path = selected_paths[0]
+        cell = f"{path.source}{separator}{path.target}"
+    else:
+        cell = f"x{len(selected_paths)}"
+
+    return f"{cell:^3}"
+
+
+def round_activity_counts(result: GraphRunResult) -> tuple[int, ...]:
+    counts = [0] * len(result.new_paths_by_round)
+
+    for entry in result.trace:
+        counts[entry.round_index] += entry.work_count
+
+    return tuple(counts)
+
+
+def display_path_rounds(label: str, result: GraphRunResult) -> None:
+    round_labels = "  ".join(
+        f"{round_index:^3}"
+        for round_index in range(1, len(result.new_paths_by_round) + 1)
+    )
+    direct_cells = "  ".join(
+        format_path_cell(paths, direct=True)
+        for paths in result.new_paths_by_round
+    )
+    extended_cells = "  ".join(
+        format_path_cell(paths, direct=False)
+        for paths in result.new_paths_by_round
+    )
+    activity_cells = "  ".join(
+        f"{count:^3}" for count in round_activity_counts(result)
+    )
+
+    label_width = 13
+
+    print(label)
+    print(f"{'':{label_width}}Round")
+    print(f"{'':{label_width}}{round_labels}")
+    print(f"{'Direct':{label_width}}{direct_cells}")
+    print(f"{'Extended':{label_width}}{extended_cells}")
+    print(f"{'Activity':{label_width}}{activity_cells}")
+
+
+def run_reachability() -> None:
+    graph = create_reachability_graph()
+
+    capture_sink = InMemoryCaptureSink()
+    bus = DirectMessageBus(capture_sink=capture_sink)
+    history = history_for(bus)
+
+    graph_facts = GraphFacts(history)
+    source = GraphSource(bus)
+
+    source_run_id = "source-facts"
+    source.emit_graph(run_id=source_run_id, graph=graph)
+    declared_arcs = graph_facts.arcs_for_run(source_run_id, graph.graph_id)
+
+    print("Declared arcs")
+    for arc in declared_arcs:
+        print(f"{arc.source} -> {arc.target}")
+
+    fixed_result = run_fixed_order(graph, run_id="fixed-order")
+    fixed_path_facts = path_facts(fixed_result.paths)
+
+    print("\nFixed-order reachability")
+    for source_name, target_name, hop_count in fixed_path_facts:
+        print(f"{source_name} -> {target_name}; hop count {hop_count}")
+
+    seed_one_result = run_random_order(graph, run_id="random-seed-1", seed=1)
+    seed_five_result = run_random_order(graph, run_id="random-seed-5", seed=5)
+
+    print()
+    display_path_rounds("Seed 1", seed_one_result)
+    print()
+    display_path_rounds("Seed 5", seed_five_result)
+
+    seed_one_path_facts = path_facts(seed_one_result.paths)
+    seed_five_path_facts = path_facts(seed_five_result.paths)
+    same_reachability = (
+        seed_one_path_facts == fixed_path_facts
+        and seed_five_path_facts == fixed_path_facts
+    )
+
+    print(f"\nSame reachability: {same_reachability}")
+
+
+if __name__ == "__main__":
+    run_reachability()
+```
+
 Run the completed activity:
 
 ```sh
@@ -2820,15 +4028,9 @@ Several architectural consequences are now visible:
 - Duplicate suppression can turn a feedback network over a finite fact space into a terminating computation.
 - Processor scheduling can change the intermediate event trace without changing the converged result.
 
-The graph exercise is still deliberately controlled. The runner simulates alternate scheduling orders in one local process; it does not claim to reproduce every race, delay, or failure mode of concurrent distributed execution. The useful result is the separation between source facts, derived facts, scheduling policy, and the converged projection over recorded evidence.
+The runner is a controlled scheduling model in one local process. It does not reproduce every race, delay, or failure mode of concurrent distributed execution. Use it to separate source facts, derived facts, scheduling policy, and the converged projection over recorded evidence.
 
 # Image Reconstruction — Full Self-Paced Path
-
-> **Authoring note**
->
-> - Deliberate return to the application that opened the sequence.
-> - Reuse rather than reintroduce: messaging, history, event-design, and bounded-work concepts from Basic, TTY, and Graph.
-> - New work: processor implementation, controlled experimental variables, reusable Instrument identity, target sharing once available, and substitution of multiple history-backed views.
 
 ## See what the reconstruction problem represents
 
@@ -3313,7 +4515,7 @@ lower_sample_completion = message.payload
 print(report_client.call(lower_sample_completion).payload.rendering)
 ```
 
-The sensor placement, bin resolution, and angle-specific random seeds match the earlier four-angle configuration, while the measurement depth changed. This is a controlled comparison because the intended variable is visible at the construction site.
+The sensor placement, bin resolution, and angle-specific random seeds match the earlier four-angle configuration; only the measurement depth changed. The changed variable is visible at the construction site.
 
 Now change geometry without publishing another measurement. Create a coarse 0° sensor definition and inspect its bins:
 
@@ -3343,7 +4545,7 @@ Exit the interactive workspace after the controlled measurement run:
 exit()
 ```
 
-The image application, completed runs, and discovered configurations remain in the longer-lived broker session. The remaining normal-path work deliberately uses other clients and independently restartable services.
+The image application, completed runs, and discovered configurations remain in the longer-lived broker session. The remaining work uses other clients and independently restartable services.
 
 Exiting here also prevents the workspace's reconstruction receiver from accumulating messages produced by later terminal-driven runs. Start a fresh workspace during open exploration if more interactive sensing is useful.
 
@@ -3438,7 +4640,7 @@ The history in this exercise lasts for the lifetime of the image application hos
 
 ## Change the dashboard in two stages
 
-The baseline dashboard is already useful: it lists run, reconstruction, sensor count, and measurement count. The first edit should demonstrate how little application state has to move when one presentation service changes; the second should make the view more useful for a growing experiment collection.
+The baseline dashboard already lists run, reconstruction, sensor count, and measurement count. Make two local presentation changes while the rest of the application remains running: first add a collection heading, then add a reconstruction-only property.
 
 In the long-running-process terminal, stop only the dashboard service:
 
@@ -3530,6 +4732,166 @@ def render_dashboard_index(*entries: DashboardEntry) -> str:
     return render_text_table(headings, rows)
 ```
 
+Before restarting the service, `ropemother_exercises/image/dashboard.py` should now read:
+
+```python
+#!/usr/bin/env python3
+# ropemother_exercises/image/dashboard.py
+
+"""Dashboard report processor behavior for the image exercise."""
+
+import dataclasses
+
+from ropemother.capture import HistoryClient, MessageHistoryEntry
+
+from ropemother_exercises.image.application.ranking import (
+    reconstruction_contrast,
+)
+
+from ropemother_exercises.image.application.render import (
+    render_run_id,
+    render_text_table,
+)
+from ropemother_exercises.image.events import (
+    IMAGE_RECONSTRUCTED_MSG_TYPE,
+    PROJECTION_MSG_TOPIC,
+    RECONSTRUCTION_COMPLETED_MSG_TYPE,
+    RECONSTRUCTION_MSG_TOPIC,
+    DashboardReport,
+    ImageObservation,
+    ReconstructionCompletion,
+    RunID,
+)
+
+__author__ = "Joe Granville"
+__email__ = "874605+jwgranville@users.noreply.github.com"
+__date__ = "2026-08-26T01:51:21+00:00"
+__license__ = "MIT"
+__version__ = "0.1.0.dev1"
+__status__ = "Prototype"
+
+
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class DashboardEntry:
+    """Collect the ordinary evidence used to describe one reconstruction."""
+    run_id: RunID
+    reconstruction_id: str
+    reconstruction: ImageObservation
+    sensor_count: int
+    measurement_count: int
+
+
+def dashboard_report(history: HistoryClient) -> DashboardReport:
+    return DashboardReport(rendering=render_dashboard(history))
+
+
+def render_dashboard(history: HistoryClient) -> str:
+    entries = dashboard_entries(
+        history, reconstruction_producer="geometric-fusion"
+    )
+
+    if not entries:
+        return "No reconstructions are available."
+
+    index = render_dashboard_index(*entries)
+    return f"Completed reconstructions\n\n{index}"
+
+
+def contrast_for(entry: DashboardEntry) -> float:
+    return reconstruction_contrast(entry.reconstruction)
+
+
+def render_dashboard_index(*entries: DashboardEntry) -> str:
+    headings = (
+        "run",
+        "reconstruction",
+        "sensors",
+        "measurements",
+        "contrast",
+    )
+    rows = []
+
+    for entry in entries:
+        row = (
+            render_run_id(entry.run_id),
+            entry.reconstruction_id,
+            str(entry.sensor_count),
+            str(entry.measurement_count),
+            f"{contrast_for(entry):.3f}",
+        )
+        rows.append(row)
+
+    return render_text_table(headings, rows)
+
+
+def dashboard_entries(
+    history: HistoryClient, *, reconstruction_producer: str
+) -> tuple[DashboardEntry, ...]:
+    completion_entries = history.select_all(
+        msg_topic=RECONSTRUCTION_MSG_TOPIC,
+        msg_type=RECONSTRUCTION_COMPLETED_MSG_TYPE,
+        msg_producer=reconstruction_producer,
+    )
+    reconstruction_entries = history.select_all(
+        msg_topic=RECONSTRUCTION_MSG_TOPIC,
+        msg_type=IMAGE_RECONSTRUCTED_MSG_TYPE,
+        msg_producer=reconstruction_producer,
+    )
+    projection_entries = history.select_all(msg_topic=PROJECTION_MSG_TOPIC)
+    result = []
+
+    for completion_entry in completion_entries:
+        completion = completion_entry.payload
+        reconstruction = (
+            _reconstruction_for(completion, reconstruction_entries)
+        )
+
+        if reconstruction is None:
+            continue
+
+        run_projection_entries = tuple(
+            entry
+            for entry in projection_entries
+            if entry.payload.run_id == completion.run_id
+        )
+        sensor_names = {
+            entry.msg_producer for entry in run_projection_entries
+        }
+        measurement_count = sum(
+            sum(entry.payload.sample_counts)
+            for entry in run_projection_entries
+        )
+        dashboard_entry = DashboardEntry(
+            run_id=completion.run_id,
+            reconstruction_id=reconstruction.observation_id,
+            reconstruction=reconstruction,
+            sensor_count=len(sensor_names),
+            measurement_count=measurement_count,
+        )
+        result.append(dashboard_entry)
+
+    return tuple(result)
+
+
+def _reconstruction_for(
+    completion: ReconstructionCompletion,
+    entries: tuple[MessageHistoryEntry, ...],
+) -> ImageObservation | None:
+    if completion.reconstruction_id is None:
+        return None
+
+    result_key = (completion.run_id, completion.reconstruction_id)
+
+    for entry in entries:
+        candidate = entry.payload
+        candidate_key = (candidate.run_id, candidate.observation_id)
+
+        if candidate_key == result_key:
+            return candidate
+
+    return None
+```
+
 Restart the dashboard service and request the view again:
 
 ```sh
@@ -3558,7 +4920,7 @@ The completed example takes the same ordinary `DashboardEntry` values and extend
 - `render_reconstructions(top_entry.reconstruction)` reuses the full-size rendering helper to feature one result below the index;
 - `render_dashboard_title()` changes only presentation.
 
-The target is intentionally a coherent example rather than a required endpoint. Compare it with the current edited dashboard and either leave the simpler version in place or copy one additional idea that answers a useful question about the accumulated runs.
+The target is a coherent example; you do not need to match it exactly. Compare it with the current edited dashboard and either leave the simpler version in place or copy one additional idea that answers a useful question about the accumulated runs.
 
 For example, to adopt the target's contrast ordering while keeping the simpler heading, add this line before building `index`:
 
@@ -3611,6 +4973,94 @@ def render_reconstruction_report(reconstruction: ImageObservation) -> str:
     return f"{image}\n\nsmoothness: {smoothness:.3f}"
 ```
 
+Before restarting the service, `ropemother_exercises/image/report.py` should now read:
+
+```python
+#!/usr/bin/env python3
+# ropemother_exercises/image/report.py
+
+"""Reconstruction report processor behavior for the image exercise."""
+
+from ropemother.capture import HistoryClient
+
+from ropemother_exercises.image.application.ranking import (
+    reconstruction_smoothness,
+)
+
+from ropemother_exercises.image.application.render import (
+    render_reconstructions,
+)
+from ropemother_exercises.image.events import (
+    IMAGE_RECONSTRUCTED_MSG_TYPE,
+    RECONSTRUCTION_MSG_TOPIC,
+    ImageObservation,
+    ReconstructionCompletion,
+    ReconstructionReport,
+)
+
+__author__ = "Joe Granville"
+__email__ = "874605+jwgranville@users.noreply.github.com"
+__date__ = "2026-08-24T13:38:06+00:00"
+__license__ = "MIT"
+__version__ = "0.1.0.dev1"
+__status__ = "Prototype"
+
+
+def reconstruction_report(
+    history: HistoryClient,
+    completion: ReconstructionCompletion,
+    *,
+    reconstruction_producer: str,
+) -> ReconstructionReport | None:
+    reconstruction = _reconstruction_for(
+        history,
+        completion,
+        reconstruction_producer=reconstruction_producer,
+    )
+
+    if reconstruction is None:
+        return None
+
+    rendering = render_reconstruction_report(reconstruction)
+    return ReconstructionReport(
+        run_id=reconstruction.run_id,
+        reconstruction_id=reconstruction.observation_id,
+        rendering=rendering,
+    )
+
+
+def render_reconstruction_report(reconstruction: ImageObservation) -> str:
+    image = render_reconstructions(reconstruction)
+    smoothness = reconstruction_smoothness(reconstruction)
+    return f"{image}\n\nsmoothness: {smoothness:.3f}"
+
+
+def _reconstruction_for(
+    history: HistoryClient,
+    completion: ReconstructionCompletion,
+    *,
+    reconstruction_producer: str,
+) -> ImageObservation | None:
+    if completion.reconstruction_id is None:
+        return None
+
+    entries = history.select_all(
+        msg_topic=RECONSTRUCTION_MSG_TOPIC,
+        msg_type=IMAGE_RECONSTRUCTED_MSG_TYPE,
+        msg_producer=reconstruction_producer,
+    )
+    result_key = (completion.run_id, completion.reconstruction_id)
+
+    for entry in entries:
+        candidate = entry.payload
+        candidate_key = (candidate.run_id, candidate.observation_id)
+
+        if candidate_key == result_key:
+            return candidate
+
+    return None
+```
+
 Restart only the reconstruction-report service:
 
 ```sh
@@ -3639,7 +5089,7 @@ Request the dashboard again:
 
 The dashboard did not need to restart when the reconstruction-report implementation changed. These are peer downstream interpretations over shared evidence, not stages in one presentation pipeline.
 
-This is the clearest drop-in substitution exercise in the image path: sensor sources, fusion, history, the terminal client, and the report request/reply contract remain stable while one independently running interpretation changes.
+This is a drop-in substitution: sensor sources, fusion, history, the terminal client, and the report request/reply contract remain stable while one independently running interpretation changes.
 
 ## Open exploration
 
@@ -3745,7 +5195,7 @@ This is useful when the question concerns repeatability, a different target, or 
 
 ### Reporting and dashboard work
 
-The edited report and dashboard are intentionally independent. Continue by asking what information each view should expose rather than treating one as a more advanced version of the other.
+Treat the edited report and dashboard as independent views. Continue by asking what information each should expose rather than treating one as a more advanced version of the other.
 
 Possible dashboard questions include:
 
@@ -3775,15 +5225,6 @@ Three prepared examples answer different questions and are worth keeping distinc
 | `examples.measurement_budget` | How can depth and angular coverage be compared under controlled budgets? |
 
 The reconstruction and sample-depth examples are explanatory references to read or run alongside this section. `measurement_budget` can be run to inspect the controlled budget comparison; reading its implementation is not required.
-
-### Target work
-
-> **Authoring note**
->
-> - Placeholder until target identity, selection, and sharing have a participant-facing public surface.
-> - Target sharing belongs in the normal full path.
-> - Once available, target sharing should also become a short paired variation in the guided introduction.
-> - Target authoring can remain advanced.
 
 ## Review the full image network
 
@@ -3834,9 +5275,9 @@ Several architectural consequences are now visible:
 - Reports and dashboards are peer, replaceable current views over preserved evidence rather than owners of the sensing process or stages of one presentation pipeline.
 - The same earlier reconstruction can produce a different current report after only the report service is changed and restarted.
 - The same accumulated collection can produce a different dashboard after only the dashboard service is changed and restarted.
-- Fusion, reconstruction-report, and dashboard participants demonstrate processor plurality through distinct message-facing responsibilities; the tutorial does not require an alternate reconstruction algorithm to make that architecture visible.
+- Fusion, reconstruction-report, and dashboard participants demonstrate processor plurality through distinct message-facing responsibilities.
 
-The image exercise therefore closes the extended sequence by combining several ideas from the earlier work: independent participants from Basic, event and representation boundaries from TTY, bounded derived computation from Graph, procedurally generated topologies, reusable experimental identities, and later history-backed interpretations over evidence that was produced for a different immediate purpose.
+Together, these roles combine independent participants, event and representation boundaries, bounded derived computation, procedurally generated topologies, reusable experimental identities, and later history-backed interpretations over evidence that was produced for a different immediate purpose.
 
 ## Stop the image application when finished
 
@@ -3863,7 +5304,7 @@ The host's temporary runtime directory and session history are discarded when th
 
 # Messaging Architecture — Vocabulary from the Exercises
 
-The exercises above used Ropemother to make messaging behavior concrete. This section has a different purpose: it names the **general messaging relationships** that appeared across Basic, TTY, Graph, and Image. The vocabulary here should still make sense if the same application were built with another message bus. Ropemother-specific classes and modules are summarized separately in the next section.
+Across Basic, TTY, Graph, and Image, the same **general messaging relationships** recur. The vocabulary below describes those relationships independently of Ropemother's class names and should still make sense with another message bus.
 
 ## Name the recurring relationships
 
@@ -3918,7 +5359,7 @@ flowchart LR
     service -->|"corresponding reply"| client
 ```
 
-These are architectural interaction patterns. The next section names the Ropemother API objects that realize them in this tutorial.
+These are architectural interaction patterns. Ropemother provides concrete API objects for both forms.
 
 ## Treat history as preserved evidence, not delayed subscription
 
@@ -3928,24 +5369,13 @@ That difference matters architecturally. Preserved history can support a process
 
 History therefore changes the **time relationship** between participants. It does not make every live subscription durable, and a history query is not the same operation as receiving the next publication.
 
-## Read the exercise sequence as increasingly rich network shapes
-
-The examples were chosen to expose different consequences rather than to repeat the same publish/subscribe demonstration:
-
-- **Basic** establishes the core boundary, fan-out, process separation, and the difference between live delivery and retained history.
-- **TTY** shows several peer interpretations of common evidence and the importance of choosing useful source and derived-event boundaries.
-- **Graph** shows feedback, incremental derivation, nondeterministic processing order, and convergence to a bounded result.
-- **Image** combines heterogeneous producers, procedurally generated participants, explicit completion, reusable identities, shared history, and replaceable request/reply interpretations.
-
-Those shapes are more important than any one toy problem. They are reusable ways to reason about software in which new analyses, views, processors, or services are expected to appear over time.
-
 # Ropemother API — Application-Facing Map
 
-The preceding section was about messaging architecture in general. This section is specifically about **the current Ropemother API used or encountered by these exercises**. Its purpose is navigation: connect the concrete class and module names to the operations already practiced without turning implementation machinery into participant-facing vocabulary.
+The following Ropemother types and modules correspond to the operations used throughout the exercises. Use this map when moving between the general messaging vocabulary above and concrete Ropemother code.
 
 ## Start from the endpoint-facing abstraction
 
-The central application-facing abstraction is `MessageEndpointFactory`. Participant code that needs messaging can ask this surface for endpoints and request/reply helpers without requiring a particular deployment.
+The central application-facing abstraction is `MessageEndpointFactory`. Application code can ask this surface for endpoints and request/reply helpers without requiring a particular deployment.
 
 ```mermaid
 flowchart TB
@@ -3959,13 +5389,13 @@ flowchart TB
     factory -->|"history helpers"| history["HistoryClient / HistoryService"]
 ```
 
-The Basic exercise deliberately introduced only the smallest part first: `register_emitter()`, `subscribe()`, `Emitter.emit()`, `Receiver.receive()`, and `ReceivedMessage`. Request/reply and history became relevant only after the exercises had a reason to need a corresponding response or retained evidence.
+The core publish/subscribe surface consists of `register_emitter()`, `subscribe()`, `Emitter.emit()`, `Receiver.receive()`, and `ReceivedMessage`. Request/reply and history add operations for corresponding service responses and retained evidence.
 
 `MessageEndpointFactory` is therefore a Ropemother API abstraction, not the definition of a message bus as an architectural idea.
 
 ## Use the same participant surface in different local deployments
 
-The exercises obtain that endpoint-facing capability in two important ways:
+Two local deployment forms provide that endpoint-facing capability:
 
 ```mermaid
 flowchart LR
@@ -3975,15 +5405,15 @@ flowchart LR
 
 `DirectMessageBus` is convenient when the broker and application participants share one Python process. `connect_message_bus()` connects an application process to the freestanding local broker and returns a client that provides the same endpoint-facing abstraction.
 
-This is why participant classes such as `TextSource` and `WordCountProcessor` accept `MessageEndpointFactory`: their ordinary publish/subscribe behavior does not need to know whether the underlying messages are delivered by the direct in-process broker or through the local broker transport.
+Classes such as `TextSource` and `WordCountProcessor` accept `MessageEndpointFactory`, so their ordinary publish/subscribe behavior does not need to know whether the underlying messages are delivered by the direct in-process broker or through the local broker transport.
 
-That is an API design fact about Ropemother. The architectural lesson from the earlier section is the more general one: a stable communication boundary can let deployment change without forcing every participant to change with it.
+The Ropemother abstraction preserves the same application-facing communication boundary across these two local deployment forms.
 
-## Map the public modules used by the tutorial
+## Locate the public modules
 
-These are the major public areas that appear in or support the tutorial. This is a navigation map, not a new import-style rule:
+These public areas contain the main application-facing facilities used above:
 
-| Public surface       | Role in the tutorial                                                       |
+| Public surface       | Main facilities                                                            |
 | -------------------- | -------------------------------------------------------------------------- |
 | `ropemother`         | Common entry points: direct bus, capture mode, and connection helpers.     |
 | `ropemother.client`  | Endpoint-factory and request/reply abstractions.                           |
@@ -3993,11 +5423,11 @@ These are the major public areas that appear in or support the tutorial. This is
 | `ropemother.message` | Readable received-message values and message-selection helpers.            |
 | `ropemother.format`  | Portable payload-format definitions and registries.                        |
 
-Not every application needs to import from every module. The early Basic path intentionally stays on the small endpoint-facing surface. TTY opens more of the service and history composition because that exercise has a reason to inspect those boundaries. The prepared Image application then hides much of that repeated setup behind application-specific helpers so the exercise can concentrate on plurality, experimental configuration, and replaceable interpretations rather than reteaching broker wiring.
+Not every application needs facilities from every module. Start from the public surface that owns the operation you need.
 
 ## Map the operations you practiced to Ropemother names
 
-| Operation                                | Ropemother surface                                 | First reason it mattered       |
+| Operation                                | Ropemother surface                                 | Example from the exercises     |
 | ---------------------------------------- | -------------------------------------------------- | ------------------------------ |
 | Publish under a message contract         | `register_emitter()` → `Emitter.emit()`            | Basic source publication       |
 | Receive matching live publications       | `subscribe()` → `Receiver.receive()`               | Basic receive and processors   |
@@ -4009,18 +5439,10 @@ Not every application needs to import from every module. The early Basic path in
 | Host or compose broker-side services     | `ropemother.service` helpers and extensions        | TTY service composition        |
 | Define portable payload representation   | `PortableFormat` and related format support        | Prepared application contracts |
 
-The table is not intended to be a complete API reference. It names the parts that help explain code participants have already seen.
+## Distinguish application-facing and lower-level facilities
 
-## Keep implementation machinery out of the ordinary participant path
+Ordinary application messaging uses endpoint factories, emitters, receivers, readable messages, request/reply clients and services, history clients, and portable formats. Compact IDs, registrations, transport frames, broker sessions, and capture records belong to lower-level broker, transport, or persistence work.
 
-Ropemother contains lower-level machinery for compact IDs, registrations, transport frames, broker sessions, capture records, and other implementation or extension concerns. Those concepts may matter when developing Ropemother itself or adding a new transport, but they are not prerequisites for ordinary application messaging and are deliberately absent from the participant path.
+Portable formats remain application-facing because a message contract may need an explicit portable payload representation. Most formats used here are supplied, but applications can define or select formats when introducing their own contracts.
 
-Portable formats are a different case. Defining or selecting a portable payload representation can be a legitimate application-level extension when an application introduces a new message contract. The exercises provide most formats in advance so participants can concentrate on architectural consequences rather than serialization mechanics, but the format surface remains part of the public model rather than hidden broker bookkeeping.
-
-Ropemother also exposes additional request/reply conveniences, including procedure-oriented helpers. These exercises do not use them, so this overview does not introduce their API merely for completeness. A tutorial map should make the practiced surface easier to navigate, not become an inventory of every exported class.
-
-The useful separation is therefore:
-
-- use **messaging vocabulary** to reason about application relationships that should generalize beyond Ropemother;
-- use **Ropemother API names** when reading, writing, or navigating concrete tutorial code;
-- descend into **Ropemother implementation and extension machinery** only when the task is actually to extend the bus itself.
+Use general messaging vocabulary when reasoning about architecture, and use the Ropemother API names above when reading or writing concrete Ropemother code.
