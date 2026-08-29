@@ -2,13 +2,17 @@
 
 These exercises introduce message-based software design with `ropemother`. They assume basic Python reading and small edits. They do not assume prior experience with message brokers, distributed systems, service-oriented architecture, event sourcing, image processing, graph processing, or eduRange internals.
 
-Work through the sections in order:
+## Contents
 
-1. CCSCNW Image Reconstruction
-2. Basic Messaging
-3. TTY Processing
-4. Graph Reachability
-5. Image Reconstruction — Full Self-Paced Path
+These exercises build on one another. Work through them in this order:
+
+1. [Image Reconstruction — Guided Introduction](#image-reconstruction--guided-introduction)
+2. [Basic Messaging](#basic-messaging)
+3. [TTY Processing](#tty-processing)
+4. [Graph Reachability](#graph-reachability)
+5. [Image Reconstruction — Full Self-Paced Path](#image-reconstruction--full-self-paced-path)
+6. [Messaging Architecture — Vocabulary from the Exercises](#messaging-architecture--vocabulary-from-the-exercises)
+7. [Ropemother API — Application-Facing Map](#ropemother-api--application-facing-map)
 
 Run commands from the repository root with Python 3.13 or newer. If `ropemother` is not already installed in the Python environment used for the exercises, install it with:
 
@@ -25,7 +29,7 @@ python -m pip install ropemother
 > - Keep them terse and itemized where possible.
 > - Keep them focused on instructional design rather than drafting history.
 
-# CCSCNW Image Reconstruction
+# Image Reconstruction — Guided Introduction
 
 > **Authoring notes**
 >
@@ -33,7 +37,7 @@ python -m pip install ropemother
 > - Protect the four-angle run, explicit completion, report request, eight-angle run, later finite client, and dashboard restart/edit. These are the minimum architectural consequences the live route is meant to expose.
 > - Treat this as a live task sheet. Participants will repeatedly look away at terminals, Python, and an editor; headings and nearby expected output should make it easy to recover their place.
 
-This is the opening exercise in the current sequence and the route used for the 90-minute CCSC Northwest tutorial. Keep these instructions visible beside the terminals while working through the steps.
+This is the opening exercise in the sequence and a guided route through the image application. Keep these instructions visible beside the terminals while working through the steps.
 
 The exercise uses two terminal windows or tabs:
 
@@ -437,6 +441,51 @@ kill -INT $(jobs -p)
 > - Establishes: publish/subscribe, independent process lifetimes, fan-out, the freestanding broker, and shared history as a request/reply-shaped service.
 > - Later sections should reuse these mechanics for new architectural purposes rather than reteach them in full.
 
+## What a message bus changes
+
+With direct calls, one part of a program names the code it wants to invoke. A message boundary can instead name a fact or request while leaving delivery to the messaging system. A producer can publish a fact under a shared message contract; another participant can react to that fact without the producer holding a reference to that participant. A processor can also publish a new fact for later participants to use.
+
+A familiar application can have this shape without requiring its participants to call one another directly:
+
+```mermaid
+sequenceDiagram
+    participant Checkout
+    participant Bus as Message bus
+    participant Payment as Payment processor
+    participant Fulfillment
+
+    Checkout->>Bus: OrderPlaced
+    Bus->>Payment: OrderPlaced
+    Payment->>Bus: PaymentAuthorized
+    Bus->>Fulfillment: PaymentAuthorized
+```
+
+Read the sequence downward. The diagram is not meant to describe a complete ordering system. It shows the architectural role of the messages: checkout establishes one fact, the payment processor reacts to that fact and establishes another, and fulfillment can depend on the later fact without checkout coordinating either participant directly.
+
+Message buses can also carry the same logical relationships across execution boundaries when an appropriate transport is available. Producers and consumers may be in different processes, runtimes, or systems rather than sharing one address space. The boundary-crossing capability belongs to message-bus architecture in general; the available transport determines which boundaries a particular bus can cross.
+
+Ropemother currently makes local process separation concrete through a freestanding broker and IPC:
+
+```mermaid
+flowchart TB
+    subgraph source_process["source process"]
+        source["source"]
+    end
+
+    subgraph broker_process["broker process"]
+        broker["Ropemother broker"]
+    end
+
+    subgraph processor_process["processor process"]
+        processor["processor"]
+    end
+
+    source -->|IPC| broker
+    broker -->|IPC| processor
+```
+
+The exercises do not present broader cross-system transport as a turnkey Ropemother feature. A bus with a suitable transport can extend the same messaging relationship farther; the examples here demonstrate the local-process case.
+
 ## Inspect the prepared message contracts
 
 Open:
@@ -520,6 +569,24 @@ Publish one value and inspect the readable message that arrives:
 >>> message.payload
 'foo bar baz'
 ```
+
+The objects used in this first exchange form the first small Ropemother API surface in the exercise. This diagram is about the concrete calls above, not general messaging vocabulary:
+
+```mermaid
+flowchart LR
+    bus["DirectMessageBus"]
+    emitter["Emitter"]
+    receiver["Receiver"]
+    message["ReceivedMessage"]
+
+    bus -->|"register_emitter(...)"| emitter
+    bus -->|"subscribe(...)"| receiver
+    emitter -->|"emit(payload)"| bus
+    bus -->|"matching publication"| receiver
+    receiver -->|"receive()"| message
+```
+
+`DirectMessageBus` is the concrete in-process Ropemother object used for this first exchange. `Emitter`, `Receiver`, and `ReceivedMessage` are Ropemother API objects. The architectural idea underneath those names is simpler: a producer publishes under a message contract and matching subscribers receive the publication. Later participant classes accept `MessageEndpointFactory` rather than `DirectMessageBus` specifically so the same endpoint-facing code can also use a client connected to the freestanding broker.
 
 The payload is the submitted value. Topic, producer, and type describe the message carrying it. The emitter did not call the receiver; both participants were configured against the same contract and the bus delivered the matching publication.
 
@@ -846,6 +913,8 @@ word count: 4
 ```
 
 The source, processor, and display are separate programs sharing messages through the broker. The source holds no references to either consumer, and adding the display did not require changing `TextSource` or the word-count processor.
+
+This is the local process-boundary version of the earlier architectural picture. `connect_message_bus()` gives each program an endpoint-facing client while the broker lives in another process. The application relationships remain message relationships even though the participants no longer share the direct in-process bus used at the start of the exercise.
 
 ## Query work after a live subscriber has gone away
 
@@ -3152,6 +3221,45 @@ print(perspective_report.rendering)
 
 The sensing geometry changed, but the fusion processor still received the same downstream `ImageObservation` family. Heterogeneous producers can participate behind a stable observation boundary when the downstream processor depends on the evidence contract rather than a concrete sensor class.
 
+The reusable sensor definitions also share a small type structure:
+
+```mermaid
+classDiagram
+    direction TB
+
+    class Sensor {
+        <<abstract>>
+        +show_bins(frame)
+        +attach(bus) SensorSource
+        +describe() SensorDescription
+    }
+
+    class AngularSensor {
+        +angle_degrees
+        +bin_count
+        +sample_count
+    }
+
+    class PerspectiveSensor {
+        +viewpoint
+        +heading_degrees
+        +field_of_view_degrees
+        +bin_count
+        +sample_count
+    }
+
+    class SensorSource {
+        <<abstract>>
+        +measure(...)
+    }
+
+    Sensor <|-- AngularSensor
+    Sensor <|-- PerspectiveSensor
+    Sensor --> SensorSource : attach() returns
+```
+
+This is an image-domain type diagram rather than a messaging-architecture diagram. The hollow triangle marks Python type specialization: both concrete sensor definitions are kinds of `Sensor`, and their visible members explain the geometry each definition carries. `attach()` crosses from a reusable definition to a bus-bound `SensorSource` that can perform measurements.
+
 The two perspective sources remain available for later mixed configurations; attaching them did not consume them or bind them to this one run.
 
 ## Separate measurement depth from sensor geometry
@@ -3257,6 +3365,20 @@ instrument-2: sensor-0, sensor-45, sensor-90, sensor-135, half-angle-1, half-ang
 ```
 
 A run is one reconstruction attempt. An Instrument is the reusable sensor-contribution configuration associated with a completed run. The identity service derives that configuration from recorded contribution evidence when the run closes; the exploratory path did not require a separate registration step.
+
+The relationship is useful to keep separate from the lifetime of any one run:
+
+```mermaid
+flowchart LR
+    run["Run<br/>one reconstruction attempt"]
+    instrument["Instrument<br/>reusable sensor configuration"]
+    sensor["Sensor definition"]
+
+    instrument -->|"groups"| sensor
+    run -->|"is correlated with"| instrument
+```
+
+These boxes name application concepts rather than pretending that all three are classes with relevant members to inspect. An Instrument groups sensor definitions into a reusable configuration. A completed Run can be correlated with that configuration, and later runs can reuse the same Instrument identity without depending on the Python objects that originally assembled it.
 
 Inspect the first Instrument in detail:
 
@@ -3660,7 +3782,7 @@ The reconstruction and sample-depth examples are explanatory references to read 
 >
 > - Placeholder until target identity, selection, and sharing have a participant-facing public surface.
 > - Target sharing belongs in the normal full path.
-> - Once available, target sharing should also become a short optional paired variation in the CCSCNW path.
+> - Once available, target sharing should also become a short paired variation in the guided introduction.
 > - Target authoring can remain advanced.
 
 ## Review the full image network
@@ -3739,9 +3861,166 @@ kill -INT $(jobs -p)
 
 The host's temporary runtime directory and session history are discarded when the application session ends.
 
-# Advanced and Optional Exercises
+# Messaging Architecture — Vocabulary from the Exercises
 
-> **Authoring note**
->
-> - Keep candidate advanced branches out of the participant path until each has a concrete participant action, prerequisites, and the support code needed to execute it.
-> - Promote branches individually rather than exposing a planning inventory as participant instructions.
+The exercises above used Ropemother to make messaging behavior concrete. This section has a different purpose: it names the **general messaging relationships** that appeared across Basic, TTY, Graph, and Image. The vocabulary here should still make sense if the same application were built with another message bus. Ropemother-specific classes and modules are summarized separately in the next section.
+
+## Name the recurring relationships
+
+| Exercise evidence                                         | Messaging vocabulary                         | Architectural point                                               |
+| --------------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------- |
+| One Basic text event reached the counter and the display. | publish/subscribe, broadcast, fan-out        | One publication can reach multiple matching live subscribers.     |
+| Processors published facts derived from earlier messages. | processor, derived event                     | A consumer can establish a new fact for later participants.       |
+| Several TTY processors interpreted overlapping evidence.  | peer processors, correlation                 | Shared evidence can support independent derived facts.            |
+| Graph path facts could lead to more graph path facts.     | feedback, convergence, duplicate suppression | Useful message networks can contain cycles and still terminate.   |
+| Different sensor families produced `ImageObservation`.    | stable contract, heterogeneous producers     | Downstream code can depend on evidence rather than producer type. |
+| Later services interpreted already recorded evidence.     | request/reply, history, later views          | Retained evidence can support participants introduced later.      |
+
+An **event** in these exercises records something that has happened or been determined: text was submitted, a path is known, a sensor observed evidence, or a reconstruction completed. A **processor** consumes messages, performs ordinary computation, and may publish another event. A **message contract** is the stable boundary that lets those participants agree on what can be exchanged without holding direct references to one another.
+
+In these exercises, Ropemother spells out that agreement through topic, producer, and message-type selectors plus a portable payload representation. Other messaging systems may express the contract differently. The broader architectural idea is simply that independently evolving participants agree on a message boundary rather than on one another's internal implementation.
+
+## Do not turn every function call into a message
+
+Messaging is useful at boundaries between participants that benefit from independent evolution, observation, substitution, lifetime, or deployment. It is not a replacement for ordinary program structure inside those participants.
+
+The image exercises make this distinction especially visible. Projection, back-projection, fusion mathematics, rendering, and other domain operations remain ordinary function and object interactions where direct calls are clear. Messaging connects the independently useful roles around those calculations: sources publish observations, processors publish determinations, services answer requests, and later clients inspect retained evidence.
+
+This gives a practical design question for future projects:
+
+> Which parts need to change, run, restart, be replaced, or be observed independently enough that a message boundary earns its cost?
+
+A useful boundary localizes those changes. A boundary added only because messaging is available can instead make a small program harder to follow.
+
+## Distinguish message shape from deployment shape
+
+A message boundary is first a **logical communication boundary**. It says that participants cooperate through messages rather than by directly invoking one another. The deployment can realize that relationship in several ways.
+
+Basic used the same endpoint-facing participant code first with a direct in-process bus and later with a freestanding broker. In the second arrangement, the participants and broker lived in separate local processes and the messages crossed an IPC boundary. The logical relationship stayed recognizable even though the deployment changed.
+
+Message-bus architectures can extend the same idea across runtimes, hosts, or systems when suitable transports and operating policies exist. The exercises demonstrate Ropemother's current local direct and local IPC cases; they do not imply that current Ropemother provides turnkey remote cross-system transport.
+
+This distinction is useful when reading architecture diagrams. A diagram of publishers, processors, events, and services can describe who depends on which messages. A deployment diagram answers a different question: which processes, runtimes, hosts, or transports realize those relationships.
+
+## Recognize broadcast and request/reply as different interactions
+
+Most source and derived events in the exercises used **publish/subscribe**. A publisher establishes a fact without naming the individual consumers that may react to it. Zero, one, or many matching subscribers may receive the publication while they are live.
+
+History and the image reporting services introduced **request/reply**. A client sends a request because it needs a corresponding result from a service. The interaction still uses message boundaries, but its shape is not broadcast fan-out: the reply belongs to the request that caused it.
+
+```mermaid
+flowchart LR
+    publisher["publisher"] -->|"event"| bus["message bus"]
+    bus --> subscriber_a["subscriber A"]
+    bus --> subscriber_b["subscriber B"]
+
+    client["client"] -->|"request"| service["service"]
+    service -->|"corresponding reply"| client
+```
+
+These are architectural interaction patterns. The next section names the Ropemother API objects that realize them in this tutorial.
+
+## Treat history as preserved evidence, not delayed subscription
+
+A live subscriber reacts to matching publications that arrive while that subscription exists. Restarting the Basic display did not make earlier broadcasts arrive again. The history service answered a different question by reading evidence that had already been captured.
+
+That difference matters architecturally. Preserved history can support a processor or service that did not exist when the original event occurred, can let a restarted participant reconstruct useful state, and can support a new interpretation of old evidence. The dashboard and reconstruction-report changes in Image relied on exactly this property: the sensing work did not have to be repeated merely because a current view changed.
+
+History therefore changes the **time relationship** between participants. It does not make every live subscription durable, and a history query is not the same operation as receiving the next publication.
+
+## Read the exercise sequence as increasingly rich network shapes
+
+The examples were chosen to expose different consequences rather than to repeat the same publish/subscribe demonstration:
+
+- **Basic** establishes the core boundary, fan-out, process separation, and the difference between live delivery and retained history.
+- **TTY** shows several peer interpretations of common evidence and the importance of choosing useful source and derived-event boundaries.
+- **Graph** shows feedback, incremental derivation, nondeterministic processing order, and convergence to a bounded result.
+- **Image** combines heterogeneous producers, procedurally generated participants, explicit completion, reusable identities, shared history, and replaceable request/reply interpretations.
+
+Those shapes are more important than any one toy problem. They are reusable ways to reason about software in which new analyses, views, processors, or services are expected to appear over time.
+
+# Ropemother API — Application-Facing Map
+
+The preceding section was about messaging architecture in general. This section is specifically about **the current Ropemother API used or encountered by these exercises**. Its purpose is navigation: connect the concrete class and module names to the operations already practiced without turning implementation machinery into participant-facing vocabulary.
+
+## Start from the endpoint-facing abstraction
+
+The central application-facing abstraction is `MessageEndpointFactory`. Participant code that needs messaging can ask this surface for endpoints and request/reply helpers without requiring a particular deployment.
+
+```mermaid
+flowchart TB
+    factory["MessageEndpointFactory"]
+
+    factory -->|"register_emitter(...)"| emitter["Emitter"]
+    factory -->|"subscribe(...)"| receiver["Receiver"]
+    receiver -->|"receive()"| message["ReceivedMessage"]
+
+    factory -->|"request/reply helpers"| request["RequestClient / RequestService"]
+    factory -->|"history helpers"| history["HistoryClient / HistoryService"]
+```
+
+The Basic exercise deliberately introduced only the smallest part first: `register_emitter()`, `subscribe()`, `Emitter.emit()`, `Receiver.receive()`, and `ReceivedMessage`. Request/reply and history became relevant only after the exercises had a reason to need a corresponding response or retained evidence.
+
+`MessageEndpointFactory` is therefore a Ropemother API abstraction, not the definition of a message bus as an architectural idea.
+
+## Use the same participant surface in different local deployments
+
+The exercises obtain that endpoint-facing capability in two important ways:
+
+```mermaid
+flowchart LR
+    direct["DirectMessageBus<br/>in-process broker"] -->|"provides"| surface["MessageEndpointFactory surface"]
+    connect["connect_message_bus()"] -->|"returns a connected client providing"| surface
+```
+
+`DirectMessageBus` is convenient when the broker and application participants share one Python process. `connect_message_bus()` connects an application process to the freestanding local broker and returns a client that provides the same endpoint-facing abstraction.
+
+This is why participant classes such as `TextSource` and `WordCountProcessor` accept `MessageEndpointFactory`: their ordinary publish/subscribe behavior does not need to know whether the underlying messages are delivered by the direct in-process broker or through the local broker transport.
+
+That is an API design fact about Ropemother. The architectural lesson from the earlier section is the more general one: a stable communication boundary can let deployment change without forcing every participant to change with it.
+
+## Map the public modules used by the tutorial
+
+These are the major public areas that appear in or support the tutorial. This is a navigation map, not a new import-style rule:
+
+| Public surface       | Role in the tutorial                                                       |
+| -------------------- | -------------------------------------------------------------------------- |
+| `ropemother`         | Common entry points: direct bus, capture mode, and connection helpers.     |
+| `ropemother.client`  | Endpoint-factory and request/reply abstractions.                           |
+| `ropemother.broker`  | Publish/subscribe endpoint interfaces and direct-broker types.             |
+| `ropemother.service` | Freestanding-broker connection, hosting, and prepared service composition. |
+| `ropemother.capture` | History and capture-facing models and services.                            |
+| `ropemother.message` | Readable received-message values and message-selection helpers.            |
+| `ropemother.format`  | Portable payload-format definitions and registries.                        |
+
+Not every application needs to import from every module. The early Basic path intentionally stays on the small endpoint-facing surface. TTY opens more of the service and history composition because that exercise has a reason to inspect those boundaries. The prepared Image application then hides much of that repeated setup behind application-specific helpers so the exercise can concentrate on plurality, experimental configuration, and replaceable interpretations rather than reteaching broker wiring.
+
+## Map the operations you practiced to Ropemother names
+
+| Operation                                | Ropemother surface                                 | First reason it mattered       |
+| ---------------------------------------- | -------------------------------------------------- | ------------------------------ |
+| Publish under a message contract         | `register_emitter()` → `Emitter.emit()`            | Basic source publication       |
+| Receive matching live publications       | `subscribe()` → `Receiver.receive()`               | Basic receive and processors   |
+| Inspect the readable envelope            | `ReceivedMessage`                                  | Basic message inspection       |
+| Abstract over local deployment           | `MessageEndpointFactory`                           | Reusable participant classes   |
+| Use the direct in-process broker         | `DirectMessageBus`                                 | First Basic exchange           |
+| Connect to the freestanding local broker | `connect_message_bus()`                            | Independent Basic processes    |
+| Query retained messages                  | `preconfigured_history_client()` → `HistoryClient` | Basic history query            |
+| Host or compose broker-side services     | `ropemother.service` helpers and extensions        | TTY service composition        |
+| Define portable payload representation   | `PortableFormat` and related format support        | Prepared application contracts |
+
+The table is not intended to be a complete API reference. It names the parts that help explain code participants have already seen.
+
+## Keep implementation machinery out of the ordinary participant path
+
+Ropemother contains lower-level machinery for compact IDs, registrations, transport frames, broker sessions, capture records, and other implementation or extension concerns. Those concepts may matter when developing Ropemother itself or adding a new transport, but they are not prerequisites for ordinary application messaging and are deliberately absent from the participant path.
+
+Portable formats are a different case. Defining or selecting a portable payload representation can be a legitimate application-level extension when an application introduces a new message contract. The exercises provide most formats in advance so participants can concentrate on architectural consequences rather than serialization mechanics, but the format surface remains part of the public model rather than hidden broker bookkeeping.
+
+Ropemother also exposes additional request/reply conveniences, including procedure-oriented helpers. These exercises do not use them, so this overview does not introduce their API merely for completeness. A tutorial map should make the practiced surface easier to navigate, not become an inventory of every exported class.
+
+The useful separation is therefore:
+
+- use **messaging vocabulary** to reason about application relationships that should generalize beyond Ropemother;
+- use **Ropemother API names** when reading, writing, or navigating concrete tutorial code;
+- descend into **Ropemother implementation and extension machinery** only when the task is actually to extend the bus itself.
