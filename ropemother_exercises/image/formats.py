@@ -41,7 +41,7 @@ from ropemother_exercises.image.tomography.images import ImageFrame
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-25T00:01:10+00:00"
+__date__ = "2026-09-04T16:57:25+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
@@ -70,6 +70,7 @@ class AngularProjectionAdapter(TypeAdapter[AngularProjection, JSONRecord]):
             "frame_width": value.frame.width,
             "frame_height": value.frame.height,
             "angle_degrees": value.angle_degrees,
+            "edge_bin_count": value.edge_bin_count,
             "seed": value.seed,
             "intensity_sums": list(value.intensity_sums),
             "sample_counts": list(value.sample_counts),
@@ -88,6 +89,7 @@ class AngularProjectionAdapter(TypeAdapter[AngularProjection, JSONRecord]):
             observation_id=data["observation_id"],
             frame=frame,
             angle_degrees=angle_degrees,
+            edge_bin_count=int(data["edge_bin_count"]),
             seed=int(data["seed"]),
             intensity_sums=profile.intensity_sums,
             sample_counts=profile.sample_counts,
@@ -107,7 +109,7 @@ class AngularSensorDescriptionAdapter(
         record: JSONRecord = {
             "sensor_name": value.sensor_name,
             "angle_degrees": value.angle_degrees,
-            "bin_count": value.bin_count,
+            "edge_bin_count": value.edge_bin_count,
             "sample_count": value.sample_count,
         }
         return record
@@ -116,7 +118,7 @@ class AngularSensorDescriptionAdapter(
         description = AngularSensorDescription(
             sensor_name=data["sensor_name"],
             angle_degrees=float(data["angle_degrees"]),
-            bin_count=int(data["bin_count"]),
+            edge_bin_count=int(data["edge_bin_count"]),
             sample_count=int(data["sample_count"]),
         )
         return description

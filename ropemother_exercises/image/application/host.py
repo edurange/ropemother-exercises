@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# ropemother_exercises/image/application/session.py
+# ropemother_exercises/image/application/host.py
 
-"""Run the prepared image application session."""
+"""Run the prepared image application host."""
 
 import shlex
 import signal
@@ -23,7 +23,7 @@ from ropemother_exercises.image.target.session import store_session_target
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-27T02:45:56+00:00"
+__date__ = "2026-09-15T23:10:45+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
@@ -38,7 +38,7 @@ _PROCESS_STOP_TIMEOUT_SECONDS = 2.0
 _SERVICE_START_TIMEOUT_SECONDS = 5.0
 
 
-def run_application_session() -> None:
+def run_application_host() -> None:
     target = create_hidden_target()
 
     with tempfile.TemporaryDirectory(
@@ -153,3 +153,7 @@ def _stop_process(process: subprocess.Popen[bytes]) -> None:
     except subprocess.TimeoutExpired:
         process.kill()
         process.wait()
+
+
+if __name__ == "__main__":
+    run_application_host()

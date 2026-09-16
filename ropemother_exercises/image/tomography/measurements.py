@@ -3,6 +3,7 @@
 
 """Random illumination projections for the image reconstruction exercise."""
 
+import dataclasses
 import math
 import random
 import typing
@@ -30,7 +31,7 @@ from ropemother_exercises.image.tomography.images import (
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-21T22:00:17+00:00"
+__date__ = "2026-09-04T16:45:53+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
@@ -53,11 +54,33 @@ class InvalidObservationInputError(ValueError, BusExerciseBaseException):
     pass
 
 
-class ProjectionGeometry(typing.NamedTuple):
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class ProjectionGeometry:
     x_axis: float
     y_axis: float
-    minimum_projection: float
-    projection_span: float
+    edge_length: float
+    edge_bin_count: int
+    bin_width: float = dataclasses.field(init=False)
+    detector_bin_count: int = dataclasses.field(init=False)
+    minimum_projection: float = dataclasses.field(init=False)
+    projection_span: float = dataclasses.field(init=False)
+
+    def __post_init__(self) -> None:
+        bin_width = self.edge_length / self.edge_bin_count
+        detector_bin_count = math.ceil(
+            math.hypot(self.edge_bin_count, self.edge_bin_count)
+        )
+        projection_span = detector_bin_count * bin_width
+        minimum_projection = -projection_span / 2
+
+        object.__setattr__(self, "bin_width", bin_width)
+        object.__setattr__(
+            self, "detector_bin_count", detector_bin_count
+        )
+        object.__setattr__(
+            self, "minimum_projection", minimum_projection
+        )
+        object.__setattr__(self, "projection_span", projection_span)
 
 
 class ViewpointRelation(typing.NamedTuple):
@@ -74,30 +97,24 @@ class PerspectiveGeometry(typing.NamedTuple):
 
 
 def projection_geometry(
-    frame: ImageFrame, angle_degrees: float
+    frame: ImageFrame, angle_degrees: float, edge_bin_count: int
 ) -> ProjectionGeometry:
-    angle_radians = math.radians(angle_degrees)
-    x_axis = math.cos(angle_radians)
-    y_axis = math.sin(angle_radians)
-    projections = []
-
-    for cell in frame.cells():
-        projection = _cell_projection(cell, frame, x_axis, y_axis)
-        projections.append(projection)
-
-    if not projections:
+    if frame.width <= 0 or frame.height <= 0:
         raise InvalidObservationInputError(
             "projection frame must contain at least one cell"
         )
 
-    minimum_projection = min(projections)
-    maximum_projection = max(projections)
-    projection_span = maximum_projection - minimum_projection
+    if edge_bin_count <= 0:
+        raise InvalidObservationInputError("edge_bin_count must be positive")
+
+    angle_radians = math.radians(angle_degrees)
+    x_axis = math.cos(angle_radians)
+    y_axis = math.sin(angle_radians)
     geometry = ProjectionGeometry(
         x_axis=x_axis,
         y_axis=y_axis,
-        minimum_projection=minimum_projection,
-        projection_span=projection_span,
+        edge_length=max(frame.width, frame.height),
+        edge_bin_count=edge_bin_count,
     )
     return geometry
 
@@ -106,12 +123,8 @@ def projection_bin_index(
     cell: Cell,
     frame: ImageFrame,
     geometry: ProjectionGeometry,
-    bin_count: int,
     bin_offset: float = 0.0,
 ) -> int:
-    if bin_count <= 0:
-        raise InvalidObservationInputError("bin_count must be positive")
-
     projection = _cell_projection(
         cell, frame, geometry.x_axis, geometry.y_axis
     )
@@ -121,21 +134,23 @@ def projection_bin_index(
         offset_projection = projection - geometry.minimum_projection
         scaled_projection = offset_projection / geometry.projection_span
 
-    raw_bin_index = math.floor(scaled_projection * bin_count + bin_offset)
-    return max(0, min(bin_count - 1, raw_bin_index))
+    raw_bin_index = math.floor(
+        scaled_projection * geometry.detector_bin_count + bin_offset
+    )
+    return max(0, min(geometry.detector_bin_count - 1, raw_bin_index))
 
 
 def projection_strips(
-    frame: ImageFrame, angle_degrees: float, bin_count: int
+    frame: ImageFrame, angle_degrees: float, edge_bin_count: int
 ) -> ProjectionRegions:
-    if bin_count <= 0:
-        raise InvalidObservationInputError("bin_count must be positive")
+    if edge_bin_count <= 0:
+        raise InvalidObservationInputError("edge_bin_count must be positive")
 
-    geometry = projection_geometry(frame, angle_degrees)
-    bins = [[] for _ in range(bin_count)]
+    geometry = projection_geometry(frame, angle_degrees, edge_bin_count)
+    bins = [[] for _ in range(geometry.detector_bin_count)]
 
     for cell in frame.cells():
-        bin_index = projection_bin_index(cell, frame, geometry, bin_count)
+        bin_index = projection_bin_index(cell, frame, geometry)
         bins[bin_index].append(cell)
 
     return tuple(tuple(cells) for cells in bins)
@@ -217,7 +232,7 @@ def measure_angular_projection(
     observation_id: str,
     target: MeasurementTarget,
     angle_degrees: float,
-    bin_count: int,
+    edge_bin_count: int,
     sample_count: int,
     seed: int | None = None,
     false_positive_rate: float = _DEFAULT_FALSE_POSITIVE_RATE,
@@ -225,8 +240,8 @@ def measure_angular_projection(
     intensity_noise: float = _DEFAULT_INTENSITY_NOISE,
     bin_position_noise: float = _DEFAULT_BIN_POSITION_NOISE,
 ) -> AngularProjection:
-    if bin_count <= 0:
-        raise InvalidObservationInputError("bin_count must be positive")
+    if edge_bin_count <= 0:
+        raise InvalidObservationInputError("edge_bin_count must be positive")
 
     if sample_count < 0:
         raise InvalidObservationInputError("sample_count must not be negative")
@@ -236,11 +251,11 @@ def measure_angular_projection(
 
     target_image = _measurement_target(target)
     frame = target_image.frame
-    geometry = projection_geometry(frame, angle_degrees)
+    geometry = projection_geometry(frame, angle_degrees, edge_bin_count)
     rng = random.Random(seed)
     cells = frame.cells()
-    intensity_sums = [0.0] * bin_count
-    sample_counts = [0] * bin_count
+    intensity_sums = [0.0] * geometry.detector_bin_count
+    sample_counts = [0] * geometry.detector_bin_count
 
     for _ in range(sample_count):
         cell = rng.choice(cells)
@@ -250,7 +265,7 @@ def measure_angular_projection(
             bin_offset = rng.gauss(0.0, bin_position_noise)
 
         bin_index = projection_bin_index(
-            cell, frame, geometry, bin_count, bin_offset
+            cell, frame, geometry, bin_offset
         )
         filled = target_image.is_filled(cell)
         measured_intensity = _measure_cell(
@@ -268,6 +283,7 @@ def measure_angular_projection(
         observation_id=observation_id,
         frame=frame,
         angle_degrees=angle_degrees,
+        edge_bin_count=edge_bin_count,
         seed=seed,
         intensity_sums=tuple(intensity_sums),
         sample_counts=tuple(sample_counts),

@@ -36,7 +36,7 @@ from _targets.tty.timing import InputTimingProcessor
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-28T17:09:22+00:00"
+__date__ = "2026-09-10T20:08:39+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
@@ -62,15 +62,15 @@ def run_local_tty_processing() -> None:
     )
     code_point_processor = RawInputCodePointProcessor(bus)
     reconstruction_processor = CommandReconstructionProcessor(bus)
-    regex_processor = RegexAnalysisProcessor(bus, PREPARED_PATTERNS)
     reconciliation_processor = InputReconciliationProcessor(bus)
+    regex_processor = RegexAnalysisProcessor(bus, PREPARED_PATTERNS)
 
     timing_results = bus.subscribe(msg_topic=TIMING_MSG_TOPIC)
     cadence_results = bus.subscribe(msg_topic=CADENCE_MSG_TOPIC)
     code_point_results = bus.subscribe(msg_topic=CODE_POINT_MSG_TOPIC)
     command_results = bus.subscribe(msg_topic=COMMAND_MSG_TOPIC)
-    regex_results = bus.subscribe(msg_topic=REGEX_MSG_TOPIC)
     reconciliation_results = bus.subscribe(msg_topic=RECONCILIATION_MSG_TOPIC)
+    regex_results = bus.subscribe(msg_topic=REGEX_MSG_TOPIC)
 
     try:
         regex_processor.publish_configuration()
@@ -109,9 +109,11 @@ def _display_code_point_results(receiver: Receiver) -> None:
     for message in receiver.receive_available():
         payload = message.payload
 
-        if not isinstance(payload, RawInputCodePoint):
-            print(payload)
-        elif payload.first_observation_index != payload.last_observation_index:
+        if (
+            isinstance(payload, RawInputCodePoint)
+            and payload.first_observation_index
+            != payload.last_observation_index
+        ):
             print(payload)
 
 

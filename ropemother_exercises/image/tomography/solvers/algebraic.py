@@ -22,7 +22,7 @@ from ropemother_exercises.image.tomography.reconstruction import (
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-11T23:16:18+00:00"
+__date__ = "2026-09-04T16:59:06+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
@@ -141,7 +141,7 @@ def _projection_equation(
         projection.intensity_sums, projection.sample_counts
     )
     strips = projection_strips(
-        frame, projection.angle_degrees, len(measured_values)
+        frame, projection.angle_degrees, projection.edge_bin_count
     )
     equation = ProjectionEquation(
         measured_values=measured_values,

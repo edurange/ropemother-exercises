@@ -24,7 +24,7 @@ from ropemother_exercises.image.tomography.sensors import (
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-24T23:10:54+00:00"
+__date__ = "2026-09-04T16:58:05+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
@@ -168,7 +168,7 @@ def _angular_sensor_from_description(
     sensor = AngularSensor(
         sensor_name=description.sensor_name,
         angle_degrees=description.angle_degrees,
-        bin_count=description.bin_count,
+        edge_bin_count=description.edge_bin_count,
         sample_count=description.sample_count,
     )
     return sensor

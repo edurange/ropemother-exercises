@@ -3,22 +3,34 @@
 
 """Reusable graph exercise runners and execution scaffolding."""
 
-import collections.abc
 import dataclasses
 
 from ropemother import DirectMessageBus, InMemoryCaptureSink
-from ropemother.capture import MessageHistory, history_for
+from ropemother.broker import Emitter, Receiver
+from ropemother.capture import history_for
 
 from ropemother_exercises.exceptions import BusExerciseBaseException
-from ropemother_exercises.graph.events import PathFound
+from ropemother_exercises.graph.events import (
+    ARC_DECLARED_MSG_TYPE,
+    ARC_MSG_TOPIC,
+    DIRECT_MSG_PRODUCER,
+    PATH_FOUND_MSG_TYPE,
+    PATH_MSG_TOPIC,
+    SOURCE_MSG_PRODUCER,
+    PathFound,
+)
 from ropemother_exercises.graph.facts import GraphFacts
+from ropemother_exercises.graph.formats import PATH_FOUND_FORMAT
 from ropemother_exercises.graph.model import Graph
-from ropemother_exercises.graph.processors import DirectPathsProcessor
+from ropemother_exercises.graph.reachability import (
+    direct_path_from_arc,
+    emit_path_if_new,
+)
 from ropemother_exercises.graph.source import GraphSource
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-19T04:14:21+00:00"
+__date__ = "2026-09-02T17:29:53+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
@@ -30,25 +42,11 @@ class GraphRunError(RuntimeError, BusExerciseBaseException):
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
-class TraceEntry:
-    round_index: int
-    step_name: str
-    work_count: int
-
-
-@dataclasses.dataclass(frozen=True, kw_only=True)
-class GraphProcessorStep:
-    step_name: str
-    process: collections.abc.Callable[[], int]
-
-
-@dataclasses.dataclass(frozen=True, kw_only=True)
 class GraphRuntime:
-    bus: DirectMessageBus
-    history: MessageHistory
     graph_facts: GraphFacts
     source: GraphSource
-    direct_processor: DirectPathsProcessor
+    direct_arc_receiver: Receiver
+    direct_path_emitter: Emitter
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -56,90 +54,69 @@ class GraphRunResult:
     run_id: str
     graph: Graph
     paths: tuple[PathFound, ...]
-    trace: tuple[TraceEntry, ...]
 
 
 def create_graph_runtime() -> GraphRuntime:
     bus = DirectMessageBus(capture_sink=InMemoryCaptureSink())
     history = history_for(bus)
     graph_facts = GraphFacts(history)
-
     source = GraphSource(bus)
-    direct_processor = DirectPathsProcessor(bus, graph_facts)
+
+    direct_arc_receiver = bus.subscribe(
+        msg_topic=ARC_MSG_TOPIC,
+        msg_producer=SOURCE_MSG_PRODUCER,
+        msg_type=ARC_DECLARED_MSG_TYPE,
+    )
+    direct_path_emitter = bus.register_emitter(
+        msg_topic=PATH_MSG_TOPIC,
+        msg_producer=DIRECT_MSG_PRODUCER,
+        msg_type=PATH_FOUND_MSG_TYPE,
+        payload_format=PATH_FOUND_FORMAT,
+    )
 
     runtime = GraphRuntime(
-        bus=bus,
-        history=history,
         graph_facts=graph_facts,
         source=source,
-        direct_processor=direct_processor,
+        direct_arc_receiver=direct_arc_receiver,
+        direct_path_emitter=direct_path_emitter,
     )
     return runtime
 
 
-def run_processor_steps(
-    steps: collections.abc.Iterable[GraphProcessorStep],
-    *,
-    round_index: int,
-    trace: list[TraceEntry],
-) -> int:
-    round_work_count = 0
+def derive_direct_path(runtime: GraphRuntime) -> int:
+    message = runtime.direct_arc_receiver.receive_nowait()
 
-    for step in steps:
-        step_work_count = step.process()
-        trace_entry = TraceEntry(
-            round_index=round_index,
-            step_name=step.step_name,
-            work_count=step_work_count,
+    if message is None:
+        work_count = 0
+    else:
+        candidate = direct_path_from_arc(message.payload)
+        emit_path_if_new(
+            candidate, runtime.graph_facts, runtime.direct_path_emitter
         )
-        trace.append(trace_entry)
-        round_work_count += step_work_count
+        work_count = 1
 
-    return round_work_count
+    return work_count
 
 
 def run_fixed_order(
-    graph: Graph, *, run_id: str, max_rounds: int = 20
+    graph: Graph, *, run_id: str, max_rounds: int = 100
 ) -> GraphRunResult:
     runtime = create_graph_runtime()
     runtime.source.emit_graph(run_id=run_id, graph=graph)
 
-    trace = run_fixed_order_until_quiet(runtime, max_rounds=max_rounds)
+    run_fixed_order_until_quiet(runtime, max_rounds=max_rounds)
     paths = runtime.graph_facts.paths_for_run(run_id, graph.graph_id)
 
-    result = GraphRunResult(
-        run_id=run_id, graph=graph, paths=paths, trace=trace
-    )
-    return result
-
-
-def graph_processor_steps(
-    runtime: GraphRuntime
-) -> tuple[GraphProcessorStep, ...]:
-    direct_step = GraphProcessorStep(
-        step_name="direct path processor",
-        process=runtime.direct_processor.process_arc_if_available,
-    )
-    return (direct_step,)
+    return GraphRunResult(run_id=run_id, graph=graph, paths=paths)
 
 
 def run_fixed_order_until_quiet(
     runtime: GraphRuntime, *, max_rounds: int
-) -> tuple[TraceEntry, ...]:
-    trace = []
+) -> None:
+    for _ in range(max_rounds):
+        work_count = derive_direct_path(runtime)
 
-    for round_index in range(max_rounds):
-        round_work_count = run_fixed_order_round(
-            runtime, round_index=round_index, trace=trace
-        )
-        if round_work_count == 0:
-            return tuple(trace)
+        if work_count == 0:
+            return
 
-    raise GraphRunError("graph processor steps did not become quiet")
-
-
-def run_fixed_order_round(
-    runtime: GraphRuntime, *, round_index: int, trace: list[TraceEntry]
-) -> int:
-    steps = graph_processor_steps(runtime)
-    return run_processor_steps(steps, round_index=round_index, trace=trace)
+    raise GraphRunError("graph operations did not become quiet")

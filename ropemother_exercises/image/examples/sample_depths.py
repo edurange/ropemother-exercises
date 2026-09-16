@@ -27,7 +27,7 @@ from ropemother_exercises.image.tomography.sensors import (
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-25T02:50:49+00:00"
+__date__ = "2026-09-04T17:02:56+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
@@ -55,6 +55,7 @@ def _run_reconstruction(
     bus = DirectMessageBus(capture_mode=CaptureMode.TRANSPORT_ONLY)
     processor_name = "geometric-fusion"
     angles_degrees = evenly_spaced_angles(4)
+    edge_bin_count = max(target.frame.width, target.frame.height)
 
     processor = ImageFusionProcessor(
         bus,
@@ -69,7 +70,7 @@ def _run_reconstruction(
     sensors = angular_sensors_for_angles(
         sensor_name_prefix=f"run-{run_id}",
         angles_degrees=angles_degrees,
-        bin_count=target.frame.width,
+        edge_bin_count=edge_bin_count,
         sample_count=samples_per_sensor,
     )
     sensor_sources = tuple(sensor.attach(bus) for sensor in sensors)

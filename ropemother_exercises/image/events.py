@@ -19,7 +19,7 @@ from ropemother_exercises.image.tomography.images import (
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-26T21:33:05+00:00"
+__date__ = "2026-09-04T16:42:32+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
@@ -127,6 +127,7 @@ class AngularProjection:
     observation_id: str
     frame: ImageFrame
     angle_degrees: float
+    edge_bin_count: int
     seed: int
     intensity_sums: tuple[float, ...]
     sample_counts: tuple[int, ...]
@@ -156,7 +157,7 @@ type SensorProjection = AngularProjection | PerspectiveProjection
 class AngularSensorDescription:
     sensor_name: str
     angle_degrees: float
-    bin_count: int
+    edge_bin_count: int
     sample_count: int
 
 

@@ -10,7 +10,7 @@ from ropemother_exercises.graph.model import Graph
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-03T16:28:28+00:00"
+__date__ = "2026-09-03T18:36:00+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
@@ -46,6 +46,9 @@ class ArcDeclared:
     source: str
     target: str
 
+    def __str__(self) -> str:
+        return f"{self.source}→{self.target}"
+
     def arc_key(self) -> tuple[str, str, str, str]:
         return (self.run_id, self.graph_id, self.source, self.target)
 
@@ -57,6 +60,9 @@ class PathFound:
     source: str
     target: str
     hop_count: int
+
+    def __str__(self) -> str:
+        return f"{self.source}…{self.target}"
 
     def path_key(self) -> tuple[str, str, str, str]:
         return (self.run_id, self.graph_id, self.source, self.target)

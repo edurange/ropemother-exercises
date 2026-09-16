@@ -25,7 +25,7 @@ from ropemother_exercises.image.tomography.measurements import (
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-11T23:13:44+00:00"
+__date__ = "2026-09-04T16:56:13+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
@@ -60,12 +60,15 @@ def normalize_projection(
 
 
 def angular_back_projection(
-    frame: ImageFrame, profile: tuple[float, ...], angle_degrees: float
+    frame: ImageFrame,
+    profile: tuple[float, ...],
+    angle_degrees: float,
+    edge_bin_count: int,
 ) -> IntensityImage:
     if len(profile) == 0:
         raise InvalidReconstructionInputError("profile must not be empty")
 
-    strips = projection_strips(frame, angle_degrees, len(profile))
+    strips = projection_strips(frame, angle_degrees, edge_bin_count)
     return _image_from_projection_regions(profile, strips)
 
 
@@ -90,10 +93,16 @@ def image_observation_from_angular_projection(
     coverage_profile = _coverage_profile(projection.sample_counts)
 
     intensity_image = angular_back_projection(
-        projection.frame, intensity_profile, projection.angle_degrees
+        projection.frame,
+        intensity_profile,
+        projection.angle_degrees,
+        projection.edge_bin_count,
     )
     coverage_image = angular_back_projection(
-        projection.frame, coverage_profile, projection.angle_degrees
+        projection.frame,
+        coverage_profile,
+        projection.angle_degrees,
+        projection.edge_bin_count,
     )
     observation = ImageObservation(
         run_id=projection.run_id,

@@ -27,7 +27,7 @@ from ropemother_exercises.tty.formats import INPUT_RECONCILIATION_FORMAT
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-27T18:12:47+00:00"
+__date__ = "2026-09-16T01:40:18+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
@@ -69,9 +69,6 @@ class InputReconciliationProcessor:
         reads = self._reads_for(line)
         reconciliation = reconcile_input(line, reads)
         self._emitter.emit(reconciliation)
-
-    # Add both history-selection methods here.
-    # Keep them inside InputReconciliationProcessor, aligned with _process().
 
 
 def reconcile_input(

@@ -1,75 +1,34 @@
 #!/usr/bin/env python3
 # ropemother_exercises/graph/reachability.py
 
-"""Run the graph reachability activity."""
+"""Reachability derivations for the graph exercise."""
 
-from ropemother import DirectMessageBus, InMemoryCaptureSink
-from ropemother.capture import history_for
+from ropemother.broker import Emitter
 
-from ropemother_exercises.graph.events import PathFound
+from ropemother_exercises.graph.events import ArcDeclared, PathFound
 from ropemother_exercises.graph.facts import GraphFacts
-from ropemother_exercises.graph.model import Arc, Graph
-from ropemother_exercises.graph.runner import run_fixed_order
-from ropemother_exercises.graph.source import GraphSource
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-06T15:31:18+00:00"
+__date__ = "2026-09-02T17:23:56+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
 
 
-def create_reachability_graph() -> Graph:
-    graph = Graph(
-        graph_id="reachability-graph",
-        nodes=("A", "B", "C", "D"),
-        arcs=(
-            Arc(source="A", target="B"),
-            Arc(source="B", target="C"),
-            Arc(source="C", target="D"),
-        ),
+def emit_path_if_new(
+    path: PathFound, facts: GraphFacts, emitter: Emitter
+) -> None:
+    if not facts.path_is_known(path):
+        emitter.emit(path)
+
+
+def direct_path_from_arc(arc: ArcDeclared) -> PathFound:
+    path = PathFound(
+        run_id=arc.run_id,
+        graph_id=arc.graph_id,
+        source=arc.source,
+        target=arc.target,
+        hop_count=1,
     )
-    return graph
-
-
-def path_facts(
-    paths: tuple[PathFound, ...]
-) -> tuple[tuple[str, str, int], ...]:
-    facts = []
-
-    for path in paths:
-        fact = (path.source, path.target, path.hop_count)
-        facts.append(fact)
-
-    return tuple(sorted(facts))
-
-
-def run_reachability() -> None:
-    graph = create_reachability_graph()
-    run_id = "source-facts"
-
-    capture_sink = InMemoryCaptureSink()
-    bus = DirectMessageBus(capture_sink=capture_sink)
-    history = history_for(bus)
-
-    graph_facts = GraphFacts(history)
-    source = GraphSource(bus)
-
-    source.emit_graph(run_id=run_id, graph=graph)
-    declared_arcs = graph_facts.arcs_for_run(run_id, graph.graph_id)
-
-    print("Declared arcs")
-    for arc in declared_arcs:
-        print(f"{arc.source} -> {arc.target}")
-
-    fixed_result = run_fixed_order(graph, run_id="fixed-order")
-    fixed_path_facts = path_facts(fixed_result.paths)
-
-    print("\nFixed-order reachability")
-    for source_name, target_name, hop_count in fixed_path_facts:
-        print(f"{source_name} -> {target_name}; hop count {hop_count}")
-
-
-if __name__ == "__main__":
-    run_reachability()
+    return path

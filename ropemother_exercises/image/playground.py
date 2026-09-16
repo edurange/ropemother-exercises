@@ -50,7 +50,7 @@ from ropemother_exercises.image.report import reconstruction_report
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-25T02:55:49+00:00"
+__date__ = "2026-09-04T17:04:11+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
@@ -68,7 +68,7 @@ def demo_angular_projection_sample_count() -> None:
         observation_id="observation-1",
         target=bitmap,
         angle_degrees=37.0,
-        bin_count=7,
+        edge_bin_count=7,
         sample_count=expected_sample_count,
         seed=2,
     )
@@ -117,10 +117,18 @@ def demo_projection_normalization() -> None:
 def demo_angular_back_projection_covers_frame() -> None:
     print("Demo: angular back-projection covers the complete frame")
     frame = ImageFrame(width=5, height=4)
-    profile = (0.0, 0.25, 0.5, 0.75, 1.0)
+    sensor = AngularSensor(
+        sensor_name="tutorial-sensor",
+        angle_degrees=0.0,
+        edge_bin_count=5,
+        sample_count=0,
+    )
+    profile = (0.5,) * sensor.detector_bin_count
     expected_cell_count = len(frame.cells())
 
-    received_back_projection = angular_back_projection(frame, profile, 0.0)
+    received_back_projection = angular_back_projection(
+        frame, profile, sensor.angle_degrees, sensor.edge_bin_count
+    )
     observed_cell_count = len(received_back_projection)
 
     print(f"{expected_cell_count=}")
@@ -194,7 +202,7 @@ def demo_angular_sensor_source_preserves_observation_id() -> None:
     sensor = AngularSensor(
         sensor_name="tutorial-sensor",
         angle_degrees=0.0,
-        bin_count=2,
+        edge_bin_count=2,
         sample_count=12,
     )
     sensor_source = sensor.attach(bus)
@@ -452,7 +460,7 @@ def demo_angular_sensor_source_publishes_configured_projection() -> None:
     sensor = AngularSensor(
         sensor_name="tutorial-sensor",
         angle_degrees=canonical_angle_degrees,
-        bin_count=2,
+        edge_bin_count=2,
         sample_count=12,
     )
     sensor_source = sensor.attach(bus)
@@ -493,7 +501,7 @@ def demo_trial_runner_closes_run_input() -> None:
     sensor = AngularSensor(
         sensor_name="tutorial-sensor",
         angle_degrees=0.0,
-        bin_count=2,
+        edge_bin_count=2,
         sample_count=12,
     )
     instrument = Instrument(sensor)
@@ -587,13 +595,13 @@ def demo_instrument_attaches_sensor_arrangement() -> None:
     sensor_0 = AngularSensor(
         sensor_name="sensor-0",
         angle_degrees=0.0,
-        bin_count=2,
+        edge_bin_count=2,
         sample_count=12,
     )
     sensor_90 = AngularSensor(
         sensor_name="sensor-90",
         angle_degrees=90.0,
-        bin_count=2,
+        edge_bin_count=2,
         sample_count=12,
     )
     instrument = Instrument(sensor_0, sensor_90)

@@ -59,7 +59,7 @@ from ropemother_exercises.image.tomography.reconstruction import (
 
 __author__ = "Joe Granville"
 __email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-25T02:47:52+00:00"
+__date__ = "2026-09-04T16:43:22+00:00"
 __license__ = "MIT"
 __version__ = "0.1.0.dev1"
 __status__ = "Prototype"
@@ -153,8 +153,15 @@ class AngularSensor(Sensor):
     """Describe an angular projection sensor."""
     sensor_name: str
     angle_degrees: float
-    bin_count: int
+    edge_bin_count: int
     sample_count: int
+
+    @property
+    def detector_bin_count(self) -> int:
+        detector_bin_count = math.ceil(
+            math.hypot(self.edge_bin_count, self.edge_bin_count)
+        )
+        return detector_bin_count
 
     def attach(self, bus: MessageEndpointFactory) -> "AngularSensorSource":
         return AngularSensorSource(bus, sensor=self)
@@ -163,13 +170,15 @@ class AngularSensor(Sensor):
         description = AngularSensorDescription(
             sensor_name=self.sensor_name,
             angle_degrees=self.angle_degrees,
-            bin_count=self.bin_count,
+            edge_bin_count=self.edge_bin_count,
             sample_count=self.sample_count,
         )
         return description
 
     def _bin_regions(self, frame: ImageFrame) -> ProjectionRegions:
-        return projection_strips(frame, self.angle_degrees, self.bin_count)
+        return projection_strips(
+            frame, self.angle_degrees, self.edge_bin_count
+        )
 
 
 class AngularSensorSource(SensorSource):
@@ -210,7 +219,7 @@ class AngularSensorSource(SensorSource):
             observation_id=observation_id,
             target=target,
             angle_degrees=self._sensor.angle_degrees,
-            bin_count=self._sensor.bin_count,
+            edge_bin_count=self._sensor.edge_bin_count,
             sample_count=self._sensor.sample_count,
             seed=seed,
         )
@@ -354,7 +363,7 @@ def angular_sensors_for_angles(
     *,
     sensor_name_prefix: str,
     angles_degrees: tuple[float, ...],
-    bin_count: int,
+    edge_bin_count: int,
     sample_count: int,
 ) -> tuple[AngularSensor, ...]:
     sensors = []
@@ -363,7 +372,7 @@ def angular_sensors_for_angles(
         sensor = AngularSensor(
             sensor_name=f"{sensor_name_prefix}-{sensor_number}",
             angle_degrees=angle_degrees,
-            bin_count=bin_count,
+            edge_bin_count=edge_bin_count,
             sample_count=sample_count,
         )
         sensors.append(sensor)
