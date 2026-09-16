@@ -18,13 +18,6 @@ from ropemother_exercises.graph.facts import GraphFacts
 from ropemother_exercises.graph.model import Arc, Graph
 from ropemother_exercises.graph.source import GraphSource
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-09-04T04:51:26+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 def create_reachability_graph() -> Graph:
     graph = Graph(

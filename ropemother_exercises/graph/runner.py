@@ -28,13 +28,6 @@ from ropemother_exercises.graph.reachability import (
 )
 from ropemother_exercises.graph.source import GraphSource
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-09-02T17:29:53+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 class GraphRunError(RuntimeError, BusExerciseBaseException):
     """Raised when a graph runner cannot finish normally."""

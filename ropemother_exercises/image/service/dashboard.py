@@ -26,17 +26,10 @@ from ropemother_exercises.image.formats import (
     IMAGE_PORTABLE_FORMATS,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-26T19:36:01+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
 
-
-type DashboardReportFunction = collections.abc.Callable[
-    [HistoryClient], DashboardReport
-]
+type DashboardReportFunction = (
+    collections.abc.Callable[[HistoryClient], DashboardReport]
+)
 
 
 def serve_dashboard_requests(

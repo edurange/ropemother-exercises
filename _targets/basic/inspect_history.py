@@ -11,13 +11,6 @@ from ropemother_exercises.basic.events import (
     WORD_COUNT_MSG_TOPIC,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-28T15:43:24+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 def display_history_entry(entry) -> None:
     print(

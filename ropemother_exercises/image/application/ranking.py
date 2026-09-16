@@ -8,13 +8,6 @@ import statistics
 from ropemother_exercises.image.events import ImageObservation
 from ropemother_exercises.image.tomography.images import Cell
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-24T18:30:33+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 def reconstruction_smoothness(reconstruction: ImageObservation) -> float:
     """Return average similarity between neighboring reconstruction cells."""

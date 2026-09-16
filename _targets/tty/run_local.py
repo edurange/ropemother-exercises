@@ -34,13 +34,6 @@ from _targets.tty.regex_analysis import (
 )
 from _targets.tty.timing import InputTimingProcessor
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-09-10T20:08:39+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 def run_local_tty_processing() -> None:
     capture_sink = InMemoryCaptureSink()

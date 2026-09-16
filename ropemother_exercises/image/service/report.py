@@ -29,13 +29,6 @@ from ropemother_exercises.image.formats import (
 )
 from ropemother_exercises.image.report import reconstruction_report
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-26T21:35:00+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 type ReconstructionReportFunction = collections.abc.Callable[
     [HistoryClient, ReconstructionCompletion], ReconstructionReport | None

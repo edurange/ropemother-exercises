@@ -48,13 +48,6 @@ from ropemother_exercises.image.formats import (
 from ropemother_exercises.image.service.fusion import ImageFusionProcessor
 from ropemother_exercises.image.report import reconstruction_report
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-09-04T17:04:11+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 def demo_angular_projection_sample_count() -> None:
     print("Demo: angular projection preserves requested sample count")

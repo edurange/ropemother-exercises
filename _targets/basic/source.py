@@ -12,13 +12,6 @@ from ropemother_exercises.basic.events import (
     TEXT_SUBMITTED_MSG_TYPE,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-07-18T19:00:50+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 class TextSource:
     """Publish text submitted to the basic exercise system."""

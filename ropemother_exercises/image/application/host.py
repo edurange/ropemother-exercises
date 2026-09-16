@@ -21,13 +21,6 @@ from ropemother_exercises.image.formats import IMAGE_PORTABLE_FORMATS
 from ropemother_exercises.image.target.generator import create_hidden_target
 from ropemother_exercises.image.target.session import store_session_target
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-09-15T23:10:45+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 _LONG_LIVED_SERVICES = {
     "image-identity-service": "ropemother_exercises.image.service.identity",

@@ -16,13 +16,6 @@ from ropemother_exercises.image.tomography.images import (
     centered_point_for_cell,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-19T23:05:01+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 class HiddenTarget:
     """A concealed runtime target for the reconstruction exercise."""

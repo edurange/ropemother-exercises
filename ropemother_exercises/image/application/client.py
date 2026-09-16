@@ -66,13 +66,6 @@ from ropemother_exercises.image.tomography.sensors import (
     SensorMessageEndpointFactory,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-26T21:48:05+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 class ImageClientRunError(RuntimeError, BusExerciseBaseException):
     """Raised when prepared image-client run handling cannot continue."""

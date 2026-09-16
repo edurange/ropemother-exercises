@@ -23,13 +23,6 @@ from ropemother_exercises.image.tomography.measurements import (
     projection_strips,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-09-04T16:56:13+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 class InvalidReconstructionInputError(ValueError, BusExerciseBaseException):
     """Raised when reconstruction input cannot be interpreted."""

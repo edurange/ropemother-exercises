@@ -29,13 +29,6 @@ from ropemother_exercises.image.tomography.images import (
     centered_point_for_cell,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-09-04T16:45:53+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 _DEFAULT_FALSE_POSITIVE_RATE: typing.Final[float] = 0.01
 _DEFAULT_FALSE_NEGATIVE_RATE: typing.Final[float] = 0.04

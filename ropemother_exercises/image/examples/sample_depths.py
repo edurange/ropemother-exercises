@@ -25,13 +25,6 @@ from ropemother_exercises.image.tomography.sensors import (
     evenly_spaced_angles,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-09-04T17:02:56+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 def run_sample_depths(target: BinaryImage | None = None) -> None:
     if target is None:

@@ -22,13 +22,6 @@ from ropemother_exercises.image.events import (
 from ropemother_exercises.image.formats import IMAGE_PORTABLE_FORMATS
 from ropemother_exercises.image.target.session import session_target
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-25T00:45:16+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 def serve_trial_requests() -> None:
     bus = connect_message_bus(extra_formats=IMAGE_PORTABLE_FORMATS)

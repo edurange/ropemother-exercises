@@ -12,13 +12,6 @@ from ropemother_exercises.image.tomography.images import (
     InvalidBitmapError,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-19T21:22:39+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 def filled_ellipse(
     frame: ImageFrame, center: Point2D, radius_x: float, radius_y: float

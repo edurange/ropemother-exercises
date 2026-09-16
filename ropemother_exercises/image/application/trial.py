@@ -25,13 +25,6 @@ from ropemother_exercises.image.formats import RUN_INPUT_CLOSED_FORMAT
 from ropemother_exercises.image.tomography.measurements import MeasurementTarget
 from ropemother_exercises.image.tomography.sensors import SensorAttachments
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-25T16:11:37+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 class TrialRunner:
     """Run Experiments against targets as trials of measurement runs."""

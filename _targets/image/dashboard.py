@@ -17,13 +17,6 @@ from ropemother_exercises.image.application.render import (
     render_text_table,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-26T01:52:28+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 def render_dashboard(history: HistoryClient) -> str:
     entries = dashboard_entries(

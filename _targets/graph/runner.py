@@ -32,13 +32,6 @@ from ropemother_exercises.graph.formats import PATH_FOUND_FORMAT
 from ropemother_exercises.graph.model import Graph
 from ropemother_exercises.graph.source import GraphSource
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-09-04T00:19:51+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 class GraphRunError(RuntimeError, BusExerciseBaseException):
     """Raised when a graph runner cannot finish normally."""

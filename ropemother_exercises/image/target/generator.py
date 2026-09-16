@@ -21,13 +21,6 @@ from ropemother_exercises.image.tomography.images import (
     InvalidBitmapError,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-19T23:02:17+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 _PREPARED_INNER_ASSET_ID: typing.Final[str] = (
     "Software_Warning_Sign_Circle_Question_Mark_Help"

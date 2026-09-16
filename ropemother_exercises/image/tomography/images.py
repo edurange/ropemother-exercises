@@ -12,13 +12,6 @@ import typing
 from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.image.tomography.geometry import Point2D
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-11T23:12:14+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 class InvalidBitmapError(ValueError, BusExerciseBaseException):
     """Raised when a bitmap is inconsistent with its frame."""

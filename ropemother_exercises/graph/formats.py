@@ -13,13 +13,6 @@ from ropemother_exercises.graph.events import (
 )
 from ropemother_exercises.graph.model import Arc, Graph
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-16T21:24:43+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 class RunStartedAdapter(TypeAdapter[RunStarted, JSONRecord]):
 

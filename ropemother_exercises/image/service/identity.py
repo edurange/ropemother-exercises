@@ -54,13 +54,6 @@ from ropemother_exercises.image.formats import (
     RUN_INSTRUMENT_CORRELATION_FORMAT,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-25T15:30:02+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 class InvalidIdentityServicePayloadError(ValueError, BusExerciseBaseException):
     """Raised when the identity service receives an unsupported payload."""

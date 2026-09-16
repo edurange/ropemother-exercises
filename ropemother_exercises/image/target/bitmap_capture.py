@@ -31,13 +31,6 @@ from ropemother_exercises.image.tomography.images import (
     ImageFrame,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-25T02:48:34+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 _BINARY_RENDER_PALETTE: typing.Final[str] = " #"
 _DEFAULT_GLYPH_SIZE: typing.Final[int] = 16
@@ -54,7 +47,6 @@ _CAPTURE_USAGE: typing.Final[str] = (
     "  python -m ropemother_exercises.image.target.bitmap_capture "
     "sprite SPRITE_PATH"
 )
-
 
 _PREPARED_BITMAP_PATH: typing.Final[pathlib.Path] = (
     pathlib.Path(__file__).with_name(ASSET_FILE)

@@ -33,13 +33,6 @@ from ropemother_exercises.image.tomography.solvers.algebraic import (
     projection_coverage,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-21T21:55:05+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 class ProjectionReconstructionProcessor:
     """Reconstruct images directly from native angular projections."""

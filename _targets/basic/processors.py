@@ -15,13 +15,6 @@ from ropemother_exercises.basic.events import (
     WORDS_COUNTED_MSG_TYPE,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-28T15:23:43+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 class WordCountProcessor:
     """Count words in submitted text and publish the result."""

@@ -17,13 +17,6 @@ from ropemother_exercises.image.tomography.images import (
     IntensityImage,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-09-04T16:42:32+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 IDENTITY_CLIENT_MSG_PRODUCER: typing.Final[str] = "image-identity-client"
 IDENTITY_SERVICE_MSG_PRODUCER: typing.Final[str] = "image-identity-service"

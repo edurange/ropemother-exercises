@@ -29,13 +29,6 @@ from ropemother_exercises.tty.events import (
     TTYWriteObserved,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-08-21T04:08:40+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 class TTYEventRecordError(ValueError, BusExerciseBaseException):
     """Raised when a TTY event record cannot be interpreted."""

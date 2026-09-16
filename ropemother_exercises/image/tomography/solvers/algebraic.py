@@ -20,13 +20,6 @@ from ropemother_exercises.image.tomography.reconstruction import (
     normalize_projection,
 )
 
-__author__ = "Joe Granville"
-__email__ = "874605+jwgranville@users.noreply.github.com"
-__date__ = "2026-09-04T16:59:06+00:00"
-__license__ = "MIT"
-__version__ = "0.1.0.dev1"
-__status__ = "Prototype"
-
 
 _SAMPLE_CONFIDENCE_SCALE: typing.Final[float] = 4.0
 
