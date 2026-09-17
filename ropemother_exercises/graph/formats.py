@@ -11,6 +11,7 @@ from ropemother_exercises.graph.events import (
     PathFound,
     RunStarted,
 )
+from ropemother_exercises.graph.exceptions import GraphEventRecordError
 from ropemother_exercises.graph.model import Arc, Graph
 
 
@@ -22,10 +23,7 @@ class RunStartedAdapter(TypeAdapter[RunStarted, JSONRecord]):
     def encode(self, value: RunStarted) -> JSONRecord:
         arcs = []
         for arc in value.graph.arcs:
-            arc_record = {
-                "source": arc.source,
-                "target": arc.target,
-            }
+            arc_record = {"source": arc.source, "target": arc.target}
             arcs.append(arc_record)
 
         record: JSONRecord = {
@@ -48,13 +46,15 @@ class RunStartedAdapter(TypeAdapter[RunStarted, JSONRecord]):
         nodes = []
         for node_value in node_values:
             if not isinstance(node_value, str):
-                raise TypeError("graph node values must be strings")
+                raise GraphEventRecordError(
+                    "graph node values must be strings"
+                )
             nodes.append(node_value)
 
         arcs = []
         for arc_value in arc_values:
             if not isinstance(arc_value, dict):
-                raise TypeError("graph arc values must be records")
+                raise GraphEventRecordError("graph arc values must be records")
             source = _required_str(arc_value, "source")
             target = _required_str(arc_value, "target")
             arcs.append(Arc(source=source, target=target))
@@ -135,26 +135,26 @@ PATH_FOUND_FORMAT = PortableFormat[PathFound, JSONRecord](
 def _required_str(record: JSONRecord, key: str) -> str:
     value = record.get(key)
     if not isinstance(value, str):
-        raise TypeError(f"{key} must be a string")
+        raise GraphEventRecordError(f"{key} must be a string")
     return value
 
 
 def _required_int(record: JSONRecord, key: str) -> int:
     value = record.get(key)
     if type(value) is not int:
-        raise TypeError(f"{key} must be an integer")
+        raise GraphEventRecordError(f"{key} must be an integer")
     return value
 
 
 def _required_list(record: JSONRecord, key: str) -> list[object]:
     value = record.get(key)
     if not isinstance(value, list):
-        raise TypeError(f"{key} must be a list")
+        raise GraphEventRecordError(f"{key} must be a list")
     return value
 
 
 def _required_record(record: JSONRecord, key: str) -> JSONRecord:
     value = record.get(key)
     if not isinstance(value, dict):
-        raise TypeError(f"{key} must be a record")
+        raise GraphEventRecordError(f"{key} must be a record")
     return value

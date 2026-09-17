@@ -9,7 +9,6 @@ import fractions
 from ropemother.broker import Emitter, Receiver
 from ropemother.client import MessageEndpointFactory
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.tty.events import (
     CADENCE_CONFIGURED_MSG_TYPE,
     CADENCE_MSG_PRODUCER,
@@ -22,6 +21,10 @@ from ropemother_exercises.tty.events import (
     InputTiming,
     InputTimingCompleted,
 )
+from ropemother_exercises.tty.exceptions import (
+    InvalidCadenceConfigurationError,
+    InvalidCadenceProcessorPayloadError,
+)
 from ropemother_exercises.tty.formats import (
     INPUT_CADENCE_CONFIGURED_FORMAT,
     INPUT_CADENCE_SPAN_FORMAT,
@@ -29,16 +32,6 @@ from ropemother_exercises.tty.formats import (
 
 
 PREPARED_MAXIMUM_RELATIVE_DEVIATION = fractions.Fraction(20, 100)
-
-
-class InvalidCadenceConfigurationError(ValueError, BusExerciseBaseException):
-    """Raised when cadence configuration cannot define a useful range."""
-    pass
-
-
-class InvalidCadenceProcessorPayloadError(TypeError, BusExerciseBaseException):
-    """Raised when cadence processing receives an unsupported payload."""
-    pass
 
 
 @dataclasses.dataclass

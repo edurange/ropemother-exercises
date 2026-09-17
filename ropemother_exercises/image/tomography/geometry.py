@@ -7,6 +7,8 @@ import dataclasses
 import math
 import typing
 
+from ropemother_exercises.image.exceptions import InvalidGeometryInputError
+
 
 Coordinate = tuple[float, ...]
 
@@ -53,7 +55,7 @@ def coordinate_scale_factor(
     elif reference_length.scale == IMAGE_RADIUS_SCALE:
         reference_scale = math.hypot(frame_width / 2, frame_height / 2)
     else:
-        raise ValueError(
+        raise InvalidGeometryInputError(
             f"unsupported geometry scale: {reference_length.scale.name}"
         )
 
@@ -66,7 +68,9 @@ def coordinate_dimension(point: Coordinate) -> int:
 
 def require_same_dimension(left: Coordinate, right: Coordinate) -> None:
     if len(left) != len(right):
-        raise ValueError("coordinates must have the same dimension")
+        raise InvalidGeometryInputError(
+            "coordinates must have the same dimension"
+        )
 
 
 def add_coordinates(left: Coordinate, right: Coordinate) -> Coordinate:
@@ -98,14 +102,14 @@ def interpolate_coordinates(
 
 def point2d_from_coordinate(point: Coordinate) -> Point2D:
     if len(point) != 2:
-        raise ValueError("expected a 2D coordinate")
+        raise InvalidGeometryInputError("expected a 2D coordinate")
 
     return Point2D(point[0], point[1])
 
 
 def point3d_from_coordinate(point: Coordinate) -> Point3D:
     if len(point) != 3:
-        raise ValueError("expected a 3D coordinate")
+        raise InvalidGeometryInputError("expected a 3D coordinate")
 
     return Point3D(point[0], point[1], point[2])
 

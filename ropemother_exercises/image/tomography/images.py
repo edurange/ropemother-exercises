@@ -9,13 +9,8 @@ import dataclasses
 import itertools
 import typing
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
+from ropemother_exercises.image.exceptions import InvalidBitmapError
 from ropemother_exercises.image.tomography.geometry import Point2D
-
-
-class InvalidBitmapError(ValueError, BusExerciseBaseException):
-    """Raised when a bitmap is inconsistent with its frame."""
-    pass
 
 
 class Cell(typing.NamedTuple):

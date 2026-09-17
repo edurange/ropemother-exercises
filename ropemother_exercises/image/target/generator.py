@@ -6,6 +6,7 @@
 import random
 import typing
 
+from ropemother_exercises.image.exceptions import InvalidBitmapError
 from ropemother_exercises.image.target.bitmap_assets import load_bitmap_asset
 from ropemother_exercises.image.target.hidden import HiddenTarget
 from ropemother_exercises.image.target.hull import (
@@ -18,7 +19,6 @@ from ropemother_exercises.image.tomography.images import (
     Bitmap,
     Cell,
     ImageFrame,
-    InvalidBitmapError,
 )
 
 
@@ -168,7 +168,7 @@ def _random_offset_for_bitmap(
 
 def _bitmap_bounds(bitmap: Bitmap) -> tuple[int, int, int, int]:
     if not bitmap.filled_cells:
-        raise ValueError("cannot place an empty inner bitmap")
+        raise InvalidBitmapError("cannot place an empty inner bitmap")
 
     x_values = []
     y_values = []

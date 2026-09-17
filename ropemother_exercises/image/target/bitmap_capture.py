@@ -16,11 +16,11 @@ import unicodedata
 from ropemother.util import JSONRecord
 from PIL import Image, ImageFont
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.image.application.render import (
     render_bitmap,
     render_text_row,
 )
+from ropemother_exercises.image.exceptions import BitmapCaptureError
 from ropemother_exercises.image.target.bitmap_assets import (
     ASSET_FILE,
     encode_bitmap_asset_record,
@@ -63,11 +63,6 @@ _TRANSPARENT_PIXEL: typing.Final[RGBAPixel] = (0, 0, 0, 0)
 
 type AssetWriteMode = typing.Literal["append", "overwrite"]
 type PixelInterpreter = collections.abc.Callable[[RGBAPixel], bool]
-
-
-class BitmapCaptureError(ValueError, BusExerciseBaseException):
-    """Raised when source material cannot be captured as a bitmap."""
-    pass
 
 
 def interpret_white_black_transparent(pixel: RGBAPixel) -> bool:

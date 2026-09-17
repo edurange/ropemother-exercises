@@ -9,7 +9,6 @@ from ropemother.broker import Emitter, Receiver
 from ropemother.client import MessageEndpointFactory, RequestService
 from ropemother.service import connect_message_bus
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.image.application.experiment import (
     Experiment,
     Instrument,
@@ -47,16 +46,15 @@ from ropemother_exercises.image.events import (
     SensorContribution,
     SensorDescription,
 )
+from ropemother_exercises.image.exceptions import (
+    InvalidIdentityServicePayloadError,
+)
 from ropemother_exercises.image.formats import (
     EXPERIMENT_CATALOG_ENTRY_FORMAT,
     IMAGE_PORTABLE_FORMATS,
     INSTRUMENT_CATALOG_ENTRY_FORMAT,
     RUN_INSTRUMENT_CORRELATION_FORMAT,
 )
-
-
-class InvalidIdentityServicePayloadError(ValueError, BusExerciseBaseException):
-    """Raised when the identity service receives an unsupported payload."""
 
 
 class RunTracker:

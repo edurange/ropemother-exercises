@@ -8,7 +8,6 @@ import dataclasses
 from ropemother.broker import Emitter, Receiver
 from ropemother.client import MessageEndpointFactory
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.tty.events import (
     COMMAND_MSG_TOPIC,
     COMMAND_RECONSTRUCTED_MSG_TYPE,
@@ -24,19 +23,11 @@ from ropemother_exercises.tty.events import (
     TTYSessionEnded,
     TTYWriteObserved,
 )
+from ropemother_exercises.tty.exceptions import (
+    InvalidReconstructionPayloadError,
+    MissingCommandInputError,
+)
 from ropemother_exercises.tty.formats import RECONSTRUCTED_COMMAND_FORMAT
-
-
-class InvalidReconstructionPayloadError(
-    TypeError, BusExerciseBaseException
-):
-    """Raised when the reconstructor receives an unsupported payload."""
-    pass
-
-
-class MissingCommandInputError(RuntimeError, BusExerciseBaseException):
-    """Raised when a canonical line has no preceding raw input."""
-    pass
 
 
 @dataclasses.dataclass

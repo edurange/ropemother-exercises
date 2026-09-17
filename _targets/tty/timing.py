@@ -6,7 +6,6 @@
 from ropemother.broker import Emitter, Receiver
 from ropemother.client import MessageEndpointFactory
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.tty.events import (
     READ_MSG_TOPIC,
     SESSION_MSG_TOPIC,
@@ -20,17 +19,11 @@ from ropemother_exercises.tty.events import (
     TTYReadObserved,
     TTYSessionEnded,
 )
+from ropemother_exercises.tty.exceptions import InvalidTimingProcessorPayloadError
 from ropemother_exercises.tty.formats import (
     INPUT_TIMING_COMPLETED_FORMAT,
     INPUT_TIMING_FORMAT,
 )
-
-
-class InvalidTimingProcessorPayloadError(
-    TypeError, BusExerciseBaseException
-):
-    """Raised when the timing processor receives an unsupported payload."""
-    pass
 
 
 class InputTimingProcessor:

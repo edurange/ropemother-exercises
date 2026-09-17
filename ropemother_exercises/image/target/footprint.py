@@ -6,6 +6,7 @@
 import dataclasses
 import math
 
+from ropemother_exercises.image.exceptions import InvalidFootprintInputError
 from ropemother_exercises.image.tomography.geometry import Point2D
 from ropemother_exercises.image.tomography.images import Bitmap, Cell
 
@@ -62,7 +63,9 @@ def bitmap_footprint_points(bitmap: Bitmap) -> tuple[Point2D, ...]:
 
 def bounds_for_points(points: tuple[Point2D, ...]) -> Rect2D:
     if len(points) == 0:
-        raise ValueError("cannot compute bounds for empty point sequence")
+        raise InvalidFootprintInputError(
+            "cannot compute bounds for empty point sequence"
+        )
 
     x_values = [point.x for point in points]
     y_values = [point.y for point in points]
@@ -77,7 +80,7 @@ def bounds_for_points(points: tuple[Point2D, ...]) -> Rect2D:
 
 def expand_rect(rect: Rect2D, padding: float) -> Rect2D:
     if padding < 0.0:
-        raise ValueError("padding must not be negative")
+        raise InvalidFootprintInputError("padding must not be negative")
 
     expanded = Rect2D(
         left=rect.left - padding,
@@ -92,9 +95,9 @@ def scale_rect(
     rect: Rect2D, width_scale: float, height_scale: float
 ) -> Rect2D:
     if width_scale <= 0.0:
-        raise ValueError("width_scale must be positive")
+        raise InvalidFootprintInputError("width_scale must be positive")
     if height_scale <= 0.0:
-        raise ValueError("height_scale must be positive")
+        raise InvalidFootprintInputError("height_scale must be positive")
 
     center = rect.center
     half_width = rect.width * width_scale / 2.0

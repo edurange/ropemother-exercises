@@ -6,6 +6,7 @@
 from ropemother.broker import Emitter
 
 from ropemother_exercises.graph.events import ArcDeclared, PathFound
+from ropemother_exercises.graph.exceptions import InvalidPathExtensionError
 from ropemother_exercises.graph.facts import GraphFacts
 
 
@@ -53,11 +54,15 @@ def direct_path_from_arc(arc: ArcDeclared) -> PathFound:
 
 def extend_path_over_arc(path: PathFound, arc: ArcDeclared) -> PathFound:
     if path.run_id != arc.run_id:
-        raise ValueError("path and arc must belong to the same run")
+        raise InvalidPathExtensionError(
+            "path and arc must belong to the same run"
+        )
     if path.graph_id != arc.graph_id:
-        raise ValueError("path and arc must belong to the same graph")
+        raise InvalidPathExtensionError(
+            "path and arc must belong to the same graph"
+        )
     if path.target != arc.source:
-        raise ValueError("path target must match arc source")
+        raise InvalidPathExtensionError("path target must match arc source")
 
     extended = PathFound(
         run_id=path.run_id,

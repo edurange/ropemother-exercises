@@ -22,6 +22,9 @@ from ropemother_exercises.image.events import (
     RunID,
     RunInputClosed,
 )
+from ropemother_exercises.image.exceptions import (
+    InvalidReconstructionInputError,
+)
 from ropemother_exercises.image.formats import (
     IMAGE_OBSERVATION_FORMAT,
     IMAGE_PORTABLE_FORMATS,
@@ -29,7 +32,6 @@ from ropemother_exercises.image.formats import (
 )
 from ropemother_exercises.image.tomography.images import IntensityImage
 from ropemother_exercises.image.tomography.reconstruction import (
-    InvalidReconstructionInputError,
     average_coverage,
     geometric_covered_intensity,
 )

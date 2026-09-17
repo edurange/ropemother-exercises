@@ -13,6 +13,7 @@ from ropemother_exercises.image.application.render import (
     ASCII_SHADES,
     TerminalRenderer,
 )
+from ropemother_exercises.image.exceptions import InvalidHullInputError
 from ropemother_exercises.image.target.footprint import (
     Rect2D,
     bitmap_footprint_points,
@@ -110,7 +111,9 @@ def _egg_shell_path_for_footprint(
     footprint_points: tuple[Point2D, ...], profile: EggShellHullProfile
 ) -> tuple[Point2D, ...]:
     if len(footprint_points) == 0:
-        raise ValueError("cannot fit hull around an empty footprint")
+        raise InvalidHullInputError(
+            "cannot fit hull around an empty footprint"
+        )
 
     rotation = math.radians(profile.rotation_degrees)
     image_bounds = bounds_for_points(footprint_points)
@@ -131,9 +134,9 @@ def _egg_shell_path_for_bounds(
     bounds: Rect2D, profile: EggShellHullProfile
 ) -> tuple[Point2D, ...]:
     if profile.sample_count < 8:
-        raise ValueError("sample_count must be at least 8")
+        raise InvalidHullInputError("sample_count must be at least 8")
     if profile.bottom_bulge < -0.75:
-        raise ValueError("bottom_bulge is too negative")
+        raise InvalidHullInputError("bottom_bulge is too negative")
 
     center = Point2D(bounds.center.x, bounds.center.y + profile.y_bias)
     radius_x = max(0.5, bounds.width / 2.0)
@@ -174,7 +177,9 @@ def _rock_matrix_path_for_footprint(
     footprint_points: tuple[Point2D, ...], profile: RockMatrixHullProfile
 ) -> tuple[Point2D, ...]:
     if len(footprint_points) == 0:
-        raise ValueError("cannot fit hull around an empty footprint")
+        raise InvalidHullInputError(
+            "cannot fit hull around an empty footprint"
+        )
 
     rotation = math.radians(profile.rotation_degrees)
     image_bounds = bounds_for_points(footprint_points)
@@ -195,9 +200,9 @@ def _rock_matrix_path_for_bounds(
     bounds: Rect2D, profile: RockMatrixHullProfile
 ) -> tuple[Point2D, ...]:
     if profile.sample_count < 8:
-        raise ValueError("sample_count must be at least 8")
+        raise InvalidHullInputError("sample_count must be at least 8")
     if profile.roughness < 0.0:
-        raise ValueError("roughness must not be negative")
+        raise InvalidHullInputError("roughness must not be negative")
 
     center = bounds.center
     radius_x = max(0.5, bounds.width / math.sqrt(2.0))
@@ -241,7 +246,7 @@ def _rasterize_closed_path_outline(
     path: tuple[Point2D, ...], frame: ImageFrame, stroke_radius: float
 ) -> Bitmap:
     if stroke_radius <= 0.0:
-        raise ValueError("stroke_radius must be positive")
+        raise InvalidHullInputError("stroke_radius must be positive")
 
     filled_cells = set()
 
@@ -274,9 +279,9 @@ def _inner_ellipse_center(args: argparse.Namespace) -> Point2D:
 
 def _inner_ellipse_bitmap(args: argparse.Namespace) -> Bitmap:
     if args.inner_radius_x <= 0.0:
-        raise ValueError("inner_radius_x must be positive")
+        raise InvalidHullInputError("inner_radius_x must be positive")
     if args.inner_radius_y <= 0.0:
-        raise ValueError("inner_radius_y must be positive")
+        raise InvalidHullInputError("inner_radius_y must be positive")
 
     frame = ImageFrame(width=args.frame_width, height=args.frame_height)
     center = _inner_ellipse_center(args)
@@ -298,7 +303,7 @@ def _interval_values(
     start: float, stop: float, count: int
 ) -> tuple[float, ...]:
     if count < 1:
-        raise ValueError("count must be at least 1")
+        raise InvalidHullInputError("count must be at least 1")
 
     if count == 1:
         values = (start,)
@@ -513,7 +518,7 @@ def _render_target_hull_visual_check(args: argparse.Namespace) -> str:
         ]
         output = "\n\n".join(sections)
     else:
-        raise ValueError(f"unknown hull style: {args.hull_style}")
+        raise InvalidHullInputError(f"unknown hull style: {args.hull_style}")
 
     return output
 

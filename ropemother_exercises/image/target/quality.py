@@ -6,6 +6,7 @@
 import itertools
 import math
 
+from ropemother_exercises.image.exceptions import InvalidQualityInputError
 from ropemother_exercises.image.target.hidden import (
     HiddenTarget,
     decode_hidden_target,
@@ -20,7 +21,7 @@ def oracle_reconstruction_accuracy(
     concealed_cells = target.silhouette.filled_cells
 
     if not concealed_cells:
-        raise ValueError("target silhouette must not be empty")
+        raise InvalidQualityInputError("target silhouette must not be empty")
 
     thresholds = sorted(
         {reconstruction.get(cell, 0.0) for cell in concealed_cells},
@@ -99,7 +100,9 @@ def foreground_separation(
             background_values.append(value)
 
     if not foreground_values or not background_values:
-        raise ValueError("foreground separation requires both target classes")
+        raise InvalidQualityInputError(
+            "foreground separation requires both target classes"
+        )
 
     score = 0.0
 

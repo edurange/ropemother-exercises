@@ -10,7 +10,6 @@ import typing
 from ropemother.format import PortableFormat, PortableFormatKey
 from ropemother.util import JSONL_SERIALIZER, JSONRecord, TypeAdapter
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.image.events import (
     AngularProjection,
     AngularSensorDescription,
@@ -32,22 +31,17 @@ from ropemother_exercises.image.events import (
     SensorContribution,
     SensorDescription,
 )
+from ropemother_exercises.image.exceptions import (
+    DescriptionRecordError,
+    ObservationRecordError,
+    UnsupportedSensorDescriptionError,
+)
 from ropemother_exercises.image.tomography.geometry import (
     GeometryScale,
     Point2D,
     ReferenceLength,
 )
 from ropemother_exercises.image.tomography.images import ImageFrame
-
-
-class ObservationRecordError(ValueError, BusExerciseBaseException):
-    """Raised when an observation record cannot be interpreted."""
-    pass
-
-
-class DescriptionRecordError(ValueError, BusExerciseBaseException):
-    """Raised when an image description record cannot be interpreted."""
-    pass
 
 
 class AngularProjectionAdapter(TypeAdapter[AngularProjection, JSONRecord]):
@@ -708,7 +702,7 @@ def _sensor_description_kind_for(description: SensorDescription) -> str:
         )
     except StopIteration:
         description_type = type(description).__name__
-        raise TypeError(
+        raise UnsupportedSensorDescriptionError(
             f"unsupported sensor description: {description_type}"
         )
 

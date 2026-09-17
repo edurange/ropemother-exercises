@@ -28,7 +28,6 @@ from ropemother.service import (
 )
 from ropemother.transport import TransportClient
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.image.events import (
     ALLOCATE_RUN_ID_REPLY_MSG_TYPE,
     ALLOCATE_RUN_ID_REQUEST_MSG_TYPE,
@@ -55,6 +54,7 @@ from ropemother_exercises.image.events import (
     RunID,
     RunInputClosed,
 )
+from ropemother_exercises.image.exceptions import ImageClientRunError
 from ropemother_exercises.image.formats import (
     EXPERIMENT_DESCRIPTION_FORMAT,
     IMAGE_PORTABLE_FORMATS,
@@ -65,11 +65,6 @@ from ropemother_exercises.image.formats import (
 from ropemother_exercises.image.tomography.sensors import (
     SensorMessageEndpointFactory,
 )
-
-
-class ImageClientRunError(RuntimeError, BusExerciseBaseException):
-    """Raised when prepared image-client run handling cannot continue."""
-    pass
 
 
 class ImageIdentityClient:

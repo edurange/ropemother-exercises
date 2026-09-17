@@ -8,12 +8,12 @@ import math
 import random
 import typing
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.image.events import (
     AngularProjection,
     PerspectiveProjection,
     RunID,
 )
+from ropemother_exercises.image.exceptions import InvalidObservationInputError
 from ropemother_exercises.image.target.hidden import (
     HiddenTarget,
     decode_hidden_target,
@@ -40,11 +40,6 @@ ProjectionRegion: typing.Final = tuple[Cell, ...]
 ProjectionRegions: typing.Final = tuple[ProjectionRegion, ...]
 
 type MeasurementTarget = BinaryImage | HiddenTarget
-
-
-class InvalidObservationInputError(ValueError, BusExerciseBaseException):
-    """Raised when an image observation cannot be measured."""
-    pass
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)

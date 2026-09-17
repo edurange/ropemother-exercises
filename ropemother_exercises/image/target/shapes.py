@@ -5,21 +5,21 @@
 
 import math
 
-from ropemother_exercises.image.tomography.geometry import Point2D
-from ropemother_exercises.image.tomography.images import (
-    Bitmap,
-    ImageFrame,
+from ropemother_exercises.image.exceptions import (
     InvalidBitmapError,
+    InvalidShapeInputError,
 )
+from ropemother_exercises.image.tomography.geometry import Point2D
+from ropemother_exercises.image.tomography.images import Bitmap, ImageFrame
 
 
 def filled_ellipse(
     frame: ImageFrame, center: Point2D, radius_x: float, radius_y: float
 ) -> Bitmap:
     if radius_x <= 0.0:
-        raise ValueError("radius_x must be positive")
+        raise InvalidShapeInputError("radius_x must be positive")
     if radius_y <= 0.0:
-        raise ValueError("radius_y must be positive")
+        raise InvalidShapeInputError("radius_y must be positive")
 
     filled_cells = []
 
@@ -43,7 +43,7 @@ def ellipse_ring(
     thickness: float,
 ) -> Bitmap:
     if thickness <= 0.0:
-        raise ValueError("thickness must be positive")
+        raise InvalidShapeInputError("thickness must be positive")
 
     outer = filled_ellipse(frame, center, radius_x, radius_y)
     inner_radius_x = radius_x - thickness
@@ -78,7 +78,7 @@ def elliptical_shell(
 
 def disk(frame: ImageFrame, center: Point2D, radius: float) -> Bitmap:
     if radius <= 0.0:
-        raise ValueError("radius must be positive")
+        raise InvalidShapeInputError("radius must be positive")
 
     filled_cells = []
     radius_squared = radius * radius

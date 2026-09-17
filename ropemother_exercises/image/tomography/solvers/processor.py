@@ -20,14 +20,14 @@ from ropemother_exercises.image.events import (
     RunID,
     RunInputClosed,
 )
+from ropemother_exercises.image.exceptions import (
+    InvalidReconstructionInputError,
+)
 from ropemother_exercises.image.formats import (
     IMAGE_OBSERVATION_FORMAT,
     RECONSTRUCTION_COMPLETION_FORMAT,
 )
 from ropemother_exercises.image.tomography.images import IntensityImage
-from ropemother_exercises.image.tomography.reconstruction import (
-    InvalidReconstructionInputError,
-)
 from ropemother_exercises.image.tomography.solvers.algebraic import (
     algebraic_reconstruction,
     projection_coverage,

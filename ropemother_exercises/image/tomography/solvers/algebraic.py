@@ -6,6 +6,9 @@
 import typing
 
 from ropemother_exercises.image.events import AngularProjection
+from ropemother_exercises.image.exceptions import (
+    InvalidReconstructionInputError,
+)
 from ropemother_exercises.image.tomography.images import (
     Cell,
     ImageFrame,
@@ -16,7 +19,6 @@ from ropemother_exercises.image.tomography.measurements import (
     projection_strips,
 )
 from ropemother_exercises.image.tomography.reconstruction import (
-    InvalidReconstructionInputError,
     normalize_projection,
 )
 

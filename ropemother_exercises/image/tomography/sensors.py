@@ -13,7 +13,6 @@ import typing
 from ropemother.broker import Emitter
 from ropemother.client import MessageEndpointFactory
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.image.application.render import BLOCK_FILL_SHADES
 from ropemother_exercises.image.events import (
     ANGULAR_PROJECTION_OBSERVED_MSG_TYPE,
@@ -28,6 +27,10 @@ from ropemother_exercises.image.events import (
     RunID,
     SensorContribution,
     SensorDescription,
+)
+from ropemother_exercises.image.exceptions import (
+    InvalidSensorConfigurationError,
+    SensorSourceError,
 )
 from ropemother_exercises.image.formats import (
     ANGULAR_PROJECTION_FORMAT,
@@ -59,16 +62,6 @@ from ropemother_exercises.image.tomography.reconstruction import (
 
 
 _NO_BIN_CHARACTER: typing.Final = "·"
-
-
-class InvalidSensorConfigurationError(ValueError, BusExerciseBaseException):
-    """Raised when image sensor settings cannot be used."""
-    pass
-
-
-class SensorSourceError(RuntimeError, BusExerciseBaseException):
-    """Raised when an attached sensor cannot publish a measurement."""
-    pass
 
 
 class Sensor(abc.ABC):

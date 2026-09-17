@@ -5,6 +5,10 @@
 
 import math
 
+from ropemother_exercises.image.exceptions import (
+    InvalidRasterizationInputError,
+    UnsupportedVectorElementError,
+)
 from ropemother_exercises.image.target.vector import (
     Arc2D,
     Disk2D,
@@ -54,7 +58,9 @@ def rasterize_element(element: object, frame: ImageFrame) -> Bitmap:
         stroke = stroke_from_arc(element)
         bitmap = rasterize_stroke(stroke, frame)
     else:
-        raise TypeError(f"unsupported vector element {type(element).__name__}")
+        raise UnsupportedVectorElementError(
+            f"unsupported vector element {type(element).__name__}"
+        )
 
     return bitmap
 
@@ -216,7 +222,9 @@ def ellipse_equation_value(
 
 def distance_to_polyline(point: Point2D, points: tuple[Point2D, ...]) -> float:
     if len(points) == 0:
-        raise ValueError("polyline must contain at least one point")
+        raise InvalidRasterizationInputError(
+            "polyline must contain at least one point"
+        )
     if len(points) == 1:
         distance = distance_between_points(point, points[0])
     else:

@@ -9,7 +9,10 @@ import dataclasses
 from ropemother.broker import Emitter, Receiver
 from ropemother.client import MessageEndpointFactory
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
+from ropemother_exercises.tty.exceptions import (
+    InvalidCodePointProcessorPayloadError,
+    RawInputDecodingError,
+)
 from ropemother_exercises.tty.events import (
     CODE_POINT_DECODED_MSG_TYPE,
     CODE_POINT_MSG_PRODUCER,
@@ -31,18 +34,6 @@ from ropemother_exercises.tty.formats import (
 
 RAW_INPUT_ENCODING = "utf-8"
 RAW_INPUT_ERROR_POLICY = "strict"
-
-
-class InvalidCodePointProcessorPayloadError(
-    TypeError, BusExerciseBaseException
-):
-    """Raised when the processor receives an unsupported payload."""
-    pass
-
-
-class RawInputDecodingError(UnicodeError, BusExerciseBaseException):
-    """Raised when raw input cannot be decoded as configured."""
-    pass
 
 
 @dataclasses.dataclass

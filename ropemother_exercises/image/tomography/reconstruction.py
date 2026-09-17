@@ -5,11 +5,13 @@
 
 import math
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.image.events import (
     AngularProjection,
     ImageObservation,
     PerspectiveProjection,
+)
+from ropemother_exercises.image.exceptions import (
+    InvalidReconstructionInputError,
 )
 from ropemother_exercises.image.tomography.geometry import Point2D
 from ropemother_exercises.image.tomography.images import (
@@ -22,11 +24,6 @@ from ropemother_exercises.image.tomography.measurements import (
     perspective_sectors,
     projection_strips,
 )
-
-
-class InvalidReconstructionInputError(ValueError, BusExerciseBaseException):
-    """Raised when reconstruction input cannot be interpreted."""
-    pass
 
 
 def normalize_projection(

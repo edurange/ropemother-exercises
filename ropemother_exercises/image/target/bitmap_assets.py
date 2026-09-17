@@ -10,7 +10,7 @@ import typing
 
 from ropemother.util import JSONRecord
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
+from ropemother_exercises.image.exceptions import BitmapAssetError
 from ropemother_exercises.image.tomography.images import (
     Bitmap,
     Cell,
@@ -19,11 +19,6 @@ from ropemother_exercises.image.tomography.images import (
 
 
 ASSET_FILE: typing.Final[str] = "prepared_bitmaps.json"
-
-
-class BitmapAssetError(RuntimeError, BusExerciseBaseException):
-    """Raised when prepared bitmap assets cannot be loaded or decoded."""
-    pass
 
 
 def load_bitmap_asset(asset_id: str) -> Bitmap:

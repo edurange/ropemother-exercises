@@ -9,7 +9,6 @@ from ropemother import DirectMessageBus, InMemoryCaptureSink
 from ropemother.broker import Emitter, Receiver
 from ropemother.capture import history_for
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.graph.events import (
     ARC_DECLARED_MSG_TYPE,
     ARC_MSG_TOPIC,
@@ -19,6 +18,7 @@ from ropemother_exercises.graph.events import (
     SOURCE_MSG_PRODUCER,
     PathFound,
 )
+from ropemother_exercises.graph.exceptions import GraphRunError
 from ropemother_exercises.graph.facts import GraphFacts
 from ropemother_exercises.graph.formats import PATH_FOUND_FORMAT
 from ropemother_exercises.graph.model import Graph
@@ -27,11 +27,6 @@ from ropemother_exercises.graph.reachability import (
     emit_path_if_new,
 )
 from ropemother_exercises.graph.source import GraphSource
-
-
-class GraphRunError(RuntimeError, BusExerciseBaseException):
-    """Raised when a graph runner cannot finish normally."""
-    pass
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)

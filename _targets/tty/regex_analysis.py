@@ -8,7 +8,6 @@ import re
 from ropemother.broker import Emitter, Receiver
 from ropemother.client import MessageEndpointFactory
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.tty.events import (
     COMMAND_MSG_TOPIC,
     COMMAND_RECONSTRUCTED_MSG_TYPE,
@@ -22,6 +21,7 @@ from ropemother_exercises.tty.events import (
     RegexPattern,
     RegexPatternsConfigured,
 )
+from ropemother_exercises.tty.exceptions import InvalidRegexPatternFieldError
 from ropemother_exercises.tty.formats import (
     REGEX_ANALYSIS_FORMAT,
     REGEX_PATTERNS_CONFIGURED_FORMAT,
@@ -45,13 +45,6 @@ PREPARED_PATTERNS = (
         description="Command changes directory",
     ),
 )
-
-
-class InvalidRegexPatternFieldError(
-    ValueError, BusExerciseBaseException
-):
-    """Raised when a regex pattern names an unsupported command field."""
-    pass
 
 
 class RegexAnalysisProcessor:

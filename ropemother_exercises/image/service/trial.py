@@ -19,6 +19,9 @@ from ropemother_exercises.image.events import (
     ExperimentDescription,
     InstrumentDescription,
 )
+from ropemother_exercises.image.exceptions import (
+    InvalidTrialServicePayloadError,
+)
 from ropemother_exercises.image.formats import IMAGE_PORTABLE_FORMATS
 from ropemother_exercises.image.target.session import session_target
 
@@ -56,7 +59,7 @@ def serve_trial_requests() -> None:
                 experiment = experiment_from_description(description)
                 run_ids = trial_runner.run(target, experiment)
             else:
-                raise TypeError(
+                raise InvalidTrialServicePayloadError(
                     "trial request must contain an InstrumentDescription "
                     "or ExperimentDescription"
                 )

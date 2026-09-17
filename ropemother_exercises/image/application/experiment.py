@@ -14,6 +14,9 @@ from ropemother_exercises.image.events import (
     InstrumentDescription,
     PerspectiveSensorDescription,
 )
+from ropemother_exercises.image.exceptions import (
+    UnsupportedSensorDescriptionError,
+)
 from ropemother_exercises.image.tomography.sensors import (
     AngularSensor,
     PerspectiveSensor,
@@ -126,7 +129,7 @@ def instrument_from_description(
             sensor = _perspective_sensor_from_description(sensor_description)
         else:
             description_type = type(sensor_description).__name__
-            raise TypeError(
+            raise UnsupportedSensorDescriptionError(
                 f"unsupported sensor description: {description_type}"
             )
 

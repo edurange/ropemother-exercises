@@ -10,7 +10,6 @@ import typing
 from ropemother.format import PortableFormat, PortableFormatKey
 from ropemother.util import JSONL_SERIALIZER, JSONRecord, TypeAdapter
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.tty.events import (
     CanonicalLineObserved,
     InputCadenceConfigured,
@@ -28,11 +27,7 @@ from ropemother_exercises.tty.events import (
     TTYSessionEnded,
     TTYWriteObserved,
 )
-
-
-class TTYEventRecordError(ValueError, BusExerciseBaseException):
-    """Raised when a TTY event record cannot be interpreted."""
-    pass
+from ropemother_exercises.tty.exceptions import TTYEventRecordError
 
 
 class TTYReadObservedAdapter(TypeAdapter[TTYReadObserved, JSONRecord]):

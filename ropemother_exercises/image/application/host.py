@@ -17,6 +17,7 @@ from ropemother.service import (
     preconfigured_history_host,
 )
 
+from ropemother_exercises.image.exceptions import ImageApplicationHostError
 from ropemother_exercises.image.formats import IMAGE_PORTABLE_FORMATS
 from ropemother_exercises.image.target.generator import create_hidden_target
 from ropemother_exercises.image.target.session import store_session_target
@@ -104,14 +105,14 @@ def _wait_for_services(
         ]
         if stopped:
             names = ", ".join(stopped)
-            raise RuntimeError(
+            raise ImageApplicationHostError(
                 "image application service stopped during startup: "
                 + names
             )
 
         if time.monotonic() >= deadline:
             names = ", ".join(sorted(waiting))
-            raise RuntimeError(
+            raise ImageApplicationHostError(
                 "image application services did not become ready: " + names
             )
 
@@ -130,7 +131,9 @@ def _wait_for_services_to_stop(
 
         if stopped:
             names = ", ".join(stopped)
-            raise RuntimeError("image application service stopped: " + names)
+            raise ImageApplicationHostError(
+                "image application service stopped: " + names
+            )
 
         time.sleep(0.25)
 
