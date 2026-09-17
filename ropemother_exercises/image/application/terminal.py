@@ -64,7 +64,6 @@ from ropemother_exercises.image.tomography.reconstruction import (
     normalize_projection,
 )
 
-
 _SHUTDOWN_SERVICE_PRODUCERS = {
     "dashboard": "dashboard-report",
     "report": "reconstruction-report",
@@ -73,6 +72,7 @@ _SHUTDOWN_SERVICE_PRODUCERS = {
 
 class ExperimentTerminal:
     """Display image experiment activity and reports."""
+
     _bus: MessageEndpointFactory
     _receiver: Receiver
     _history: HistoryClient
@@ -102,7 +102,8 @@ class ExperimentTerminal:
         self._instrument_catalog = InstrumentCatalog(self._history)
         request_type_formats = {
             RUN_TRIAL_REQUEST_MSG_TYPE: (
-                INSTRUMENT_DESCRIPTION_FORMAT, EXPERIMENT_DESCRIPTION_FORMAT,
+                INSTRUMENT_DESCRIPTION_FORMAT,
+                EXPERIMENT_DESCRIPTION_FORMAT,
             )
         }
         self._trial_client = bus.create_request_client(
@@ -194,8 +195,8 @@ class ExperimentTerminal:
 
         print(_render_experiment_id(experiment_id))
 
-        for instrument_number, instrument in (
-            enumerate(experiment.instruments, start=1)
+        for instrument_number, instrument in enumerate(
+            experiment.instruments, start=1
         ):
             print(f"  Instrument {instrument_number}")
             for sensor in instrument.sensors:

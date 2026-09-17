@@ -26,6 +26,7 @@ from ropemother_exercises.image.events import (
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class DashboardEntry:
     """Collect the ordinary evidence used to describe one reconstruction."""
+
     run_id: RunID
     reconstruction_id: str
     reconstruction: ImageObservation
@@ -81,8 +82,8 @@ def dashboard_entries(
 
     for completion_entry in completion_entries:
         completion = completion_entry.payload
-        reconstruction = (
-            _reconstruction_for(completion, reconstruction_entries)
+        reconstruction = _reconstruction_for(
+            completion, reconstruction_entries
         )
 
         if reconstruction is None:
@@ -93,9 +94,7 @@ def dashboard_entries(
             for entry in projection_entries
             if entry.payload.run_id == completion.run_id
         )
-        sensor_names = {
-            entry.msg_producer for entry in run_projection_entries
-        }
+        sensor_names = {entry.msg_producer for entry in run_projection_entries}
         measurement_count = sum(
             sum(entry.payload.sample_counts)
             for entry in run_projection_entries

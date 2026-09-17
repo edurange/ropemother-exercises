@@ -29,6 +29,7 @@ from ropemother_exercises.image.tomography.sensors import (
 @dataclasses.dataclass(frozen=True, init=False, eq=False)
 class Instrument:
     """Describe a reusable sensor configuration for one run."""
+
     sensors: tuple[Sensor, ...]
 
     def __init__(self, *sensors: Sensor) -> None:
@@ -61,6 +62,7 @@ class Instrument:
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class InstrumentAttachment:
     """Associate an instrument with its attached sensor sources."""
+
     instrument: Instrument
     sources: tuple[SensorSource, ...]
 
@@ -68,6 +70,7 @@ class InstrumentAttachment:
 @dataclasses.dataclass(frozen=True, init=False, eq=False)
 class Experiment:
     """Bundle reusable instrument configurations."""
+
     instruments: tuple[Instrument, ...]
 
     def __init__(self, *instruments: Instrument) -> None:
@@ -118,7 +121,7 @@ def describe_instrument(instrument: Instrument) -> InstrumentDescription:
 
 
 def instrument_from_description(
-    description: InstrumentDescription
+    description: InstrumentDescription,
 ) -> Instrument:
     sensors = []
 
@@ -148,7 +151,7 @@ def describe_experiment(experiment: Experiment) -> ExperimentDescription:
 
 
 def experiment_from_description(
-    description: ExperimentDescription
+    description: ExperimentDescription,
 ) -> Experiment:
     instruments = []
     for instrument_description in description.instruments:
@@ -159,7 +162,7 @@ def experiment_from_description(
 
 
 def _angular_sensor_from_description(
-    description: AngularSensorDescription
+    description: AngularSensorDescription,
 ) -> AngularSensor:
     sensor = AngularSensor(
         sensor_name=description.sensor_name,
@@ -171,7 +174,7 @@ def _angular_sensor_from_description(
 
 
 def _perspective_sensor_from_description(
-    description: PerspectiveSensorDescription
+    description: PerspectiveSensorDescription,
 ) -> PerspectiveSensor:
     sensor = PerspectiveSensor(
         sensor_name=description.sensor_name,

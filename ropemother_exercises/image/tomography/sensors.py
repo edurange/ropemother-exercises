@@ -60,7 +60,6 @@ from ropemother_exercises.image.tomography.reconstruction import (
     image_observation_from_perspective_projection,
 )
 
-
 _NO_BIN_CHARACTER: typing.Final = "·"
 
 
@@ -86,6 +85,7 @@ class Sensor(abc.ABC):
 
 class SensorSource(abc.ABC):
     """Publish observations made by an attached image sensor."""
+
     _bus: MessageEndpointFactory
     _sensor_description: SensorDescription
     _contribution_emitter: Emitter
@@ -137,6 +137,7 @@ class SensorSource(abc.ABC):
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class AngularSensor(Sensor):
     """Describe an angular projection sensor."""
+
     sensor_name: str
     angle_degrees: float
     edge_bin_count: int
@@ -169,6 +170,7 @@ class AngularSensor(Sensor):
 
 class AngularSensorSource(SensorSource):
     """Publish observations made by one angular sensor."""
+
     _sensor: AngularSensor
     _projection_emitter: Emitter
     _image_emitter: Emitter
@@ -219,6 +221,7 @@ class AngularSensorSource(SensorSource):
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class PerspectiveSensor(Sensor):
     """Describe a perspective projection sensor."""
+
     sensor_name: str
     viewpoint: Point2D
     bin_count: int
@@ -266,6 +269,7 @@ class PerspectiveSensor(Sensor):
 
 class PerspectiveSensorSource(SensorSource):
     """Publish observations made by one perspective sensor."""
+
     _sensor: PerspectiveSensor
     _projection_emitter: Emitter
     _image_emitter: Emitter
@@ -317,6 +321,7 @@ class PerspectiveSensorSource(SensorSource):
 
 class SensorAttachments:
     """Attach sensor definitions while reusing matching sources."""
+
     _bus: MessageEndpointFactory
     _sources: dict[Sensor, SensorSource]
 
@@ -465,9 +470,7 @@ def _render_sensor_bins(
     if palette is not None:
         _palette = palette
 
-    characters_by_cell = {
-        cell: _no_bin for cell in frame.cells()
-    }
+    characters_by_cell = {cell: _no_bin for cell in frame.cells()}
 
     for bin_index, region in enumerate(regions):
         character = _palette[bin_index % len(_palette)]
@@ -478,8 +481,8 @@ def _render_sensor_bins(
     rows = []
 
     for y in range(frame.height):
-        row = (
-            "".join(characters_by_cell[Cell(x, y)] for x in range(frame.width))
+        row = "".join(
+            characters_by_cell[Cell(x, y)] for x in range(frame.width)
         )
         rows.append(row)
 

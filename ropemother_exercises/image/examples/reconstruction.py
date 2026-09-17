@@ -127,10 +127,7 @@ def run_reconstruction_explanation(target: Bitmap | None = None) -> None:
     )
     first_0_bin, last_0_bin = _image_bin_span(regions_0)
     horizontal_bounds = (
-        " " * first_0_bin
-        + "└"
-        + "─" * (last_0_bin - first_0_bin - 1)
-        + "┘"
+        " " * first_0_bin + "└" + "─" * (last_0_bin - first_0_bin - 1) + "┘"
     )
     centered_back_projection_0 = "\n".join(
         row.center(len(profile_0)) for row in back_projection_0.splitlines()

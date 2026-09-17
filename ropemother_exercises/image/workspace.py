@@ -91,7 +91,7 @@ def _print_name_grid(names: tuple[str, ...], column_count: int) -> None:
     column_width = max(len(name) for name in names) + 2
 
     for index in range(0, len(names), column_count):
-        row = names[index:index + column_count]
+        row = names[index : index + column_count]
         padded_names = (name.ljust(column_width) for name in row)
         print("  " + "".join(padded_names).rstrip())
 
@@ -107,9 +107,7 @@ def _print_joined_message() -> None:
 
 
 def _print_prepared_reconstruction(reconstruction, frame) -> None:
-    print(
-        "Orthogonal reconstruction from the prepared 0° and 90° sensors:\n"
-    )
+    print("Orthogonal reconstruction from the prepared 0° and 90° sensors:\n")
     print(render_intensity_image(reconstruction.intensity_image, frame))
     print(
         "\nThis is an intermediate view of what the current evidence "
@@ -135,7 +133,8 @@ if __name__ == "__main__":
         msg_topic=RECONSTRUCTION_MSG_TOPIC,
         msg_producer=fusion_name,
         msg_type=(
-            IMAGE_RECONSTRUCTED_MSG_TYPE, RECONSTRUCTION_COMPLETED_MSG_TYPE
+            IMAGE_RECONSTRUCTED_MSG_TYPE,
+            RECONSTRUCTION_COMPLETED_MSG_TYPE,
         ),
     )
 

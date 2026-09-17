@@ -52,9 +52,7 @@ def serve_trial_requests() -> None:
 
             if isinstance(description, InstrumentDescription):
                 instrument = instrument_from_description(description)
-                run_ids = (
-                    trial_runner.run_instrument(target, instrument),
-                )
+                run_ids = (trial_runner.run_instrument(target, instrument),)
             elif isinstance(description, ExperimentDescription):
                 experiment = experiment_from_description(description)
                 run_ids = trial_runner.run(target, experiment)

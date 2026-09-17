@@ -18,6 +18,7 @@ from ropemother_exercises.basic.events import (
 
 class WordCountProcessor:
     """Count words in submitted text and publish the result."""
+
     _receiver: Receiver
     _emitter: Emitter
 

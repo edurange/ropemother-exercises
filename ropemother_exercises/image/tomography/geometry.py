@@ -9,7 +9,6 @@ import typing
 
 from ropemother_exercises.image.exceptions import InvalidGeometryInputError
 
-
 Coordinate = tuple[float, ...]
 
 

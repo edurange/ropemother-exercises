@@ -69,6 +69,7 @@ from ropemother_exercises.image.tomography.sensors import (
 
 class ImageIdentityClient:
     """Request session-local run and configuration identities."""
+
     _run_ids: RequestClient
     _instruments: RequestClient
     _experiments: RequestClient
@@ -103,6 +104,7 @@ class ImageIdentityClient:
 
 class _ImageMessageBusClient(SensorMessageEndpointFactory):
     """Add image-client housekeeping to a transport bus client."""
+
     _bus: TransportClient
     _identity: ImageIdentityClient
     _run_input_closed_emitter: Emitter
@@ -207,7 +209,7 @@ def connect_image_client_to_message_bus(
 
 
 def create_image_identity_client(
-    bus: MessageEndpointFactory
+    bus: MessageEndpointFactory,
 ) -> ImageIdentityClient:
     run_ids = bus.create_request_client(
         request_topic=IDENTITY_REQUEST_MSG_TOPIC,
@@ -251,7 +253,7 @@ def close_run_input(
 
 
 def create_reconstruction_report_client(
-    bus: MessageEndpointFactory
+    bus: MessageEndpointFactory,
 ) -> RequestClient:
     """Create a client for the prepared reconstruction report service."""
     client = bus.create_request_client(

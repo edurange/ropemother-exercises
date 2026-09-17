@@ -22,7 +22,6 @@ from ropemother_exercises.image.tomography.reconstruction import (
     normalize_projection,
 )
 
-
 _SAMPLE_CONFIDENCE_SCALE: typing.Final[float] = 4.0
 
 
@@ -180,7 +179,7 @@ def _apply_reconstruction_sweep(
 
 
 def _all_projection_bins(
-    *equations: ProjectionEquation
+    *equations: ProjectionEquation,
 ) -> tuple[ProjectionBin, ...]:
     projection_bins = []
 
@@ -192,7 +191,7 @@ def _all_projection_bins(
 
 
 def _bins_for_equation(
-    equation: ProjectionEquation
+    equation: ProjectionEquation,
 ) -> tuple[ProjectionBin, ...]:
     projection_bins = []
     equation_values = zip(
@@ -214,7 +213,7 @@ def _bins_for_equation(
 
 
 def _cells_in_sampled_bins(
-    *projection_bins: ProjectionBin
+    *projection_bins: ProjectionBin,
 ) -> tuple[Cell, ...]:
     sampled_cells = []
 

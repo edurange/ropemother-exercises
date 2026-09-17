@@ -29,7 +29,7 @@ from ropemother_exercises.image.tomography.sensors import (
 
 
 def run_measurement_budget_comparison(
-    target: BinaryImage | None = None
+    target: BinaryImage | None = None,
 ) -> None:
     if target is None:
         target = create_hidden_target()

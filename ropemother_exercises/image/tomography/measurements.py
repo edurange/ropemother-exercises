@@ -29,7 +29,6 @@ from ropemother_exercises.image.tomography.images import (
     centered_point_for_cell,
 )
 
-
 _DEFAULT_FALSE_POSITIVE_RATE: typing.Final[float] = 0.01
 _DEFAULT_FALSE_NEGATIVE_RATE: typing.Final[float] = 0.04
 _DEFAULT_INTENSITY_NOISE: typing.Final[float] = 0.03
@@ -62,12 +61,8 @@ class ProjectionGeometry:
         minimum_projection = -projection_span / 2
 
         object.__setattr__(self, "bin_width", bin_width)
-        object.__setattr__(
-            self, "detector_bin_count", detector_bin_count
-        )
-        object.__setattr__(
-            self, "minimum_projection", minimum_projection
-        )
+        object.__setattr__(self, "detector_bin_count", detector_bin_count)
+        object.__setattr__(self, "minimum_projection", minimum_projection)
         object.__setattr__(self, "projection_span", projection_span)
 
 
@@ -252,9 +247,7 @@ def measure_angular_projection(
         if bin_position_noise > 0.0:
             bin_offset = rng.gauss(0.0, bin_position_noise)
 
-        bin_index = projection_bin_index(
-            cell, frame, geometry, bin_offset
-        )
+        bin_index = projection_bin_index(cell, frame, geometry, bin_offset)
         filled = target_image.is_filled(cell)
         measured_intensity = _measure_cell(
             filled=filled,

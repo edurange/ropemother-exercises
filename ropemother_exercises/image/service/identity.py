@@ -59,6 +59,7 @@ from ropemother_exercises.image.formats import (
 
 class RunTracker:
     """Allocate run IDs and collect sensor descriptions for open runs."""
+
     _run_number: int
     _contributions_by_run: dict[RunID, list[SensorDescription]]
 
@@ -83,6 +84,7 @@ class RunTracker:
 
 class KnownConfigurations:
     """Assign IDs to session-local Instruments and Experiments."""
+
     _instrument_number: int
     _experiment_number: int
     _instruments: dict[Instrument, InstrumentCatalogEntry]
@@ -134,6 +136,7 @@ class KnownConfigurations:
 
 class IdentityService:
     """Assign run and configuration identities for one image session."""
+
     _runs: RunTracker
     _configurations: KnownConfigurations
     _run_id_requests: RequestService
@@ -207,8 +210,8 @@ class IdentityService:
             request.reply([int(run_id)])
 
         for request in instrument_requests:
-            entry, newly_identified = (
-                self._configurations.identify_instrument(request.payload)
+            entry, newly_identified = self._configurations.identify_instrument(
+                request.payload
             )
 
             if newly_identified:
@@ -217,8 +220,8 @@ class IdentityService:
             request.reply(entry)
 
         for request in experiment_requests:
-            entry, newly_identified = (
-                self._configurations.identify_experiment(request.payload)
+            entry, newly_identified = self._configurations.identify_experiment(
+                request.payload
             )
 
             if newly_identified:
@@ -242,8 +245,8 @@ class IdentityService:
             self._runs.record_contribution(payload)
         elif isinstance(payload, RunInputClosed):
             description = self._runs.close_run(payload.run_id)
-            entry, newly_identified = (
-                self._configurations.identify_instrument(description)
+            entry, newly_identified = self._configurations.identify_instrument(
+                description
             )
 
             if newly_identified:

@@ -17,7 +17,6 @@ from ropemother_exercises.image.tomography.images import (
     IntensityImage,
 )
 
-
 IDENTITY_CLIENT_MSG_PRODUCER: typing.Final[str] = "image-identity-client"
 IDENTITY_SERVICE_MSG_PRODUCER: typing.Final[str] = "image-identity-service"
 IMAGE_CLIENT_MSG_PRODUCER: typing.Final[str] = "image-client"
@@ -43,12 +42,8 @@ SERVICE_CONTROL_MSG_TOPIC: typing.Final[str] = "image.service.control"
 TRIAL_REPLY_MSG_TOPIC: typing.Final[str] = "image.trial.replies"
 TRIAL_REQUEST_MSG_TOPIC: typing.Final[str] = "image.trial.requests"
 
-ALLOCATE_RUN_ID_REPLY_MSG_TYPE: typing.Final[str] = (
-    "allocate-run-id-reply"
-)
-ALLOCATE_RUN_ID_REQUEST_MSG_TYPE: typing.Final[str] = (
-    "allocate-run-id-request"
-)
+ALLOCATE_RUN_ID_REPLY_MSG_TYPE: typing.Final[str] = "allocate-run-id-reply"
+ALLOCATE_RUN_ID_REQUEST_MSG_TYPE: typing.Final[str] = "allocate-run-id-request"
 ANGULAR_PROJECTION_OBSERVED_MSG_TYPE: typing.Final[str] = (
     "angular-projection-observed"
 )
@@ -92,16 +87,19 @@ SERVICE_SHUTDOWN_MSG_TYPE: typing.Final[str] = "service-shutdown"
 
 class ExperimentID(TypedID):
     """Session-local identifier for a reusable Experiment definition."""
+
     pass
 
 
 class InstrumentID(TypedID):
     """Session-local identifier for a reusable Instrument definition."""
+
     pass
 
 
 class RunID(TypedID):
     """Session-local identifier for an image reconstruction run."""
+
     pass
 
 

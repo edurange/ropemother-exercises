@@ -18,7 +18,6 @@ from ropemother_exercises.image.tomography.images import (
     bitmap_to_intensity_image,
 )
 
-
 _MYSTERY_FILL_SEED: typing.Final[int] = 7
 
 _MARKER_CHAR: typing.Final[str] = "#"

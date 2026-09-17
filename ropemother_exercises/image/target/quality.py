@@ -59,8 +59,8 @@ def reconstruction_correlation(
         reconstruction_values.append(reconstruction.get(cell, 0.0))
 
     target_mean = sum(target_values) / len(target_values)
-    reconstruction_mean = (
-        sum(reconstruction_values) / len(reconstruction_values)
+    reconstruction_mean = sum(reconstruction_values) / len(
+        reconstruction_values
     )
     covariance = 0.0
     target_variance = 0.0

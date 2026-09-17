@@ -21,7 +21,6 @@ from ropemother_exercises.image.tomography.images import (
     ImageFrame,
 )
 
-
 _PREPARED_INNER_ASSET_ID: typing.Final[str] = (
     "Software_Warning_Sign_Circle_Question_Mark_Help"
 )

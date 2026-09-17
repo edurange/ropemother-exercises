@@ -17,6 +17,7 @@ from ropemother_exercises.graph.events import (
 
 class GraphFacts:
     """Graph property queries backed by generic message history."""
+
     _history: MessageHistory | HistoryClient
     _max_count: int
 

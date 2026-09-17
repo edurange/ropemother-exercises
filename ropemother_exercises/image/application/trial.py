@@ -22,12 +22,15 @@ from ropemother_exercises.image.events import (
     RunInputClosed,
 )
 from ropemother_exercises.image.formats import RUN_INPUT_CLOSED_FORMAT
-from ropemother_exercises.image.tomography.measurements import MeasurementTarget
+from ropemother_exercises.image.tomography.measurements import (
+    MeasurementTarget,
+)
 from ropemother_exercises.image.tomography.sensors import SensorAttachments
 
 
 class TrialRunner:
     """Run Experiments against targets as trials of measurement runs."""
+
     _attachments: SensorAttachments
     _identity: ImageIdentityClient
     _input_closed_emitter: Emitter

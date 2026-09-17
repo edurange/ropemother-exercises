@@ -29,14 +29,13 @@ from ropemother_exercises.image.formats import (
 )
 from ropemother_exercises.image.report import reconstruction_report
 
-
 type ReconstructionReportFunction = collections.abc.Callable[
     [HistoryClient, ReconstructionCompletion], ReconstructionReport | None
 ]
 
 
 def serve_reconstruction_report_requests(
-    report_function: ReconstructionReportFunction
+    report_function: ReconstructionReportFunction,
 ) -> None:
     bus = connect_message_bus(extra_formats=IMAGE_PORTABLE_FORMATS)
     try:

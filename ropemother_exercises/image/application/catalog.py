@@ -21,6 +21,7 @@ from ropemother_exercises.image.events import (
 
 class ExperimentCatalog:
     """Read reusable Experiment definitions from application history."""
+
     _history: HistoryClient
 
     def __init__(self, history: HistoryClient) -> None:
@@ -51,6 +52,7 @@ class ExperimentCatalog:
 
 class InstrumentCatalog:
     """Read reusable Instrument definitions from application history."""
+
     _history: HistoryClient
 
     def __init__(self, history: HistoryClient) -> None:

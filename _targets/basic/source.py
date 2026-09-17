@@ -15,6 +15,7 @@ from ropemother_exercises.basic.events import (
 
 class TextSource:
     """Publish text submitted to the basic exercise system."""
+
     _emitter: Emitter
 
     def __init__(self, bus: MessageEndpointFactory) -> None:

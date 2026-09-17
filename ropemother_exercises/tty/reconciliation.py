@@ -28,6 +28,7 @@ from ropemother_exercises.tty.formats import INPUT_RECONCILIATION_FORMAT
 
 class InputReconciliationProcessor:
     """Locate differences between raw reads and canonical lines."""
+
     _receiver: Receiver
     _history: HistoryClient
     _emitter: Emitter
@@ -87,7 +88,7 @@ def reconcile_input(
 
 
 def _raw_positions(
-    reads: tuple[TTYReadObserved, ...]
+    reads: tuple[TTYReadObserved, ...],
 ) -> list[tuple[int, int]]:
     positions = []
 
@@ -107,9 +108,13 @@ def _difference_offsets(
     raw_offsets = []
     canonical_offsets = []
 
-    for tag, raw_start, raw_end, canonical_start, canonical_end in (
-        matcher.get_opcodes()
-    ):
+    for (
+        tag,
+        raw_start,
+        raw_end,
+        canonical_start,
+        canonical_end,
+    ) in matcher.get_opcodes():
         if tag != "equal":
             raw_offsets.extend(range(raw_start, raw_end))
             canonical_offsets.extend(range(canonical_start, canonical_end))

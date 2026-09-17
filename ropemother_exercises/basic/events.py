@@ -5,7 +5,6 @@
 
 import typing
 
-
 TEXT_MSG_TOPIC: typing.Final[str] = "demo.basic.text"
 SOURCE_MSG_PRODUCER: typing.Final[str] = "text-source"
 TEXT_SUBMITTED_MSG_TYPE: typing.Final[str] = "text-submitted"

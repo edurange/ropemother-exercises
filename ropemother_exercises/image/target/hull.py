@@ -222,7 +222,7 @@ def _rock_matrix_path_for_bounds(
 
 
 def _rock_matrix_radius_factors(
-    profile: RockMatrixHullProfile
+    profile: RockMatrixHullProfile,
 ) -> tuple[float, ...]:
     rng = random.Random(profile.seed)
     raw_offsets = []
@@ -315,7 +315,7 @@ def _interval_values(
 
 
 def _egg_shell_parameter_variations(
-    args: argparse.Namespace
+    args: argparse.Namespace,
 ) -> tuple[tuple[float, float], ...]:
     rotations = _interval_values(
         args.rotation_start, args.rotation_stop, args.rotation_count
@@ -352,7 +352,7 @@ def _egg_shell_profile_for_parameter_variation(
 
 
 def _rock_matrix_parameter_variations(
-    args: argparse.Namespace
+    args: argparse.Namespace,
 ) -> tuple[tuple[float, float], ...]:
     rotations = _interval_values(
         args.rotation_start, args.rotation_stop, args.rotation_count

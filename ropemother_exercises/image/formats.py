@@ -68,8 +68,8 @@ class AngularProjectionAdapter(TypeAdapter[AngularProjection, JSONRecord]):
         profile = _decode_projection_profile(data)
 
         angle_degrees = float(data["angle_degrees"])
-        frame = (
-            ImageFrame(width=data["frame_width"], height=data["frame_height"])
+        frame = ImageFrame(
+            width=data["frame_width"], height=data["frame_height"]
         )
         projection = AngularProjection(
             run_id=RunID(int(data["run_id"])),
@@ -133,18 +133,19 @@ class ExperimentCatalogEntryAdapter(
     serial_type = dict
 
     def encode(self, value: ExperimentCatalogEntry) -> JSONRecord:
-        experiment = (
-            EXPERIMENT_DESCRIPTION_FORMAT.adapter.encode(value.experiment)
+        experiment = EXPERIMENT_DESCRIPTION_FORMAT.adapter.encode(
+            value.experiment
         )
         record: JSONRecord = {
-            "experiment_id": int(value.experiment_id), "experiment": experiment
+            "experiment_id": int(value.experiment_id),
+            "experiment": experiment,
         }
         return record
 
     def decode(self, data: JSONRecord) -> ExperimentCatalogEntry:
         experiment_record = typing.cast(JSONRecord, data["experiment"])
-        experiment = (
-            EXPERIMENT_DESCRIPTION_FORMAT.adapter.decode(experiment_record)
+        experiment = EXPERIMENT_DESCRIPTION_FORMAT.adapter.decode(
+            experiment_record
         )
         entry = ExperimentCatalogEntry(
             experiment_id=ExperimentID(data["experiment_id"]),
@@ -173,8 +174,8 @@ class ExperimentDescriptionAdapter(
         instruments = []
         for instrument_value in data["instruments"]:
             instrument_record = typing.cast(JSONRecord, instrument_value)
-            instrument = (
-                INSTRUMENT_DESCRIPTION_FORMAT.adapter.decode(instrument_record)
+            instrument = INSTRUMENT_DESCRIPTION_FORMAT.adapter.decode(
+                instrument_record
             )
             instruments.append(instrument)
 
@@ -190,18 +191,19 @@ class InstrumentCatalogEntryAdapter(
     serial_type = dict
 
     def encode(self, value: InstrumentCatalogEntry) -> JSONRecord:
-        instrument = (
-            INSTRUMENT_DESCRIPTION_FORMAT.adapter.encode(value.instrument)
+        instrument = INSTRUMENT_DESCRIPTION_FORMAT.adapter.encode(
+            value.instrument
         )
         record: JSONRecord = {
-            "instrument_id": int(value.instrument_id), "instrument": instrument
+            "instrument_id": int(value.instrument_id),
+            "instrument": instrument,
         }
         return record
 
     def decode(self, data: JSONRecord) -> InstrumentCatalogEntry:
         instrument_record = typing.cast(JSONRecord, data["instrument"])
-        instrument = (
-            INSTRUMENT_DESCRIPTION_FORMAT.adapter.decode(instrument_record)
+        instrument = INSTRUMENT_DESCRIPTION_FORMAT.adapter.decode(
+            instrument_record
         )
         entry = InstrumentCatalogEntry(
             instrument_id=InstrumentID(data["instrument_id"]),
@@ -238,8 +240,8 @@ class ImageObservationAdapter(TypeAdapter[ImageObservation, JSONRecord]):
         return record
 
     def decode(self, data: JSONRecord) -> ImageObservation:
-        frame = (
-            ImageFrame(width=data["frame_width"], height=data["frame_height"])
+        frame = ImageFrame(
+            width=data["frame_width"], height=data["frame_height"]
         )
         frame_cells = frame.cells()
         intensity_values = data["intensity_values"]
@@ -259,8 +261,8 @@ class ImageObservationAdapter(TypeAdapter[ImageObservation, JSONRecord]):
         intensity_image = {}
         coverage_image = {}
 
-        image_values_by_cell = (
-            zip(frame_cells, intensity_values, coverage_values)
+        image_values_by_cell = zip(
+            frame_cells, intensity_values, coverage_values
         )
         for cell, intensity_value, coverage_value in image_values_by_cell:
             intensity_image[cell] = float(intensity_value)
@@ -347,8 +349,8 @@ class PerspectiveProjectionAdapter(
         if maximum_distance_value is not None:
             maximum_distance = float(maximum_distance_value)
 
-        frame = (
-            ImageFrame(width=data["frame_width"], height=data["frame_height"])
+        frame = ImageFrame(
+            width=data["frame_width"], height=data["frame_height"]
         )
         projection = PerspectiveProjection(
             run_id=RunID(int(data["run_id"])),
@@ -378,7 +380,8 @@ class PerspectiveSensorDescriptionAdapter(
 
     def encode(self, value: PerspectiveSensorDescription) -> JSONRecord:
         viewpoint: JSONRecord = {
-            "x": value.viewpoint.x, "y": value.viewpoint.y
+            "x": value.viewpoint.x,
+            "y": value.viewpoint.y,
         }
         coordinate_scale: JSONRecord = {
             "magnitude": value.coordinate_scale.magnitude,
@@ -403,11 +406,13 @@ class PerspectiveSensorDescriptionAdapter(
 
     def decode(self, data: JSONRecord) -> PerspectiveSensorDescription:
         viewpoint_record = typing.cast(JSONRecord, data["viewpoint"])
-        viewpoint = (
-            Point2D(float(viewpoint_record["x"]), float(viewpoint_record["y"]))
+        viewpoint = Point2D(
+            float(viewpoint_record["x"]), float(viewpoint_record["y"])
         )
 
-        coordinate_scale_record = typing.cast(JSONRecord, data["coordinate_scale"])
+        coordinate_scale_record = typing.cast(
+            JSONRecord, data["coordinate_scale"]
+        )
         coordinate_scale = ReferenceLength(
             magnitude=float(coordinate_scale_record["magnitude"]),
             scale=GeometryScale(name=coordinate_scale_record["scale"]),
@@ -502,8 +507,8 @@ class RunInstrumentCorrelationAdapter(
     serial_type = dict
 
     def encode(self, value: RunInstrumentCorrelation) -> JSONRecord:
-        instrument = (
-            INSTRUMENT_DESCRIPTION_FORMAT.adapter.encode(value.instrument)
+        instrument = INSTRUMENT_DESCRIPTION_FORMAT.adapter.encode(
+            value.instrument
         )
         record: JSONRecord = {
             "run_id": int(value.run_id),
@@ -514,8 +519,8 @@ class RunInstrumentCorrelationAdapter(
 
     def decode(self, data: JSONRecord) -> RunInstrumentCorrelation:
         instrument_record = typing.cast(JSONRecord, data["instrument"])
-        instrument = (
-            INSTRUMENT_DESCRIPTION_FORMAT.adapter.decode(instrument_record)
+        instrument = INSTRUMENT_DESCRIPTION_FORMAT.adapter.decode(
+            instrument_record
         )
         correlation = RunInstrumentCorrelation(
             run_id=RunID(int(data["run_id"])),

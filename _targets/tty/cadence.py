@@ -30,7 +30,6 @@ from ropemother_exercises.tty.formats import (
     INPUT_CADENCE_SPAN_FORMAT,
 )
 
-
 PREPARED_MAXIMUM_RELATIVE_DEVIATION = fractions.Fraction(20, 100)
 
 
@@ -57,6 +56,7 @@ class _SessionState:
 
 class InputCadenceProcessor:
     """Group contiguous timing intervals with a compatible shared mean."""
+
     _receiver: Receiver
     _configuration_emitter: Emitter
     _span_emitter: Emitter

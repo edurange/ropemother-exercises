@@ -16,7 +16,6 @@ from ropemother_exercises.image.target.hidden import (
     snapshot_hidden_target,
 )
 
-
 _SESSION_TARGET_FILENAME = "image-target.json"
 
 

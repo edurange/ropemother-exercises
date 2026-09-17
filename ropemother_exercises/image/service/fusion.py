@@ -39,6 +39,7 @@ from ropemother_exercises.image.tomography.reconstruction import (
 
 class ImageFusionProcessor:
     """Fuse image observations with a selected method."""
+
     _receiver: Receiver
     _reconstruction_emitter: Emitter
     _completion_emitter: Emitter

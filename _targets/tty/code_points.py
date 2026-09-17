@@ -31,7 +31,6 @@ from ropemother_exercises.tty.formats import (
     RAW_INPUT_DECODING_CONFIGURED_FORMAT,
 )
 
-
 RAW_INPUT_ENCODING = "utf-8"
 RAW_INPUT_ERROR_POLICY = "strict"
 
@@ -47,6 +46,7 @@ class _SessionState:
 
 class RawInputCodePointProcessor:
     """Decode raw input while preserving source-byte coordinates."""
+
     _receiver: Receiver
     _configuration_emitter: Emitter
     _code_point_emitter: Emitter

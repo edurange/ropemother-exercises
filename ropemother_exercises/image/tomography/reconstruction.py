@@ -75,7 +75,7 @@ def perspective_back_projection(
 
 
 def image_observation_from_angular_projection(
-    projection: AngularProjection
+    projection: AngularProjection,
 ) -> ImageObservation:
     intensity_profile = normalize_projection(
         projection.intensity_sums, projection.sample_counts
@@ -105,7 +105,7 @@ def image_observation_from_angular_projection(
 
 
 def image_observation_from_perspective_projection(
-    projection: PerspectiveProjection
+    projection: PerspectiveProjection,
 ) -> ImageObservation:
     intensity_profile = normalize_projection(
         projection.intensity_sums, projection.sample_counts

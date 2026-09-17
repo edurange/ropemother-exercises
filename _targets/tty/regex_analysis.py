@@ -27,7 +27,6 @@ from ropemother_exercises.tty.formats import (
     REGEX_PATTERNS_CONFIGURED_FORMAT,
 )
 
-
 PREPARED_PATTERNS = (
     RegexPattern(
         field="input_text",
@@ -49,6 +48,7 @@ PREPARED_PATTERNS = (
 
 class RegexAnalysisProcessor:
     """Evaluate configured regex patterns over reconstructed commands."""
+
     _receiver: Receiver
     _configuration_emitter: Emitter
     _analysis_emitter: Emitter

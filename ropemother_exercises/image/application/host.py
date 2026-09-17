@@ -22,7 +22,6 @@ from ropemother_exercises.image.formats import IMAGE_PORTABLE_FORMATS
 from ropemother_exercises.image.target.generator import create_hidden_target
 from ropemother_exercises.image.target.session import store_session_target
 
-
 _LONG_LIVED_SERVICES = {
     "image-identity-service": "ropemother_exercises.image.service.identity",
     "trial-service": "ropemother_exercises.image.service.trial",
@@ -106,8 +105,7 @@ def _wait_for_services(
         if stopped:
             names = ", ".join(stopped)
             raise ImageApplicationHostError(
-                "image application service stopped during startup: "
-                + names
+                "image application service stopped during startup: " + names
             )
 
         if time.monotonic() >= deadline:

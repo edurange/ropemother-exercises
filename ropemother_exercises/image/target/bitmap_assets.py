@@ -17,7 +17,6 @@ from ropemother_exercises.image.tomography.images import (
     ImageFrame,
 )
 
-
 ASSET_FILE: typing.Final[str] = "prepared_bitmaps.json"
 
 

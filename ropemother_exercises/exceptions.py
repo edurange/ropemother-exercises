@@ -3,7 +3,6 @@
 
 """Module-wide base exception classes for ropemother exercises."""
 
-
 __all__ = [
     "BusExerciseBaseException",
 ]
@@ -11,4 +10,5 @@ __all__ = [
 
 class BusExerciseBaseException(Exception):
     """Base exception for ropemother exercise package errors."""
+
     pass

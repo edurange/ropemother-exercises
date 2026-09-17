@@ -26,15 +26,12 @@ from ropemother_exercises.image.formats import (
     IMAGE_PORTABLE_FORMATS,
 )
 
-
 type DashboardReportFunction = (
     collections.abc.Callable[[HistoryClient], DashboardReport]
 )
 
 
-def serve_dashboard_requests(
-    report_function: DashboardReportFunction
-) -> None:
+def serve_dashboard_requests(report_function: DashboardReportFunction) -> None:
     bus = connect_message_bus(extra_formats=IMAGE_PORTABLE_FORMATS)
     try:
         history = preconfigured_history_client(bus)

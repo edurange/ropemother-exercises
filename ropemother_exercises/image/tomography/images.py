@@ -52,6 +52,7 @@ class ImageFrame:
 
 class BinaryImage(abc.ABC):
     """A binary image whose cells are either filled or empty."""
+
     frame: ImageFrame
 
     @abc.abstractmethod

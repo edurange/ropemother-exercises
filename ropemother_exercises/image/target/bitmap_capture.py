@@ -31,14 +31,13 @@ from ropemother_exercises.image.tomography.images import (
     ImageFrame,
 )
 
-
 _BINARY_RENDER_PALETTE: typing.Final[str] = " #"
 _DEFAULT_GLYPH_SIZE: typing.Final[int] = 16
 _DEFAULT_MAXIMUM_SIZE: typing.Final[int] = 16
 _GLYPH_CATALOG_FILE: typing.Final[str] = "glyph_candidates.json"
 _PILLOW_BINARY_MASK_MODE: typing.Final[str] = "1"
 _TEST_SHEET_GAP: typing.Final[int] = 2
-_TEXT_VARIATION_SELECTOR: typing.Final[str] = "\uFE0E"
+_TEXT_VARIATION_SELECTOR: typing.Final[str] = "\N{VARIATION SELECTOR-15}"
 
 _CAPTURE_USAGE: typing.Final[str] = (
     "usage:\n"
@@ -49,7 +48,7 @@ _CAPTURE_USAGE: typing.Final[str] = (
 )
 
 _PREPARED_BITMAP_PATH: typing.Final[pathlib.Path] = (
-    pathlib.Path(__file__).with_name(ASSET_FILE)
+    pathlib.Path(__file__).parent / ASSET_FILE
 )
 
 
@@ -597,7 +596,7 @@ def _truncate_text_head(text: str, width: int) -> str:
     elif width == 1:
         result = "…"
     else:
-        result = "…" + text[-(width - 1):]
+        result = "…" + text[-(width - 1) :]
 
     return result
 

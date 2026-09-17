@@ -501,9 +501,7 @@ def demo_trial_runner_closes_run_input() -> None:
     trial_runner = TrialRunner(bus, producer_name="tutorial-trial")
     canonical_run_id = RunID(1)
 
-    trial_runner.run_instrument(
-        bitmap, instrument, run_id=canonical_run_id
-    )
+    trial_runner.run_instrument(bitmap, instrument, run_id=canonical_run_id)
     received_input_closed = input_closed_receiver.receive().payload
     received_run_id = received_input_closed.run_id
 

@@ -10,7 +10,6 @@ from ropemother.fixtures import ScriptedInputEmitter, ScriptedInputPlan
 
 from ropemother_exercises.tty.formats import TTY_SOURCE_FORMATS
 
-
 SCRIPTED_INPUT_PATH = Path(__file__).with_name("scripted_input.jsonl")
 
 

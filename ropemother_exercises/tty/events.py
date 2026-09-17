@@ -7,7 +7,6 @@ import dataclasses
 import fractions
 import typing
 
-
 READ_MSG_TOPIC: typing.Final[str] = "demo.tty.read"
 LINE_MSG_TOPIC: typing.Final[str] = "demo.tty.line"
 WRITE_MSG_TOPIC: typing.Final[str] = "demo.tty.write"

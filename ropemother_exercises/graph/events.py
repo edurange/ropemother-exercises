@@ -8,7 +8,6 @@ import typing
 
 from ropemother_exercises.graph.model import Graph
 
-
 RUN_MSG_TOPIC: typing.Final[str] = "demo.graph.run"
 ARC_MSG_TOPIC: typing.Final[str] = "demo.graph.arc"
 PATH_MSG_TOPIC: typing.Final[str] = "demo.graph.path"

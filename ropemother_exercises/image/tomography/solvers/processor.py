@@ -36,6 +36,7 @@ from ropemother_exercises.image.tomography.solvers.algebraic import (
 
 class ProjectionReconstructionProcessor:
     """Reconstruct images directly from native angular projections."""
+
     _receiver: Receiver
     _reconstruction_emitter: Emitter
     _completion_emitter: Emitter

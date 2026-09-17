@@ -211,9 +211,7 @@ class InputCadenceConfiguredAdapter(
         return configuration
 
 
-class InputCadenceSpanAdapter(
-    TypeAdapter[InputCadenceSpan, JSONRecord]
-):
+class InputCadenceSpanAdapter(TypeAdapter[InputCadenceSpan, JSONRecord]):
 
     domain_type = InputCadenceSpan
     serial_type = dict
@@ -267,7 +265,8 @@ class RawInputDecodingConfiguredAdapter(
 
     def encode(self, value: RawInputDecodingConfigured) -> JSONRecord:
         record: JSONRecord = {
-            "encoding": value.encoding, "error_policy": value.error_policy
+            "encoding": value.encoding,
+            "error_policy": value.error_policy,
         }
         return record
 

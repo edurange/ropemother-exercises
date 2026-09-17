@@ -19,7 +19,9 @@ from ropemother_exercises.tty.events import (
     TTYReadObserved,
     TTYSessionEnded,
 )
-from ropemother_exercises.tty.exceptions import InvalidTimingProcessorPayloadError
+from ropemother_exercises.tty.exceptions import (
+    InvalidTimingProcessorPayloadError,
+)
 from ropemother_exercises.tty.formats import (
     INPUT_TIMING_COMPLETED_FORMAT,
     INPUT_TIMING_FORMAT,
@@ -28,6 +30,7 @@ from ropemother_exercises.tty.formats import (
 
 class InputTimingProcessor:
     """Derive elapsed time between raw input observations."""
+
     _receiver: Receiver
     _timing_emitter: Emitter
     _completion_emitter: Emitter

@@ -45,13 +45,17 @@ class _SessionState:
 
 class CommandReconstructionProcessor:
     """Reconstruct commands from ordered TTY source observations."""
+
     _receiver: Receiver
     _emitter: Emitter
     _state_by_session: dict[str, _SessionState]
 
     def __init__(self, bus: MessageEndpointFactory) -> None:
         subscription_topics = (
-            READ_MSG_TOPIC, LINE_MSG_TOPIC, WRITE_MSG_TOPIC, SESSION_MSG_TOPIC
+            READ_MSG_TOPIC,
+            LINE_MSG_TOPIC,
+            WRITE_MSG_TOPIC,
+            SESSION_MSG_TOPIC,
         )
         self._receiver = bus.subscribe(
             msg_topic=subscription_topics,

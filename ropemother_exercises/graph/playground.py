@@ -255,7 +255,7 @@ def demo_duplicate_arcs_do_not_duplicate_paths() -> None:
 
 
 def _sorted_path_facts(
-    paths: tuple[PathFound, ...]
+    paths: tuple[PathFound, ...],
 ) -> tuple[tuple[str, str, int], ...]:
     facts = []
 
@@ -290,7 +290,9 @@ def demo_fixed_order_reachability() -> None:
     runtime = create_graph_runtime()
     runtime.source.emit_graph(run_id="run-1", graph=graph)
     run_fixed_order_until_quiet(runtime, max_rounds=20)
-    recovered_paths = runtime.graph_facts.paths_for_run("run-1", graph.graph_id)
+    recovered_paths = runtime.graph_facts.paths_for_run(
+        "run-1", graph.graph_id
+    )
     recovered_path_facts = _sorted_path_facts(recovered_paths)
     print(f"{recovered_path_facts=}")
 
@@ -302,7 +304,9 @@ def demo_fixed_order_reachability() -> None:
 
     print(f"({run_fixed_order_until_quiet.__name__}): ", end="")
     if success:
-        print("Fixed-order operations produced the expected reachability facts")
+        print(
+            "Fixed-order operations produced the expected reachability facts"
+        )
     else:
         print("Fixed-order operations did not produce the expected facts")
     print("\n")

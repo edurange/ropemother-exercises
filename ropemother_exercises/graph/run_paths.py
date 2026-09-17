@@ -27,7 +27,7 @@ def create_reachability_graph() -> Graph:
 
 
 def path_facts(
-    paths: tuple[PathFound, ...]
+    paths: tuple[PathFound, ...],
 ) -> tuple[tuple[str, str, int], ...]:
     facts = []
 

@@ -19,6 +19,7 @@ from ropemother_exercises.image.tomography.images import (
 
 class HiddenTarget:
     """A concealed runtime target for the reconstruction exercise."""
+
     _frame: ImageFrame
     _silhouette: Bitmap
     _target_start: int
@@ -77,7 +78,9 @@ def snapshot_hidden_target(target: HiddenTarget) -> HiddenTargetSnapshot:
     return snapshot
 
 
-def hidden_target_from_snapshot(snapshot: HiddenTargetSnapshot) -> HiddenTarget:
+def hidden_target_from_snapshot(
+    snapshot: HiddenTargetSnapshot,
+) -> HiddenTarget:
     frame = ImageFrame(width=snapshot.width, height=snapshot.height)
     bitmap = decode_linear_index_delta_bitmap(
         frame, snapshot.start, snapshot.deltas
@@ -92,9 +95,7 @@ def _target_silhouette(target: Bitmap, angle_count: int) -> Bitmap:
         silhouette = Bitmap(frame=target.frame, filled_cells=())
     else:
         shadows = _projected_shadows(source_cells, target.frame, angle_count)
-        silhouette = _silhouette_from_projected_shadows(
-            target.frame, shadows
-        )
+        silhouette = _silhouette_from_projected_shadows(target.frame, shadows)
 
     return silhouette
 
