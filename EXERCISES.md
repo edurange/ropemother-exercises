@@ -390,7 +390,7 @@ For this exercise, that history lasts for the lifetime of the image application 
 
 Suppose someone using the report wants the completed runs listed in the opposite order. That changes how the existing results are presented, not how the sensor measurements are made or how the reconstructions are computed. The next step changes only the dashboard and tests whether the rest of the application and its completed work can remain in place.
 
-Open `ropemother_exercises/image/dashboard.py`. At lines 47–55, `render_dashboard()` asks `dashboard_entries()` for the completed reconstruction entries and passes them to `render_dashboard_index()`:
+Open `ropemother_exercises/image/dashboard.py`. At lines 41–49, `render_dashboard()` asks `dashboard_entries()` for the completed reconstruction entries and passes them to `render_dashboard_index()`:
 
 ```python
 def render_dashboard(history: HistoryClient) -> str:
@@ -406,7 +406,7 @@ def render_dashboard(history: HistoryClient) -> str:
 
 The final line passes the entries in their current order. Change only that call so `render_dashboard_index()` receives `reversed(entries)` instead.
 
-After the edit, lines 47–55 should read:
+After the edit, lines 41–49 should read:
 
 ```python
 def render_dashboard(history: HistoryClient) -> str:
@@ -560,7 +560,7 @@ A messaging relationship describes what information participants exchange, not n
 
 Before adding application classes, walk through one message exchange with `ropemother` directly. The exchange shows both sides of publish/subscribe: what a subscription asks to receive, what an emitter publishes, and what a receiver returns after delivery.
 
-Open `ropemother_exercises/basic/events.py`. Lines 16–18 define the submitted-text message description:
+Open `ropemother_exercises/basic/events.py`. Lines 8–10 define the submitted-text message description:
 
 ```python
 TEXT_MSG_TOPIC: typing.Final[str] = "demo.basic.text"
@@ -676,9 +676,9 @@ from ropemother_exercises.basic.events import (
 )
 
 
-
 class TextSource:
     """Publish text submitted to the basic exercise system."""
+
     _emitter: Emitter
 
     def __init__(self, bus: MessageEndpointFactory) -> None:
@@ -738,9 +738,9 @@ from ropemother_exercises.basic.events import (
 )
 
 
-
 class WordCountProcessor:
     """Count words in submitted text and publish the result."""
+
     _receiver: Receiver
     _emitter: Emitter
 
@@ -796,7 +796,6 @@ from ropemother import connect_message_bus
 from ropemother_exercises.basic.processors import WordCountProcessor
 
 
-
 def run_word_counter() -> None:
     bus = connect_message_bus()
 
@@ -846,7 +845,6 @@ from ropemother_exercises.basic.events import (
 )
 
 
-
 def display_word_counts() -> None:
     bus = connect_message_bus()
 
@@ -894,7 +892,6 @@ Create `ropemother_exercises/basic/run_source.py` with:
 from ropemother import connect_message_bus
 
 from ropemother_exercises.basic.source import TextSource
-
 
 
 def publish_text() -> None:
@@ -1032,7 +1029,6 @@ from ropemother_exercises.basic.events import (
     TEXT_MSG_TOPIC,
     WORD_COUNT_MSG_TOPIC,
 )
-
 
 
 def display_history_entry(entry) -> None:
@@ -1243,6 +1239,7 @@ from ropemother_exercises.tty.events import (
 )
 from ropemother_exercises.tty.formats import TTY_PORTABLE_FORMATS
 
+
 def run_local_tty_processing() -> None:
     capture_sink = InMemoryCaptureSink()
     history = InMemoryCaptureHistory(
@@ -1273,6 +1270,7 @@ def run_local_tty_processing() -> None:
     finally:
         host.close()
 
+
 def _display_source_sample(receiver: Receiver) -> None:
     selected_indices = (0, 8, 9, 17)
 
@@ -1282,12 +1280,12 @@ def _display_source_sample(receiver: Receiver) -> None:
         if payload.observation_index in selected_indices:
             print(payload)
 
+
 if __name__ == "__main__":
     run_local_tty_processing()
-
 ```
 
-The history setup is the first part of `run_local_tty_processing()` because capture must be active before the source publishes observations that a later processor may need. In the file just created, lines 19–29 build that setup:
+The history setup is the first part of `run_local_tty_processing()` because capture must be active before the source publishes observations that a later processor may need. In the file just created, lines 20–30 build that setup:
 
 ```python
     capture_sink = InMemoryCaptureSink()
@@ -1373,7 +1371,6 @@ This file is longer than the processors built earlier, but its message path has 
 from ropemother.broker import Emitter, Receiver
 from ropemother.client import MessageEndpointFactory
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.tty.events import (
     READ_MSG_TOPIC,
     SESSION_MSG_TOPIC,
@@ -1387,18 +1384,13 @@ from ropemother_exercises.tty.events import (
     TTYReadObserved,
     TTYSessionEnded,
 )
+from ropemother_exercises.tty.exceptions import (
+    InvalidTimingProcessorPayloadError,
+)
 from ropemother_exercises.tty.formats import (
     INPUT_TIMING_COMPLETED_FORMAT,
     INPUT_TIMING_FORMAT,
 )
-
-
-class InvalidTimingProcessorPayloadError(
-    TypeError, BusExerciseBaseException
-):
-    """Raised when timing processing receives an unsupported payload."""
-
-    pass
 
 
 class InputTimingProcessor:
@@ -1435,10 +1427,8 @@ class InputTimingProcessor:
 
     def process_available(self) -> int:
         messages = self._receiver.receive_available()
-
         for message in messages:
             self._process(message.payload)
-
         return len(messages)
 
     def _process(self, observation: object) -> None:
@@ -1483,19 +1473,19 @@ class InputTimingProcessor:
         self._last_read_at_ns_by_session.pop(observation.session_id, None)
 ```
 
-In `ropemother_exercises/tty/timing.py`, lines 42–60 establish the processor's message boundaries: the receiver accepts the source's raw-read and session-end messages, while the two emitters publish derived timing events on the timing topic.
+In `ropemother_exercises/tty/timing.py`, lines 36–54 establish the processor's message boundaries: the receiver accepts the source's raw-read and session-end messages, while the two emitters publish derived timing events on the timing topic.
 
-Lines 62–83 are the receiving and dispatch path: whether one message or all currently available messages are received, each payload reaches the same `_process()` method and is routed according to its event type.
+Lines 56–75 are the receiving and dispatch path: whether one message or all currently available messages are received, each payload reaches the same `_process()` method and is routed according to its event type.
 
 **Processor-local state** is information a processor remembers between messages without publishing that information as shared evidence.
 
-`InputTimingProcessor` uses `_last_read_at_ns_by_session` to remember the most recent raw-read time for each session. In lines 88–90, `_observe_read()` retrieves that previous time; after publishing the new result, line 104 replaces it with the current read time for the next calculation.
+`InputTimingProcessor` uses `_last_read_at_ns_by_session` to remember the most recent raw-read time for each session. In lines 80–82, `_observe_read()` retrieves that previous time; after publishing the new result, line 96 replaces it with the current read time for the next calculation.
 
-Lines 96–103 construct and publish an `InputTiming` event containing the source observation index, the current and previous times, and the derived interval. The remembered timestamp remains private to this processor, while the `InputTiming` event becomes shared evidence that another participant can receive or recover from history.
+Lines 88–96 construct and publish an `InputTiming` event containing the source observation index, the current and previous times, and the derived interval. The remembered timestamp remains private to this processor, while the `InputTiming` event becomes shared evidence that another participant can receive or recover from history.
 
 “Nothing is waiting right now” and “there will be no more timing events for this session” are different claims.
 
-`TTYSessionEnded` is the source's explicit statement that the recorded session has ended. In lines 106–113, the timing processor translates that source boundary into `InputTimingCompleted`, publishes it on the timing stream, and removes the remembered timestamp for the finished session. The grouping processor in the next step can therefore receive timing events until it receives `InputTimingCompleted`, then finish its pending group and release its own session state without also subscribing to the original TTY source.
+`TTYSessionEnded` is the source's explicit statement that the recorded session has ended. In lines 98–105, the timing processor translates that source boundary into `InputTimingCompleted`, publishes it on the timing stream, and removes the remembered timestamp for the finished session. The grouping processor in the next step can therefore receive timing events until it receives `InputTimingCompleted`, then finish its pending group and release its own session state without also subscribing to the original TTY source.
 
 Return to `ropemother_exercises/tty/run_local.py`. The previous run used a receiver in the runner to inspect selected source observations directly. The next change keeps the same prepared source but adds `InputTimingProcessor` between those source observations and the results the runner displays. Update that composition in a few local steps rather than replacing the runner as a whole.
 
@@ -1522,7 +1512,7 @@ from ropemother_exercises.tty.timing import InputTimingProcessor
 
 The import now names the processor being added and the topic on which its results will be observed.
 
-Next, current lines 31–40 contain the source and the temporary receiver that was used to display selected source events:
+Next, current lines 32–41 contain the source and the temporary receiver that was used to display selected source events:
 
 ```python
     source = scripted_tty_source(bus)
@@ -1548,7 +1538,7 @@ Keep `source = scripted_tty_source(bus)`. Remove the `source_results` subscripti
 
 These two bus-facing objects have different jobs. `timing_processor` owns the subscription that receives the source messages needed for timing analysis. `timing_results` is the runner's receiver for the `InputTiming` and `InputTimingCompleted` messages published by that analysis.
 
-Current lines 42–46 then emit the source, display the old source sample, and close the host:
+Current lines 43–47 then emit the source, display the old source sample, and close the host:
 
 ```python
     try:
@@ -1591,7 +1581,7 @@ With that insertion, the complete `try`/`finally` region should read:
 
 The source publishes the prepared recording first. `process_available()` then handles the timing processor's currently waiting input; the loop repeats until a pass handles none. The result walkthrough below will use the actual first and second passes to explain why that stopping condition is valid in this run.
 
-One helper remains from the source-sample run. Current lines 48–55 select only four source observations before printing them:
+One helper remains from the source-sample run. Current lines 50–57 select only four source observations before printing them:
 
 ```python
 def _display_source_sample(receiver: Receiver) -> None:
@@ -1755,7 +1745,6 @@ import fractions
 from ropemother.broker import Emitter, Receiver
 from ropemother.client import MessageEndpointFactory
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.tty.events import (
     CADENCE_CONFIGURED_MSG_TYPE,
     CADENCE_MSG_PRODUCER,
@@ -1768,24 +1757,16 @@ from ropemother_exercises.tty.events import (
     InputTiming,
     InputTimingCompleted,
 )
+from ropemother_exercises.tty.exceptions import (
+    InvalidCadenceConfigurationError,
+    InvalidCadenceProcessorPayloadError,
+)
 from ropemother_exercises.tty.formats import (
     INPUT_CADENCE_CONFIGURED_FORMAT,
     INPUT_CADENCE_SPAN_FORMAT,
 )
 
-
-
 PREPARED_MAXIMUM_RELATIVE_DEVIATION = fractions.Fraction(20, 100)
-
-
-class InvalidCadenceConfigurationError(ValueError, BusExerciseBaseException):
-    """Raised when cadence configuration cannot define a useful range."""
-    pass
-
-
-class InvalidCadenceProcessorPayloadError(TypeError, BusExerciseBaseException):
-    """Raised when cadence processing receives an unsupported payload."""
-    pass
 
 
 @dataclasses.dataclass
@@ -1811,6 +1792,7 @@ class _SessionState:
 
 class InputCadenceProcessor:
     """Group contiguous timing intervals with a compatible shared mean."""
+
     _receiver: Receiver
     _configuration_emitter: Emitter
     _span_emitter: Emitter
@@ -2034,7 +2016,7 @@ def _validate_deviation(deviation: fractions.Fraction) -> None:
         )
 ```
 
-Start with the processor's connection to the bus. In `ropemother_exercises/tty/cadence.py`, lines 80–103 define `InputCadenceProcessor.__init__()`:
+Start with the processor's connection to the bus. In `ropemother_exercises/tty/cadence.py`, lines 66–89 define `InputCadenceProcessor.__init__()`:
 
 ```python
     def __init__(
@@ -2079,7 +2061,7 @@ Lines 105–109 use the configuration emitter in `publish_configuration()`:
 
 The runner calls this once before it processes the prepared timing stream. `Fraction(1, 5)` is the prepared 20% maximum deviation, so `InputCadenceConfigured` records the same grouping rule used in the table above. The cadence output therefore includes a message stating the rule used to form the spans as well as the span messages themselves.
 
-Grouping several timing intervals also requires information to persist between messages. In the same file, lines 51–69 define `_PendingSpan` and `_SessionState`:
+Grouping several timing intervals also requires information to persist between messages. In the same file, lines 36–54 define `_PendingSpan` and `_SessionState`:
 
 ```python
 @dataclasses.dataclass
@@ -2105,7 +2087,7 @@ class _SessionState:
 
 `_PendingSpan` holds the measurements accumulated for the group currently being assembled. `_SessionState` keeps that pending span with the preceding timing observation needed to place the next interval, and `next_span_index` supplies the index for the next span the processor publishes.
 
-The timing and completion messages arriving through `self._receiver` reach `_process()` at lines 121–130:
+The timing and completion messages arriving through `self._receiver` reach `_process()` at lines 107–116:
 
 ```python
     def _process(self, event: object) -> None:
@@ -2175,7 +2157,7 @@ The first timing event has `delta_ns=None`, so there is not yet an interval to g
 
 If there is no pending span yet, the new interval starts one. Otherwise, `candidate_count`, `candidate_total_ns`, `candidate_minimum_ns`, and `candidate_maximum_ns` describe the span that would result from adding the new interval. After three `100 ms` intervals, considering `350 ms` produces a candidate count of `4`, a total of `650 ms`, a minimum of `100 ms`, and a maximum of `350 ms`.
 
-Those summary values are enough to apply the grouping rule shown in the table above. `intervals_fit_cadence()`, defined at lines 250–265, calculates the candidate mean and tests whether its minimum and maximum both remain inside the configured range around that mean.
+Those summary values are enough to apply the grouping rule shown in the table above. `intervals_fit_cadence()`, defined at lines 236–251, calculates the candidate mean and tests whether its minimum and maximum both remain inside the configured range around that mean.
 
 ```python
 def intervals_fit_cadence(
@@ -2200,7 +2182,7 @@ The first line computes the mean from the candidate total and count. The next tw
 
 For `650 ms / 4`, the mean is `162.5 ms`. The prepared 20% setting gives the `130–195 ms` range from the table. The candidate minimum, `100 ms`, is below that range, and the candidate maximum, `350 ms`, is above it, so `intervals_fit_cadence()` returns `False`. The 20% value is supplied through `maximum_relative_deviation`; it is the prepared configuration for this run rather than a fixed literal in the grouping function.
 
-Back in `_add_interval()`, lines 200–215 use that `True` or `False` result to decide whether to keep the candidate or start a new span:
+Back in `_add_interval()`, lines 186–201 use that `True` or `False` result to decide whether to keep the candidate or start a new span:
 
 ```python
             if fits:
@@ -2225,7 +2207,7 @@ When the candidate fits, those candidate values become the new pending span. Whe
 
 That failed-fit case has a later interval to tell the processor where the preceding span ends. The final pending span has no later interval to provide that signal. `InputTimingCompleted` supplies the missing boundary: it states that the timing stream for this session is finished, so no later interval can extend the pending span.
 
-This is stronger information than simply finding no timing message waiting at one moment. In a long-running application, another timing event could arrive later; `InputTimingCompleted` explicitly says that this session will produce no more of them. `_observe_completion()`, at lines 217–223 of `ropemother_exercises/tty/cadence.py`, uses that boundary to publish any span still pending:
+This is stronger information than simply finding no timing message waiting at one moment. In a long-running application, another timing event could arrive later; `InputTimingCompleted` explicitly says that this session will produce no more of them. `_observe_completion()`, at lines 203–209 of `ropemother_exercises/tty/cadence.py`, uses that boundary to publish any span still pending:
 
 ```python
     def _observe_completion(self, completion: InputTimingCompleted) -> None:
@@ -2286,7 +2268,7 @@ from ropemother_exercises.tty.cadence import (
 from ropemother_exercises.tty.timing import InputTimingProcessor
 ```
 
-Current lines 27–30 show the source, timing processor, and timing-result receiver already in the runner:
+Current lines 34–37 show the source, timing processor, and timing-result receiver already in the runner:
 
 ```python
     source = scripted_tty_source(bus)
@@ -2316,7 +2298,7 @@ After those two additions, the processor-and-result region should read:
 
 The two new names make both sides of the cadence participant visible: `cadence_processor` consumes timing messages and publishes cadence messages, while `cadence_results` lets this particular runner observe those published results.
 
-The remaining changes are inside the existing `try`/`finally` region. At current lines 32–44, that region still contains only timing processing:
+The remaining changes are inside the existing `try`/`finally` region. At current lines 43–55, that region still contains only timing processing:
 
 ```python
     try:
@@ -2572,7 +2554,7 @@ Command `0` brings together source messages that arrived separately. Raw-read ob
 
 The request/reply exchange from the basic messaging section had a simpler form of the same relationship: a reply belongs with the request it answers. Command reconstruction has more messages to associate, but the question is similar: which separately received observations describe the same command?
 
-The processor publishes the result of that correlation as a `ReconstructedCommand`. Open `ropemother_exercises/tty/events.py`. Lines 143–153 define the event record that represents one reconstructed command:
+The processor publishes the result of that correlation as a `ReconstructedCommand`. Open `ropemother_exercises/tty/events.py`. Lines 135–145 define the event record that represents one reconstructed command:
 
 ```python
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -2598,24 +2580,27 @@ For command `0`, the source-position fields are `0`, `8`, and `16`: input begins
 
 The record above shows what `CommandReconstructionProcessor` eventually publishes. Building it requires the processor to receive several source observations over time. Open `ropemother_exercises/tty/application/reconstruction.py`; the next code shows the receiving side of that relationship, beginning with the subscription that determines which source messages can reach the processor.
 
-In `ropemother_exercises/tty/application/reconstruction.py`, lines 68–82 define `CommandReconstructionProcessor.__init__()`:
+In `ropemother_exercises/tty/application/reconstruction.py`, lines 53–70 define `CommandReconstructionProcessor.__init__()`:
 
 ```python
-def __init__(self, bus: MessageEndpointFactory) -> None:
-    subscription_topics = (
-        READ_MSG_TOPIC, LINE_MSG_TOPIC, WRITE_MSG_TOPIC, SESSION_MSG_TOPIC
-    )
-    self._receiver = bus.subscribe(
-        msg_topic=subscription_topics,
-        msg_producer=SOURCE_MSG_PRODUCER,
-    )
-    self._emitter = bus.register_emitter(
-        msg_topic=COMMAND_MSG_TOPIC,
-        msg_producer=RECONSTRUCTOR_MSG_PRODUCER,
-        msg_type=COMMAND_RECONSTRUCTED_MSG_TYPE,
-        payload_format=RECONSTRUCTED_COMMAND_FORMAT,
-    )
-    self._state_by_session = {}
+    def __init__(self, bus: MessageEndpointFactory) -> None:
+        subscription_topics = (
+            READ_MSG_TOPIC,
+            LINE_MSG_TOPIC,
+            WRITE_MSG_TOPIC,
+            SESSION_MSG_TOPIC,
+        )
+        self._receiver = bus.subscribe(
+            msg_topic=subscription_topics,
+            msg_producer=SOURCE_MSG_PRODUCER,
+        )
+        self._emitter = bus.register_emitter(
+            msg_topic=COMMAND_MSG_TOPIC,
+            msg_producer=RECONSTRUCTOR_MSG_PRODUCER,
+            msg_type=COMMAND_RECONSTRUCTED_MSG_TYPE,
+            payload_format=RECONSTRUCTED_COMMAND_FORMAT,
+        )
+        self._state_by_session = {}
 ```
 
 `subscription_topics` contains the four source topics whose observations can contribute to a reconstructed command. Raw-read messages identify input activity, canonical-line messages supply the submitted line, write messages supply terminal output, and the session topic supplies the final boundary when no later line arrives.
@@ -2624,40 +2609,40 @@ The tuple is passed to one call to `bus.subscribe()`, so `self._receiver` can re
 
 The emitter defines the processor's output relationship: completed commands are published on `COMMAND_MSG_TOPIC` as `ReconstructedCommand` messages. `_state_by_session` holds the unfinished reconstruction information needed while the source observations for a command are still arriving.
 
-In the same file, lines 84–107 use the receiver created in `__init__()` to process the source observations that arrive through those subscriptions:
+In the same file, lines 72–95 use the receiver created in `__init__()` to process the source observations that arrive through those subscriptions:
 
 ```python
-def process_one(self) -> None:
-    message = self._receiver.receive()
-    self._process(message.payload)
-
-def process_available(self) -> int:
-    messages = self._receiver.receive_available()
-    for message in messages:
+    def process_one(self) -> None:
+        message = self._receiver.receive()
         self._process(message.payload)
-    return len(messages)
 
-def _process(self, observation: object) -> None:
-    if isinstance(observation, TTYReadObserved):
-        self._observe_read(observation)
-    elif isinstance(observation, CanonicalLineObserved):
-        self._observe_line(observation)
-    elif isinstance(observation, TTYWriteObserved):
-        self._observe_write(observation)
-    elif isinstance(observation, TTYSessionEnded):
-        self._observe_session_end(observation)
-    else:
-        payload_type = type(observation).__name__
-        raise InvalidReconstructionPayloadError(
-            f"expected TTY source observation, got {payload_type}"
-        )
+    def process_available(self) -> int:
+        messages = self._receiver.receive_available()
+        for message in messages:
+            self._process(message.payload)
+        return len(messages)
+
+    def _process(self, observation: object) -> None:
+        if isinstance(observation, TTYReadObserved):
+            self._observe_read(observation)
+        elif isinstance(observation, CanonicalLineObserved):
+            self._observe_line(observation)
+        elif isinstance(observation, TTYWriteObserved):
+            self._observe_write(observation)
+        elif isinstance(observation, TTYSessionEnded):
+            self._observe_session_end(observation)
+        else:
+            payload_type = type(observation).__name__
+            raise InvalidReconstructionPayloadError(
+                f"expected TTY source observation, got {payload_type}"
+            )
 ```
 
 `process_one()` receives one waiting message from `self._receiver`; `process_available()` receives all messages currently waiting there. Both pass each received payload to `_process()`.
 
 The receiver only gets source messages that matched the four-topic subscription created in `__init__()`. `_process()` then chooses the handler for the payload type: `TTYReadObserved` goes to `_observe_read()`, `CanonicalLineObserved` goes to `_observe_line()`, `TTYWriteObserved` goes to `_observe_write()`, and `TTYSessionEnded` goes to `_observe_session_end()`. The subscription determines which messages can arrive; `_process()` determines how reconstruction responds to each one.
 
-One received observation is not always enough to reconstruct a command. After observation `0`, the processor knows where input began but does not yet have the completed line. After observation `8`, it has the submitted line but must still allow later write observations to supply output. By observation `11`, input for the next command can begin while the first command is still waiting for an ending boundary. The processor therefore carries unfinished information from one received message to the next. In `ropemother_exercises/tty/application/reconstruction.py`, lines 49–59 define the two records used for that purpose:
+One received observation is not always enough to reconstruct a command. After observation `0`, the processor knows where input began but does not yet have the completed line. After observation `8`, it has the submitted line but must still allow later write observations to supply output. By observation `11`, input for the next command can begin while the first command is still waiting for an ending boundary. The processor therefore carries unfinished information from one received message to the next. In `ropemother_exercises/tty/application/reconstruction.py`, lines 33–43 define the two records used for that purpose:
 
 ```python
 @dataclasses.dataclass
@@ -2679,76 +2664,76 @@ class _SessionState:
 
 These records are working state inside `CommandReconstructionProcessor`, not messages published on the bus. They let the processor retain the information its correlation needs between source observations while those source observations remain unchanged. Once enough evidence has arrived, `_emit_pending()` publishes that accumulated interpretation as a separate `ReconstructedCommand` event.
 
-The complete reconstruction path is in the same file at lines 109–175:
+The complete reconstruction path is in the same file at lines 97–163:
 
 ```python
-def _observe_read(self, observation: TTYReadObserved) -> None:
-    state = self._state_for(observation.session_id)
-    if state.first_unassigned_read is None:
-        state.first_unassigned_read = observation
+    def _observe_read(self, observation: TTYReadObserved) -> None:
+        state = self._state_for(observation.session_id)
+        if state.first_unassigned_read is None:
+            state.first_unassigned_read = observation
 
-def _observe_line(self, observation: CanonicalLineObserved) -> None:
-    state = self._state_for(observation.session_id)
+    def _observe_line(self, observation: CanonicalLineObserved) -> None:
+        state = self._state_for(observation.session_id)
 
-    if state.pending_command is not None:
-        self._emit_pending(
-            state.pending_command,
-            boundary_observation_index=observation.observation_index,
-            ended_at_ns=observation.observed_at_ns,
+        if state.pending_command is not None:
+            self._emit_pending(
+                state.pending_command,
+                boundary_observation_index=observation.observation_index,
+                ended_at_ns=observation.observed_at_ns,
+            )
+            state.pending_command = None
+
+        input_start = state.first_unassigned_read
+        if input_start is None:
+            raise MissingCommandInputError(
+                "canonical line must follow at least one raw input observation"
+            )
+
+        state.pending_command = _PendingCommand(
+            input_start=input_start, line=observation
         )
-        state.pending_command = None
+        state.first_unassigned_read = None
 
-    input_start = state.first_unassigned_read
-    if input_start is None:
-        raise MissingCommandInputError(
-            "canonical line must follow at least one raw input observation"
+    def _observe_write(self, observation: TTYWriteObserved) -> None:
+        state = self._state_by_session.get(observation.session_id)
+        if state is not None and state.pending_command is not None:
+            state.pending_command.output.extend(observation.data)
+
+    def _observe_session_end(self, observation: TTYSessionEnded) -> None:
+        state = self._state_by_session.pop(observation.session_id, None)
+        if state is not None and state.pending_command is not None:
+            self._emit_pending(
+                state.pending_command,
+                boundary_observation_index=observation.observation_index,
+                ended_at_ns=observation.observed_at_ns,
+            )
+
+    def _state_for(self, session_id: str) -> _SessionState:
+        state = self._state_by_session.get(session_id)
+        if state is None:
+            state = _SessionState()
+            self._state_by_session[session_id] = state
+        return state
+
+    def _emit_pending(
+        self,
+        pending: _PendingCommand,
+        *,
+        boundary_observation_index: int,
+        ended_at_ns: int,
+    ) -> None:
+        command = ReconstructedCommand(
+            session_id=pending.line.session_id,
+            command_index=pending.line.line_index,
+            input_text=_decode_text(pending.line.data),
+            output_text=_decode_text(pending.output),
+            started_at_ns=pending.input_start.observed_at_ns,
+            ended_at_ns=ended_at_ns,
+            input_start_index=pending.input_start.observation_index,
+            line_observation_index=pending.line.observation_index,
+            boundary_observation_index=boundary_observation_index,
         )
-
-    state.pending_command = _PendingCommand(
-        input_start=input_start, line=observation
-    )
-    state.first_unassigned_read = None
-
-def _observe_write(self, observation: TTYWriteObserved) -> None:
-    state = self._state_by_session.get(observation.session_id)
-    if state is not None and state.pending_command is not None:
-        state.pending_command.output.extend(observation.data)
-
-def _observe_session_end(self, observation: TTYSessionEnded) -> None:
-    state = self._state_by_session.pop(observation.session_id, None)
-    if state is not None and state.pending_command is not None:
-        self._emit_pending(
-            state.pending_command,
-            boundary_observation_index=observation.observation_index,
-            ended_at_ns=observation.observed_at_ns,
-        )
-
-def _state_for(self, session_id: str) -> _SessionState:
-    state = self._state_by_session.get(session_id)
-    if state is None:
-        state = _SessionState()
-        self._state_by_session[session_id] = state
-    return state
-
-def _emit_pending(
-    self,
-    pending: _PendingCommand,
-    *,
-    boundary_observation_index: int,
-    ended_at_ns: int,
-) -> None:
-    command = ReconstructedCommand(
-        session_id=pending.line.session_id,
-        command_index=pending.line.line_index,
-        input_text=_decode_text(pending.line.data),
-        output_text=_decode_text(pending.output),
-        started_at_ns=pending.input_start.observed_at_ns,
-        ended_at_ns=ended_at_ns,
-        input_start_index=pending.input_start.observation_index,
-        line_observation_index=pending.line.observation_index,
-        boundary_observation_index=boundary_observation_index,
-    )
-    self._emitter.emit(command)
+        self._emitter.emit(command)
 ```
 
 The first command in the recording shows how these methods work together. Observation `0` reaches `_observe_read()` first, so `first_unassigned_read` becomes observation `0`. Observations `1` through `7` are also raw reads, but they do not replace it: the processor is preserving the beginning of the still-unassigned input.
@@ -2814,7 +2799,7 @@ from ropemother_exercises.tty.application.reconstruction import (
 )
 ```
 
-The existing event import at current lines 9–12 names the two result topics already displayed by the runner. Add `COMMAND_MSG_TOPIC` between `CADENCE_MSG_TOPIC` and `TIMING_MSG_TOPIC`:
+The existing event import at current lines 12–15 names the two result topics already displayed by the runner. Add `COMMAND_MSG_TOPIC` between `CADENCE_MSG_TOPIC` and `TIMING_MSG_TOPIC`:
 
 ```python
 from ropemother_exercises.tty.events import (
@@ -2844,7 +2829,7 @@ from ropemother_exercises.tty.cadence import (
 from ropemother_exercises.tty.timing import InputTimingProcessor
 ```
 
-Current lines 34–41 show the source, the timing and cadence processors, and their two result receivers:
+Current lines 38–45 show the source, the timing and cadence processors, and their two result receivers:
 
 ```python
     source = scripted_tty_source(bus)
@@ -2880,7 +2865,7 @@ After those two additions, the processor-and-result region should read:
 
 The arrangement now contains two different message relationships. Timing and command reconstruction both consume source evidence independently, while cadence consumes the timing events produced by `InputTimingProcessor`. `command_results` merely lets the runner observe the command events after reconstruction publishes them.
 
-The existing `try`/`finally` region is current lines 43–58:
+The existing `try`/`finally` region is current lines 49–64:
 
 ```python
     try:
@@ -3071,7 +3056,6 @@ import re
 from ropemother.broker import Emitter, Receiver
 from ropemother.client import MessageEndpointFactory
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
 from ropemother_exercises.tty.events import (
     COMMAND_MSG_TOPIC,
     COMMAND_RECONSTRUCTED_MSG_TYPE,
@@ -3085,6 +3069,7 @@ from ropemother_exercises.tty.events import (
     RegexPattern,
     RegexPatternsConfigured,
 )
+from ropemother_exercises.tty.exceptions import InvalidRegexPatternFieldError
 from ropemother_exercises.tty.formats import (
     REGEX_ANALYSIS_FORMAT,
     REGEX_PATTERNS_CONFIGURED_FORMAT,
@@ -3108,14 +3093,10 @@ PREPARED_PATTERNS = (
     ),
 )
 
-class InvalidRegexPatternFieldError(
-    ValueError, BusExerciseBaseException
-):
-    """Raised when a regex pattern names an unsupported command field."""
-    pass
 
 class RegexAnalysisProcessor:
     """Evaluate configured regex patterns over reconstructed commands."""
+
     _receiver: Receiver
     _configuration_emitter: Emitter
     _analysis_emitter: Emitter
@@ -3153,15 +3134,14 @@ class RegexAnalysisProcessor:
 
     def process_available(self) -> int:
         messages = self._receiver.receive_available()
-
         for message in messages:
             self._process(message.payload)
-
         return len(messages)
 
     def _process(self, command: ReconstructedCommand) -> None:
         analysis = analyze_command(command, self._patterns)
         self._analysis_emitter.emit(analysis)
+
 
 def analyze_command(
     command: ReconstructedCommand, patterns: tuple[RegexPattern, ...]
@@ -3182,6 +3162,7 @@ def analyze_command(
     )
     return analysis
 
+
 def _command_text(command: ReconstructedCommand, field: str) -> str:
     if field == "input_text":
         text = command.input_text
@@ -3193,10 +3174,9 @@ def _command_text(command: ReconstructedCommand, field: str) -> str:
         )
 
     return text
-
 ```
 
-The three patterns described above appear near the beginning of `ropemother_exercises/tty/regex_analysis.py`, lines 27–43, in `PREPARED_PATTERNS`:
+The three patterns described above appear near the beginning of `ropemother_exercises/tty/regex_analysis.py`, lines 30–46, in `PREPARED_PATTERNS`:
 
 ```python
 PREPARED_PATTERNS = (
@@ -3220,7 +3200,7 @@ PREPARED_PATTERNS = (
 
 Each `RegexPattern` records both the regex and the `ReconstructedCommand` field to which it applies. The description gives the match a readable meaning when the configuration is inspected later.
 
-The matching itself is performed by `analyze_command()` at lines 100–117:
+The matching itself is performed by `analyze_command()` at lines 98–115:
 
 ```python
 def analyze_command(
@@ -3249,22 +3229,22 @@ Those positions explain the numeric results used by `RegexAnalysis`. `^echo\b` i
 
 `RegexAnalysis` also copies the command's `session_id` and `command_index`, so the analysis can be associated with the `ReconstructedCommand` it describes.
 
-The processor method at lines 96–98 is correspondingly small:
+The processor method at lines 93–95 is correspondingly small:
 
 ```python
-def _process(self, command: ReconstructedCommand) -> None:
-    analysis = analyze_command(command, self._patterns)
-    self._analysis_emitter.emit(analysis)
+    def _process(self, command: ReconstructedCommand) -> None:
+        analysis = analyze_command(command, self._patterns)
+        self._analysis_emitter.emit(analysis)
 ```
 
 `_process()` passes each received command to the matching function and publishes the returned `RegexAnalysis`. The constructor's command subscription supplies those `ReconstructedCommand` values, while `_analysis_emitter` publishes the derived result.
 
-`publish_configuration()`, at lines 80–82, publishes `RegexPatternsConfigured` containing the same `PREPARED_PATTERNS` tuple:
+`publish_configuration()`, at lines 79–81, publishes `RegexPatternsConfigured` containing the same `PREPARED_PATTERNS` tuple:
 
 ```python
-def publish_configuration(self) -> None:
-    configuration = RegexPatternsConfigured(patterns=self._patterns)
-    self._configuration_emitter.emit(configuration)
+    def publish_configuration(self) -> None:
+        configuration = RegexPatternsConfigured(patterns=self._patterns)
+        self._configuration_emitter.emit(configuration)
 ```
 
 The numeric indices in each `RegexAnalysis` can therefore be interpreted using the pattern configuration published for that run. If an analysis records `(0, 1)`, configuration identifies entries `0` and `1` as the `echo` input test and the `hello` output test.
@@ -3326,7 +3306,7 @@ from ropemother_exercises.tty.regex_analysis import (
 from ropemother_exercises.tty.timing import InputTimingProcessor
 ```
 
-Current lines 38–47 show the source, the three existing processors, and their result receivers:
+Current lines 43–52 show the source, the three existing processors, and their result receivers:
 
 ```python
     source = scripted_tty_source(bus)
@@ -3366,7 +3346,7 @@ After those two additions, the processor-and-result region should read:
 
 The new participant therefore has the same outward shape as the earlier processors—receive messages, derive something, publish messages—but it occupies a different place in the message graph: reconstructed commands are its input, and regex configuration/results are its output.
 
-The existing `try`/`finally` region is current lines 49–66:
+The existing `try`/`finally` region is current lines 56–73:
 
 ```python
     try:
@@ -3592,7 +3572,27 @@ Producing that result when canonical-line observation `8` arrives requires one n
 
 `_reads_for()` identifies which earlier raw reads belong with the line currently being processed. For canonical-line observation `8`, there is no preceding canonical line, so the relevant reads are observations `0` through `7`. For canonical-line observation `16`, canonical-line observation `8` supplies the preceding boundary, so the relevant reads are observations `11` through `15`. The two history-selection methods below locate those boundaries and return the corresponding reads.
 
-Open `ropemother_exercises/tty/reconciliation.py` and find the end of `InputReconciliationProcessor`. The class currently ends with `_process()`, followed by the top-level `reconcile_input()` function. `_process()` already calls `self._reads_for(line)`, but the two history-selection methods it needs are not yet defined:
+The history lookup also needs the raw-read message contract. In `ropemother_exercises/tty/reconciliation.py`, the current event import at lines 13–23 names the canonical-line and reconciliation contracts but not the raw-read topic or message type. Add `READ_MSG_TOPIC` and `READ_OBSERVED_MSG_TYPE` after the two line-contract names so the complete import reads:
+
+```python
+from ropemother_exercises.tty.events import (
+    INPUT_RECONCILED_MSG_TYPE,
+    LINE_MSG_TOPIC,
+    LINE_OBSERVED_MSG_TYPE,
+    READ_MSG_TOPIC,
+    READ_OBSERVED_MSG_TYPE,
+    RECONCILIATION_MSG_TOPIC,
+    RECONCILER_MSG_PRODUCER,
+    SOURCE_MSG_PRODUCER,
+    CanonicalLineObserved,
+    InputReconciliation,
+    TTYReadObserved,
+)
+```
+
+Those names become necessary at the same point that the processor begins asking history for raw-read messages.
+
+Now find the end of `InputReconciliationProcessor`. The class currently ends with `_process()`, followed by the top-level `reconcile_input()` function. `_process()` already calls `self._reads_for(line)`, but the two history-selection methods it needs are not yet defined:
 
 ```python
     def _process(self, line: CanonicalLineObserved) -> None:
@@ -3682,11 +3682,12 @@ For canonical-line observation `8`, there is no earlier matching line, so the he
 
 For canonical-line observation `16`, observation `8` is the nearest earlier canonical line, so the helper returns `8`. `_reads_for()` then selects raw reads after `8` and before `16`: observations `11` through `15`. The two methods therefore use the canonical-line observations as boundaries around the raw reads associated with each completed line.
 
-To follow canonical-line observation `8` through the processor, start with `InputReconciliationProcessor` itself. Lines 36–54 of `ropemother_exercises/tty/reconciliation.py` show the class and its constructor:
+To follow canonical-line observation `8` through the processor, start with `InputReconciliationProcessor` itself. Lines 29–48 of `ropemother_exercises/tty/reconciliation.py` show the class and its constructor:
 
 ```python
 class InputReconciliationProcessor:
     """Locate differences between raw reads and canonical lines."""
+
     _receiver: Receiver
     _history: HistoryClient
     _emitter: Emitter
@@ -3751,9 +3752,13 @@ def _difference_offsets(
     raw_offsets = []
     canonical_offsets = []
 
-    for tag, raw_start, raw_end, canonical_start, canonical_end in (
-        matcher.get_opcodes()
-    ):
+    for (
+        tag,
+        raw_start,
+        raw_end,
+        canonical_start,
+        canonical_end,
+    ) in matcher.get_opcodes():
         if tag != "equal":
             raw_offsets.extend(range(raw_start, raw_end))
             canonical_offsets.extend(range(canonical_start, canonical_end))
@@ -3785,14 +3790,12 @@ They are raw offsets `8` and `9`. The preceding `_raw_positions()` helper conver
 
 ```python
 def _raw_positions(
-    reads: tuple[TTYReadObserved, ...]
+    reads: tuple[TTYReadObserved, ...],
 ) -> list[tuple[int, int]]:
     positions = []
-
     for read in reads:
         for offset in range(len(read.data)):
             positions.append((read.observation_index, offset))
-
     return positions
 ```
 
@@ -3804,7 +3807,7 @@ The second canonical line gives a simpler comparison. `_reads_for()` selects obs
 
 Now connect input reconciliation to `ropemother_exercises/tty/run_local.py`.
 
-At lines 11–18, the event-topic import sits between the source and format imports. Add `RECONCILIATION_MSG_TOPIC` so this portion reads:
+At lines 12–17, the event-topic import sits between the source and format imports. Add `RECONCILIATION_MSG_TOPIC` so this portion reads:
 
 ```python
 from ropemother_exercises.tty.application.source import scripted_tty_source
@@ -3818,7 +3821,7 @@ from ropemother_exercises.tty.events import (
 from ropemother_exercises.tty.formats import TTY_PORTABLE_FORMATS
 ```
 
-The reconciliation processor class belongs with the other TTY processors. At lines 19–26, insert its import between cadence and regex analysis:
+The reconciliation processor class belongs with the other TTY processors. After that topic edit, at lines 20–27, insert its import between cadence and regex analysis:
 
 ```python
 from ropemother_exercises.tty.cadence import (
@@ -4077,7 +4080,7 @@ A Unicode **code point** is a numbered text value; `é` is one code point. UTF-8
 
 The code-point processor will publish each completed code point as a `RawInputCodePoint`. That derived event records the decoded code point together with the source observation indices and byte offsets where its UTF-8 bytes began and ended. For `é`, that source span begins at byte `0` of observation `13` and ends at byte `0` of observation `14`.
 
-The prepared `RawInputCodePointProcessor` implementation is shown in full below. In that implementation, `_SessionState` at lines 55–61 carries the working information needed between those observations: the incremental decoder retains unfinished UTF-8 input, and the processor retains the source coordinates of the bytes accumulated for the code point being assembled.
+The prepared `RawInputCodePointProcessor` implementation is shown in full below. In that implementation, `_SessionState` at lines 38–44 carries the working information needed between those observations: the incremental decoder retains unfinished UTF-8 input, and the processor retains the source coordinates of the bytes accumulated for the code point being assembled.
 
 Those two pieces of working information are stored here:
 
@@ -4093,59 +4096,59 @@ class _SessionState:
 
 `decoder` holds the unfinished UTF-8 decoding state. `pending_byte_coordinates` records the `(observation_index, byte_offset)` positions of bytes that belong to the code point currently being assembled. `next_code_point_index` numbers each completed `RawInputCodePoint` within the session.
 
-`RawInputCodePointProcessor` receives raw reads and the eventual session-ending boundary. Lines 71–76 of that prepared implementation create its subscription:
+`RawInputCodePointProcessor` receives raw reads and the eventual session-ending boundary. Lines 56–60 of that prepared implementation create its subscription:
 
 ```python
-subscription_topics = (READ_MSG_TOPIC, SESSION_MSG_TOPIC)
-self._receiver = bus.subscribe(
-    msg_topic=subscription_topics,
-    msg_producer=SOURCE_MSG_PRODUCER,
-)
+        subscription_topics = (READ_MSG_TOPIC, SESSION_MSG_TOPIC)
+        self._receiver = bus.subscribe(
+            msg_topic=subscription_topics,
+            msg_producer=SOURCE_MSG_PRODUCER,
+        )
 ```
 
-For now, follow the ordinary raw-read path. `_observe_read()`, at lines 119–128, visits each byte in a `TTYReadObserved` and supplies both the byte value and its offset to `_observe_byte()`:
+For now, follow the ordinary raw-read path. `_observe_read()`, at lines 103–112, visits each byte in a `TTYReadObserved` and supplies both the byte value and its offset to `_observe_byte()`:
 
 ```python
-def _observe_read(self, observation: TTYReadObserved) -> None:
-    state = self._state_for(observation.session_id)
+    def _observe_read(self, observation: TTYReadObserved) -> None:
+        state = self._state_for(observation.session_id)
 
-    for byte_offset, byte_value in enumerate(observation.data):
-        self._observe_byte(
-            state,
-            observation=observation,
-            byte_offset=byte_offset,
-            byte_value=byte_value,
-        )
+        for byte_offset, byte_value in enumerate(observation.data):
+            self._observe_byte(
+                state,
+                observation=observation,
+                byte_offset=byte_offset,
+                byte_value=byte_value,
+            )
 ```
 
 Observation 13 contains one byte. The call therefore reaches `_observe_byte()` with observation index `13`, byte offset `0`, and byte value `0xC3`.
 
-The first lines of `_observe_byte()`, at lines 138–140, retain the source position and make a one-byte `bytes` value for the decoder:
+The first lines of `_observe_byte()`, at lines 122–124, retain the source position and make a one-byte `bytes` value for the decoder:
 
 ```python
-byte_coordinate = (observation.observation_index, byte_offset)
-state.pending_byte_coordinates.append(byte_coordinate)
-byte_data = bytes([byte_value])
+        byte_coordinate = (observation.observation_index, byte_offset)
+        state.pending_byte_coordinates.append(byte_coordinate)
+        byte_data = bytes([byte_value])
 ```
 
 For observation 13, `byte_coordinate` is `(13, 0)` and `byte_data` is `b'\xc3'`.
 
-The next operation passes that one byte to the incremental decoder. The prepared observations contain valid UTF-8, so first follow the successful call at line 143:
+The next operation passes that one byte to the incremental decoder. The prepared observations contain valid UTF-8, so first follow the successful call at line 127:
 
 ```python
-code_point = state.decoder.decode(byte_data, final=False)
+            code_point = state.decoder.decode(byte_data, final=False)
 ```
 
-`final=False` tells the decoder that more bytes may still follow. For observation 13, `0xC3` is a valid beginning of the two-byte encoding of `é`, but it is not a complete code point. The decoder retains the unfinished sequence and returns no text. `code_point` is therefore empty, so the branch at lines 151–157 does not publish anything:
+`final=False` tells the decoder that more bytes may still follow. For observation 13, `0xC3` is a valid beginning of the two-byte encoding of `é`, but it is not a complete code point. The decoder retains the unfinished sequence and returns no text. `code_point` is therefore empty, so the branch at lines 135–141 does not publish anything:
 
 ```python
-if code_point:
-    self._emit_code_point(
-        state,
-        code_point=code_point,
-        observation=observation,
-        byte_offset=byte_offset,
-    )
+        if code_point:
+            self._emit_code_point(
+                state,
+                code_point=code_point,
+                observation=observation,
+                byte_offset=byte_offset,
+            )
 ```
 
 At the message boundary after observation 13, the decoder is waiting for the rest of the UTF-8 sequence, `pending_byte_coordinates` contains `(13, 0)`, and no `RawInputCodePoint` for `é` has been published.
@@ -4154,34 +4157,34 @@ Observation 14 supplies `b'\xa9'`. Its coordinate `(14, 0)` is appended to the s
 
 This time `code_point` is not empty, so the `if code_point:` branch calls `_emit_code_point()` with the completed character, the current observation, and the source coordinates accumulated across observations 13 and 14.
 
-At this point the processor knows both the decoded character and the two source locations that produced it. `_emit_code_point()`, at lines 159–183 of the same prepared implementation, uses the first retained coordinate for the beginning of the source span and the current byte for its end:
+At this point the processor knows both the decoded character and the two source locations that produced it. `_emit_code_point()`, at lines 143–167 of the same prepared implementation, uses the first retained coordinate for the beginning of the source span and the current byte for its end:
 
 ```python
-def _emit_code_point(
-    self,
-    state: _SessionState,
-    *,
-    code_point: str,
-    observation: TTYReadObserved,
-    byte_offset: int,
-) -> None:
-    first_coordinate = state.pending_byte_coordinates[0]
-    first_observation_index, first_byte_offset = first_coordinate
+    def _emit_code_point(
+        self,
+        state: _SessionState,
+        *,
+        code_point: str,
+        observation: TTYReadObserved,
+        byte_offset: int,
+    ) -> None:
+        first_coordinate = state.pending_byte_coordinates[0]
+        first_observation_index, first_byte_offset = first_coordinate
 
-    event = RawInputCodePoint(
-        session_id=observation.session_id,
-        code_point_index=state.next_code_point_index,
-        code_point=code_point,
-        first_observation_index=first_observation_index,
-        first_byte_offset=first_byte_offset,
-        last_observation_index=observation.observation_index,
-        last_byte_offset=byte_offset,
-        completed_at_ns=observation.observed_at_ns,
-    )
-    self._code_point_emitter.emit(event)
+        event = RawInputCodePoint(
+            session_id=observation.session_id,
+            code_point_index=state.next_code_point_index,
+            code_point=code_point,
+            first_observation_index=first_observation_index,
+            first_byte_offset=first_byte_offset,
+            last_observation_index=observation.observation_index,
+            last_byte_offset=byte_offset,
+            completed_at_ns=observation.observed_at_ns,
+        )
+        self._code_point_emitter.emit(event)
 
-    state.next_code_point_index += 1
-    state.pending_byte_coordinates.clear()
+        state.next_code_point_index += 1
+        state.pending_byte_coordinates.clear()
 ```
 
 For `é`, `first_observation_index` and `first_byte_offset` come from `(13, 0)`. The current observation supplies `last_observation_index=14` and `last_byte_offset=0`. The published `RawInputCodePoint` can therefore say both that the decoded code point is `é` and that its bytes began in observation 13 and finished in observation 14. Once that event has been emitted, `pending_byte_coordinates.clear()` removes those positions so the next character starts with a new source span.
@@ -4204,7 +4207,10 @@ import dataclasses
 from ropemother.broker import Emitter, Receiver
 from ropemother.client import MessageEndpointFactory
 
-from ropemother_exercises.exceptions import BusExerciseBaseException
+from ropemother_exercises.tty.exceptions import (
+    InvalidCodePointProcessorPayloadError,
+    RawInputDecodingError,
+)
 from ropemother_exercises.tty.events import (
     CODE_POINT_DECODED_MSG_TYPE,
     CODE_POINT_MSG_PRODUCER,
@@ -4223,22 +4229,8 @@ from ropemother_exercises.tty.formats import (
     RAW_INPUT_DECODING_CONFIGURED_FORMAT,
 )
 
-
-
 RAW_INPUT_ENCODING = "utf-8"
 RAW_INPUT_ERROR_POLICY = "strict"
-
-
-class InvalidCodePointProcessorPayloadError(
-    TypeError, BusExerciseBaseException
-):
-    """Raised when the processor receives an unsupported payload."""
-    pass
-
-
-class RawInputDecodingError(UnicodeError, BusExerciseBaseException):
-    """Raised when raw input cannot be decoded as configured."""
-    pass
 
 
 @dataclasses.dataclass
@@ -4252,6 +4244,7 @@ class _SessionState:
 
 class RawInputCodePointProcessor:
     """Decode raw input while preserving source-byte coordinates."""
+
     _receiver: Receiver
     _configuration_emitter: Emitter
     _code_point_emitter: Emitter
@@ -4430,7 +4423,7 @@ from ropemother_exercises.tty.regex_analysis import (
 
 `RawInputCodePointProcessor` is the processor whose observation-13 and observation-14 path we just followed. `CODE_POINT_MSG_TOPIC` names the topic on which it publishes its decoding records, and `RawInputCodePoint` will let the display helper distinguish decoded characters from other messages on that topic.
 
-The participant and result declarations are together at current lines 47–60 of `ropemother_exercises/tty/run_local.py`. Construct `RawInputCodePointProcessor` immediately before `reconstruction_processor`. Then add a subscription to `CODE_POINT_MSG_TOPIC` between `cadence_results` and `command_results`. With those two additions, the whole local region should read:
+The participant and result declarations are together at current lines 50–63 of `ropemother_exercises/tty/run_local.py`. Construct `RawInputCodePointProcessor` immediately before `reconstruction_processor`. Then add a subscription to `CODE_POINT_MSG_TOPIC` between `cadence_results` and `command_results`. With those two additions, the whole local region should read:
 
 ```python
     source = scripted_tty_source(bus)
@@ -4455,7 +4448,7 @@ The participant and result declarations are together at current lines 47–60 of
 
 Constructing `code_point_processor` gives the raw-read and session-end messages their new consumer. `code_point_results` is a separate receiver on the processor's output topic; it does not participate in decoding, but lets this runner inspect what the processor publishes.
 
-The existing `try` block begins at current line 62. There are three additions to make in this block. Add `code_point_processor.publish_configuration()` immediately after `cadence_processor.publish_configuration()`. In the processing loop, add `code_point_processor.process_available()` immediately after the cadence processor's call. In the result-display group, add `_display_code_point_results(code_point_results)` immediately after the cadence results. The completed block, including the surrounding source publication and result display, should read:
+The existing `try` block begins at current line 67. There are three additions to make in this block. Add `code_point_processor.publish_configuration()` immediately after `cadence_processor.publish_configuration()`. In the processing loop, add `code_point_processor.process_available()` immediately after the cadence processor's call. In the result-display group, add `_display_code_point_results(code_point_results)` immediately after the cadence results. The completed block, including the surrounding source publication and result display, should read:
 
 ```python
     try:
@@ -4768,7 +4761,7 @@ C…D; hop count 1
 
 Compare the three lines under `Fixed-order reachability` with the six facts required for the complete result. The starter has established `A`…`B`, `B`…`C`, and `C`…`D`, where each source and target are joined by one supplied arc. It has not yet established `A`…`C`, `B`…`D`, or `A`…`D`.
 
-The program represents a supplied arc and an established reachability fact with different records. Open `ropemother_exercises/graph/events.py`. Start with `ArcDeclared`, currently at lines 42–53. Each `ArcDeclared` corresponds to one line under `Declared arcs`.
+The program represents a supplied arc and an established reachability fact with different records. Open `ropemother_exercises/graph/events.py`. Start with `ArcDeclared`, currently at lines 34–45. Each `ArcDeclared` corresponds to one line under `Declared arcs`.
 
 ```python
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -4787,7 +4780,7 @@ class ArcDeclared:
 
 For the declared arc `B`→`C`, `source` is `"B"` and `target` is `"C"`. These fields identify the two endpoints of that direct connection. `__str__()` gives the record the same short `B→C` form used in the graph notation.
 
-Next examine `PathFound`, immediately below it at lines 56–68. Each line under `Fixed-order reachability` represents one of these records:
+Next examine `PathFound`, immediately below it at lines 48–60. Each line under `Fixed-order reachability` represents one of these records:
 
 ```python
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -4809,7 +4802,7 @@ class PathFound:
 
 Both record types also carry `run_id` and `graph_id`. Those fields identify the execution and graph to which the record belongs; the graph relationship itself is described by `source`, `target`, and, for `PathFound`, `hop_count`.
 
-The starter's direct deduction converts one `ArcDeclared` into one `PathFound`. In `ropemother_exercises/graph/reachability.py`, `direct_path_from_arc()` is at current lines 26–34:
+The starter's direct deduction converts one `ArcDeclared` into one `PathFound`. In `ropemother_exercises/graph/reachability.py`, `direct_path_from_arc()` is at current lines 19–27:
 
 ```python
 def direct_path_from_arc(arc: ArcDeclared) -> PathFound:
@@ -4853,7 +4846,7 @@ The complete result for `A`→`B`→`C`→`D` contains exactly six reachability 
 
 The bound is therefore concrete. Before all six facts have been established, a deduction may enlarge the partial result by adding one that is missing. Once all six are present, every further successful deduction can only rediscover one of them. The graph operations publish a `PathFound` only when its source-and-target relationship is not already part of the recorded result.
 
-The code separates those two moments: first **derive a candidate**, then decide whether that candidate represents a **new fact**. In `ropemother_exercises/graph/runner.py`, `derive_direct_path()`, currently at lines 86–98, consumes at most one declared arc:
+The code separates those two moments: first **derive a candidate**, then decide whether that candidate represents a **new fact**. In `ropemother_exercises/graph/runner.py`, `derive_direct_path()`, currently at lines 74–86, consumes at most one declared arc:
 
 ```python
 def derive_direct_path(runtime: GraphRuntime) -> int:
@@ -4873,7 +4866,7 @@ def derive_direct_path(runtime: GraphRuntime) -> int:
 
 When an arc message is available, `direct_path_from_arc()` applies the direct rule from the previous step. For `A`→`B`, it constructs `PathFound(source="A", target="B", hop_count=1)` and assigns that value to `candidate`. At this point the program has worked out what conclusion follows from the arc; it has not yet determined whether that source-and-target relationship is already among the recorded `PathFound` facts.
 
-`emit_path_if_new()` makes that second decision. Open `ropemother_exercises/graph/reachability.py`; the function is currently at lines 19–23:
+`emit_path_if_new()` makes that second decision. Open `ropemother_exercises/graph/reachability.py`; the function is currently at lines 12–16:
 
 ```python
 def emit_path_if_new(
@@ -4889,27 +4882,27 @@ This is a small **rule-based computation**: application records stand for assert
 
 The retained history is playing the same **event store** role introduced in the basic messaging section: it keeps events after publication so later work can query them. The use is different here. Instead of querying older activity only to inspect what happened, `GraphFacts` treats retained `ArcDeclared` and `PathFound` records as the graph facts known so far, while the underlying history remains generic message storage.
 
-Open `ropemother_exercises/graph/facts.py`. `path_is_known()`, at current lines 39–47, answers that question:
+Open `ropemother_exercises/graph/facts.py`. `path_is_known()`, at current lines 33–41, answers that question:
 
 ```python
-def path_is_known(self, path: PathFound) -> bool:
-    known = False
+    def path_is_known(self, path: PathFound) -> bool:
+        known = False
 
-    for existing in self.paths_for_run(path.run_id, path.graph_id):
-        if existing.path_key() == path.path_key():
-            known = True
-            break
+        for existing in self.paths_for_run(path.run_id, path.graph_id):
+            if existing.path_key() == path.path_key():
+                known = True
+                break
 
-    return known
+        return known
 ```
 
 `paths_for_run()` supplies the `PathFound` records already retained for the same run and graph. The `for` loop examines those records one at a time. If an `existing` path has the same `path_key()` as the candidate `path`, the requested fact has already been found: `known` becomes `True` and the loop stops. If the loop reaches the end without finding such a record, no matching path fact is present and `path_is_known()` returns `False`.
 
-The comparison uses `PathFound.path_key()`, which was visible earlier in `events.py`, currently at lines 67–68:
+The comparison uses `PathFound.path_key()`, which was visible earlier in `events.py`, currently at lines 59–60:
 
 ```python
-def path_key(self) -> tuple[str, str, str, str]:
-    return (self.run_id, self.graph_id, self.source, self.target)
+    def path_key(self) -> tuple[str, str, str, str]:
+        return (self.run_id, self.graph_id, self.source, self.target)
 ```
 
 The key identifies a reachability fact by its run, graph, source, and target. `hop_count` is not part of that identity. The desired result answers whether one node can reach another, so two different routes from `A` to `D` still establish the same fact `A`…`D`. This calculation is not retaining every possible route or choosing a shortest route; those would be different graph problems.
@@ -4944,16 +4937,28 @@ There is also a useful recursive property in the data being produced: the path u
 
 The duplicate check from the previous step bounds what those repeated deductions can add. For this graph, each newly published `PathFound` adds one of the six source-and-target relationships in the complete result. Once all six are present, another application of the rule may rediscover one of them, but `emit_path_if_new()` will not publish another copy. At that point no further application of the reachability rules can enlarge the result; the calculation has **converged** on the six reachability facts defined at the beginning of the section.
 
-First make the extension rule executable with both of its premises supplied directly. Open `ropemother_exercises/graph/reachability.py`. `direct_path_from_arc()` currently occupies lines 26–34. Add `extend_path_over_arc()` immediately after it:
+First make the extension rule executable with both of its premises supplied directly. Open `ropemother_exercises/graph/reachability.py`. The starter imports `ArcDeclared` and `PathFound` at line 8 and `GraphFacts` at line 9. Add the graph-specific exception used when two supplied facts cannot form an extension between those imports:
+
+```python
+from ropemother_exercises.graph.events import ArcDeclared, PathFound
+from ropemother_exercises.graph.exceptions import InvalidPathExtensionError
+from ropemother_exercises.graph.facts import GraphFacts
+```
+
+With that import in place, `direct_path_from_arc()` occupies lines 20–28. Add `extend_path_over_arc()` immediately after it:
 
 ```python
 def extend_path_over_arc(path: PathFound, arc: ArcDeclared) -> PathFound:
     if path.run_id != arc.run_id:
-        raise ValueError("path and arc must belong to the same run")
+        raise InvalidPathExtensionError(
+            "path and arc must belong to the same run"
+        )
     if path.graph_id != arc.graph_id:
-        raise ValueError("path and arc must belong to the same graph")
+        raise InvalidPathExtensionError(
+            "path and arc must belong to the same graph"
+        )
     if path.target != arc.source:
-        raise ValueError("path target must match arc source")
+        raise InvalidPathExtensionError("path target must match arc source")
 
     extended = PathFound(
         run_id=path.run_id,
@@ -4967,7 +4972,7 @@ def extend_path_over_arc(path: PathFound, arc: ArcDeclared) -> PathFound:
 
 The function receives the two facts on the left side of the extension rule. The first two checks keep facts from different runs or graphs from being combined. The third checks the graph relationship itself: `path.target` must equal `arc.source`. For `A`…`B` and `B`→`C`, both values are `"B"`.
 
-After the insertion, `direct_path_from_arc()` remains at lines 26–34 of `ropemother_exercises/graph/reachability.py`, and `extend_path_over_arc()` begins immediately afterward at line 37. The boundary should read:
+After the insertion, `direct_path_from_arc()` remains at lines 20–28 of `ropemother_exercises/graph/reachability.py`, and `extend_path_over_arc()` begins at line 31. The boundary should read:
 
 ```python
 def direct_path_from_arc(arc: ArcDeclared) -> PathFound:
@@ -5048,7 +5053,7 @@ Earlier in the basic messaging exercises, `WordCountProcessor.run()` in `ropemot
 
 The graph runner will call several different graph operations rather than wait inside one of them. If the direct-path operation has nothing to receive, it must return so that another graph operation can be called. `Receiver.receive_nowait()` checks the receiver once: it returns one available message, or returns `None` immediately when there is no message to receive.
 
-Open `ropemother_exercises/graph/runner.py`. `derive_direct_path()`, currently at lines 86–98, uses that operation:
+Open `ropemother_exercises/graph/runner.py`. `derive_direct_path()`, currently at lines 74–86, uses that operation:
 
 ```python
 def derive_direct_path(runtime: GraphRuntime) -> int:
@@ -5150,30 +5155,30 @@ The two extension operations added next will follow the same one-message contrac
 
 The direct check supplied both premises to `extend_path_over_arc()` in one Python call. A receiver-facing graph operation has only one current message. To apply the same rule, it must find the compatible premise among the graph facts recorded earlier.
 
-The two searches needed for that are already part of `GraphFacts`. Open `ropemother_exercises/graph/facts.py` and examine `arcs_starting_at()` and `paths_ending_at()`, currently at lines 77–97:
+The two searches needed for that are already part of `GraphFacts`. Open `ropemother_exercises/graph/facts.py` and examine `arcs_starting_at()` and `paths_ending_at()`, currently at lines 71–91:
 
 ```python
-def arcs_starting_at(
-    self, *, run_id: str, graph_id: str, source: str
-) -> tuple[ArcDeclared, ...]:
-    arcs = []
+    def arcs_starting_at(
+        self, *, run_id: str, graph_id: str, source: str
+    ) -> tuple[ArcDeclared, ...]:
+        arcs = []
 
-    for arc in self.arcs_for_run(run_id, graph_id):
-        if arc.source == source:
-            arcs.append(arc)
+        for arc in self.arcs_for_run(run_id, graph_id):
+            if arc.source == source:
+                arcs.append(arc)
 
-    return tuple(arcs)
+        return tuple(arcs)
 
-def paths_ending_at(
-    self, *, run_id: str, graph_id: str, target: str
-) -> tuple[PathFound, ...]:
-    paths = []
+    def paths_ending_at(
+        self, *, run_id: str, graph_id: str, target: str
+    ) -> tuple[PathFound, ...]:
+        paths = []
 
-    for path in self.paths_for_run(run_id, graph_id):
-        if path.target == target:
-            paths.append(path)
+        for path in self.paths_for_run(run_id, graph_id):
+            if path.target == target:
+                paths.append(path)
 
-    return tuple(paths)
+        return tuple(paths)
 ```
 
 `paths_ending_at(..., target="B")` selects recorded paths that reach `B`. For the current graph, that can supply `A`…`B` when the current message is arc `B`→`C`. `arcs_starting_at(..., source="B")` selects recorded arcs that leave `B`, so it can supply `B`→`C` when the current message is path `A`…`B`.
@@ -5184,7 +5189,7 @@ The endpoint tested by each method is the endpoint where the two premises must m
 
 The run and graph identifiers keep the search within the same calculation. The endpoint argument then selects facts that can join the current message at `B`.
 
-Open `ropemother_exercises/graph/reachability.py`. In the current participant file, `emit_path_if_new()` ends at line 23 and `direct_path_from_arc()` begins at line 26. Insert the two extension functions between them.
+Open `ropemother_exercises/graph/reachability.py`. In the current participant file, `emit_path_if_new()` ends at line 17 and `direct_path_from_arc()` begins at line 20. Insert the two extension functions between them.
 
 Add `extend_known_paths_over_arc()` first:
 
@@ -5220,7 +5225,7 @@ def extend_path_over_known_arcs(
 
 This time the current message supplies the path. For `A`…`B`, `path.target` is `"B"`, so `arcs_starting_at()` retrieves recorded arcs that leave `B`. Arc `B`→`C` gives `extend_path_over_arc()` the same pair of premises and therefore the same candidate `A`…`C`.
 
-After both insertions, the edited region beginning at current line 19 should read:
+After both insertions, the edited region beginning at current line 13 should read:
 
 ```python
 def emit_path_if_new(
@@ -5271,7 +5276,7 @@ the runtime needs an arc receiver for the case where `B`→`C` is current, a pat
 
 Open `ropemother_exercises/graph/runner.py`.
 
-First update the imports. In the event import at current lines 13–21, add `EXTEND_MSG_PRODUCER` after `DIRECT_MSG_PRODUCER`:
+First update the imports. In the event import at current lines 12–20, add `EXTEND_MSG_PRODUCER` after `DIRECT_MSG_PRODUCER`:
 
 ```python
 from ropemother_exercises.graph.events import (
@@ -5286,7 +5291,7 @@ from ropemother_exercises.graph.events import (
 )
 ```
 
-In the reachability import at current lines 25–28, add the two functions implemented in the preceding step:
+After that one-line event-import edit, the reachability import is at current lines 26–29. Add the two functions implemented in the preceding step:
 
 ```python
 from ropemother_exercises.graph.reachability import (
@@ -5297,7 +5302,7 @@ from ropemother_exercises.graph.reachability import (
 )
 ```
 
-After those import edits, `GraphRuntime` is at lines 47–52. It currently carries the endpoints used by the direct rule:
+After those import edits, `GraphRuntime` is at lines 36–40. It currently carries the endpoints used by the direct rule:
 
 ```python
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -5324,7 +5329,7 @@ class GraphRuntime:
 
 The three new names correspond directly to the extension rule. `extend_arc_receiver` supplies the current arc, `path_receiver` supplies the current path, and `extend_path_emitter` publishes a newly established path.
 
-After expanding `GraphRuntime`, `create_graph_runtime()` begins at line 65. Its setup of the bus, history, `GraphFacts`, and `GraphSource` remains unchanged. The endpoint-creation region is now at lines 71–81:
+After expanding `GraphRuntime`, `create_graph_runtime()` begins at line 53. Its setup of the bus, history, `GraphFacts`, and `GraphSource` remains unchanged. The endpoint-creation region is now at lines 59–69:
 
 ```python
     direct_arc_receiver = bus.subscribe(
@@ -5385,7 +5390,7 @@ There is no `msg_producer` filter. A direct path such as `A`…`B` and an extend
 
 The two emitters both publish `PathFound`, so they both use `PATH_FOUND_FORMAT`. Their producer names distinguish which graph operation established the fact; their payload representation is the same because the value being carried is the same application record.
 
-After replacing the endpoint-creation region, the `GraphRuntime` construction is at lines 98–104:
+After replacing the endpoint-creation region, the `GraphRuntime` construction is at lines 86–95:
 
 ```python
     runtime = GraphRuntime(
@@ -5416,7 +5421,7 @@ The existing direct operation is still the only function consuming these endpoin
 
 The new receivers now need operations that use them. `derive_direct_path()` already demonstrates the one-message pattern: check one receiver, process one message if present, and return `1` or `0`. The two extension operations will use the same structure while handing the received fact to the history-search functions added above.
 
-Open `ropemother_exercises/graph/runner.py`. With the preceding runtime edits applied, `derive_direct_path()` is at lines 110–122 and `run_fixed_order()` begins at line 125.
+Open `ropemother_exercises/graph/runner.py`. With the preceding runtime edits applied, `derive_direct_path()` is at lines 98–110 and `run_fixed_order()` begins at line 113.
 
 Insert `extend_paths_by_arc()` between them, immediately after `derive_direct_path()`:
 
@@ -5437,7 +5442,7 @@ def extend_paths_by_arc(runtime: GraphRuntime) -> int:
 
 This operation receives one source arc from `extend_arc_receiver`. If the received arc is `B`→`C`, `extend_known_paths_over_arc()` searches the recorded reachability facts for paths that end at `B`. A recorded `A`…`B` can therefore be combined with the received arc to establish `A`…`C`. The receiver-facing function only supplies the current arc; the history search and path construction remain in the reachability functions implemented earlier.
 
-After this insertion, `extend_paths_by_arc()` occupies lines 125–136 and `run_fixed_order()` has moved to line 139. Insert `extend_paths_by_path()` immediately before `run_fixed_order()`:
+After this insertion, `extend_paths_by_arc()` occupies lines 113–124 and `run_fixed_order()` has moved to line 127. Insert `extend_paths_by_path()` immediately before `run_fixed_order()`:
 
 ```python
 def extend_paths_by_path(runtime: GraphRuntime) -> int:
@@ -5495,9 +5500,9 @@ As in the direct-path demonstration, `1` means that this invocation received and
 `extend_paths_by_path()` receives from the subscription created without a `msg_producer` filter:
 
 ```python
-path_receiver = bus.subscribe(
-    msg_topic=PATH_MSG_TOPIC, msg_type=PATH_FOUND_MSG_TYPE
-)
+    path_receiver = bus.subscribe(
+        msg_topic=PATH_MSG_TOPIC, msg_type=PATH_FOUND_MSG_TYPE
+    )
 ```
 
 That subscription accepts every matching `PathFound` on `PATH_MSG_TOPIC`. With the two producers currently used by the graph calculation, it receives paths established directly from source arcs and paths established by extension. If another producer later published the same message type on this topic, those messages would match as well.
@@ -5512,7 +5517,7 @@ All three one-message graph operations are now present. `run_fixed_order_until_q
 
 Each graph operation processes at most one message and then returns. `extend_paths_by_path()` can therefore receive `A`…`B` and establish `A`…`C`, but processing that newly published `A`…`C` requires a later call. The runner must keep returning to the graph operations while messages remain for them to process.
 
-Before changing the loop, examine when the source graph is published. In `ropemother_exercises/graph/runner.py`, `run_fixed_order()` is currently at lines 153–162:
+Before changing the loop, examine when the source graph is published. In `ropemother_exercises/graph/runner.py`, `run_fixed_order()` is currently at lines 141–150:
 
 ```python
 def run_fixed_order(
@@ -5529,7 +5534,7 @@ def run_fixed_order(
 
 `runtime.source.emit_graph()` completes before `run_fixed_order_until_quiet()` begins. All three source arcs have therefore already been published when the processing loop starts. They are available in history, and each matching arc receiver has received its own copies. An operation does not need to wait for a later trip through the loop before a different source arc becomes available to a history search.
 
-Now examine the processing loop immediately below it. `run_fixed_order_until_quiet()` is currently at lines 165–174:
+Now examine the processing loop immediately below it. `run_fixed_order_until_quiet()` is currently at lines 153–162:
 
 ```python
 def run_fixed_order_until_quiet(
@@ -5544,7 +5549,7 @@ def run_fixed_order_until_quiet(
     raise GraphRunError("graph operations did not become quiet")
 ```
 
-The `for` loop already provides repeated calls. The problem is narrower: line 169 calls only `derive_direct_path()`. The two extension operations never receive an opportunity to process their messages.
+The `for` loop already provides repeated calls. The problem is narrower: line 157 calls only `derive_direct_path()`. The two extension operations never receive an opportunity to process their messages.
 
 Immediately after
 
@@ -5668,9 +5673,9 @@ A run might begin with `extend_paths_by_path()`, followed by two calls to `deriv
 **Scheduling** is the choice of which operation receives the next opportunity to run. The fixed runner already has a schedule; it is written directly into `run_fixed_order_until_quiet()`:
 
 ```python
-work_count = derive_direct_path(runtime)
-work_count += extend_paths_by_arc(runtime)
-work_count += extend_paths_by_path(runtime)
+        work_count = derive_direct_path(runtime)
+        work_count += extend_paths_by_arc(runtime)
+        work_count += extend_paths_by_path(runtime)
 ```
 
 Those three calls repeat in the same order. In the alternate runner, the scheduler instead chooses one of the three operations before each call.
@@ -5685,7 +5690,7 @@ This narrower experiment gives a concrete way to examine a problem that also app
 
 The comparison therefore holds the declared arcs `A`→`B`, `B`→`C`, and `C`→`D` fixed and varies only the operation schedule. The fixed run has already established the complete result: `A`…`B`, `A`…`C`, `A`…`D`, `B`…`C`, `B`…`D`, and `C`…`D`. Later, two runs with different operation traces can be compared against that same result. A missing fact would give a specific schedule to investigate; the same six facts under different traces would show that those schedules did not change the reachability result.
 
-The scheduler needs to choose among the three existing operation functions. Open `ropemother_exercises/graph/runner.py`. With the preceding edits applied, `extend_paths_by_path()` is currently at lines 139–150, followed by `run_fixed_order()` at line 153:
+The scheduler needs to choose among the three existing operation functions. Open `ropemother_exercises/graph/runner.py`. With the preceding edits applied, `extend_paths_by_path()` is currently at lines 127–138, followed by `run_fixed_order()` at line 141:
 
 ```python
 def extend_paths_by_path(runtime: GraphRuntime) -> int:
@@ -5747,13 +5752,13 @@ def run_fixed_order(
 The scheduler can therefore choose a function from the tuple and store that choice in a variable:
 
 ```python
-operation = rng.choice(PATH_OPERATIONS)
+        operation = rng.choice(PATH_OPERATIONS)
 ```
 
 Calling
 
 ```python
-work_count = operation(runtime)
+        work_count = operation(runtime)
 ```
 
 then runs whichever graph operation was selected for that turn.
@@ -5766,19 +5771,14 @@ The completed reachability result records which paths were established. The oper
 
 An **execution trace** is a chronological record of selected details from a program while it runs, kept so that the execution can be inspected afterward. For this runner, each entry records one selected turn: which operation ran, whether it received a message, and which new path facts appeared during that call.
 
-Open `ropemother_exercises/graph/runner.py`. With the preceding edits applied, `GraphRunError` is at current lines 42–44 and `GraphRuntime` begins at line 47:
+Open `ropemother_exercises/graph/runner.py`. `GraphRunError` is already imported from `ropemother_exercises.graph.exceptions`; it does not need another declaration in the runner. With the preceding edits applied, the first local record is `GraphRuntime`, beginning at current line 36:
 
 ```python
-class GraphRunError(RuntimeError, BusExerciseBaseException):
-    """Raised when a graph runner cannot finish normally."""
-    pass
-
-
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class GraphRuntime:
 ```
 
-Insert `TraceEntry` between those definitions:
+Insert `TraceEntry` immediately before `GraphRuntime`:
 
 ```python
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -5792,11 +5792,6 @@ class TraceEntry:
 After the insertion, the same boundary should read:
 
 ```python
-class GraphRunError(RuntimeError, BusExerciseBaseException):
-    """Raised when a graph runner cannot finish normally."""
-    pass
-
-
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class TraceEntry:
     turn_index: int
@@ -5826,7 +5821,7 @@ import random
 from ropemother import DirectMessageBus, InMemoryCaptureSink
 ```
 
-With that import in place, `run_fixed_order_until_quiet()` occupies current lines 181–192 and is the final function in the file:
+With that import in place, `run_fixed_order_until_quiet()` occupies current lines 169–180 and is the final function in the file:
 
 ```python
 def run_fixed_order_until_quiet(
@@ -5845,7 +5840,7 @@ def run_fixed_order_until_quiet(
 
 The fixed-order code already separates two responsibilities. `run_fixed_order()` creates the runtime, publishes the graph, and collects the completed path result. `run_fixed_order_until_quiet()` performs the repeated processing calls. The varying-order code uses the same division: `run_random_order()` handles the complete run, while `run_random_order_until_quiet()` handles the sequence of selected turns.
 
-`run_fixed_order_until_quiet()` ends at current line 192. Add `run_random_order()` immediately after it:
+`run_fixed_order_until_quiet()` ends at current line 180. Add `run_random_order()` immediately after it:
 
 ```python
 def run_random_order(
@@ -5880,7 +5875,7 @@ The last part of the function constructs that result and returns it beside the r
 
 The caller receives the completed `GraphRunResult` as one value and the execution trace as the other.
 
-With that insertion applied, `run_random_order()` ends at current line 211. Add `run_random_order_until_quiet()` immediately after it:
+With that insertion applied, `run_random_order()` ends at current line 199. Add `run_random_order_until_quiet()` immediately after it:
 
 ```python
 def run_random_order_until_quiet(
@@ -5920,7 +5915,7 @@ def run_random_order_until_quiet(
     raise GraphRunError("graph operations did not become quiet")
 ```
 
-The runner region beginning with `run_fixed_order()` at current line 169 should now read:
+The runner region beginning with `run_fixed_order()` at current line 157 should now read:
 
 ```python
 def run_fixed_order(
@@ -6005,36 +6000,36 @@ def run_random_order_until_quiet(
     raise GraphRunError("graph operations did not become quiet")
 ```
 
-Before the loop begins, current line 222 creates the pseudorandom generator from the supplied `seed`:
+Before the loop begins, current line 210 creates the pseudorandom generator from the supplied `seed`:
 
 ```python
-rng = random.Random(seed)
+    rng = random.Random(seed)
 ```
 
 A **seed** is a starting value for a pseudorandom generator. Using the same seed produces the same sequence of choices, so a particular operation schedule can be run again instead of changing every time the program starts.
 
-The `for` loop in `run_random_order_until_quiet()`, beginning at current line 227, selects and calls one operation on each turn:
+The `for` loop in `run_random_order_until_quiet()`, beginning at current line 215, selects and calls one operation on each turn:
 
 ```python
-for turn_index in range(max_turns):
-    operation = rng.choice(PATH_OPERATIONS)
-    work_count = operation(runtime)
+    for turn_index in range(max_turns):
+        operation = rng.choice(PATH_OPERATIONS)
+        work_count = operation(runtime)
 ```
 
 `rng.choice(PATH_OPERATIONS)` selects one of the three functions stored in the tuple, and `operation(runtime)` calls the selected function. The next turn makes a new choice from all three functions. If `derive_direct_path()` is selected twice in succession, it receives two turns in succession.
 
-Immediately after that operation returns, current lines 230–238 record what happened during the turn:
+Immediately after that operation returns, current lines 218–226 record what happened during the turn:
 
 ```python
-paths = runtime.graph_facts.paths_for_run(run_id, graph_id)
-entry = TraceEntry(
-    turn_index=turn_index,
-    operation_name=operation.__name__,
-    work_count=work_count,
-    new_paths=paths[known_path_count:],
-)
-trace.append(entry)
-known_path_count = len(paths)
+        paths = runtime.graph_facts.paths_for_run(run_id, graph_id)
+        entry = TraceEntry(
+            turn_index=turn_index,
+            operation_name=operation.__name__,
+            work_count=work_count,
+            new_paths=paths[known_path_count:],
+        )
+        trace.append(entry)
+        known_path_count = len(paths)
 ```
 
 `operation.__name__` records the name of the function that was selected, while `work_count` preserves the `0` or `1` value returned by that call. `paths_for_run()` recovers the paths recorded for this run after the operation has finished.
@@ -6045,16 +6040,16 @@ The two observations can also differ. If the selected operation consumes a messa
 
 The fixed-order loop could stop after a complete pass returned `0` because that pass had called all three operations. One turn of the varying-order loop calls only one operation. If `derive_direct_path()` returns `0`, either extension operation may still have a message waiting.
 
-`empty_operations`, initialized at current line 224, keeps track of which distinct operations have found no message since processing last consumed one. Current lines 240–246 update that set and check whether processing can finish:
+`empty_operations`, initialized at current line 212, keeps track of which distinct operations have found no message since processing last consumed one. Current lines 228–234 update that set and check whether processing can finish:
 
 ```python
-if work_count == 0:
-    empty_operations.add(operation)
-else:
-    empty_operations.clear()
+        if work_count == 0:
+            empty_operations.add(operation)
+        else:
+            empty_operations.clear()
 
-if len(empty_operations) == len(PATH_OPERATIONS):
-    return tuple(trace)
+        if len(empty_operations) == len(PATH_OPERATIONS):
+            return tuple(trace)
 ```
 
 When an operation returns `0`, its function object is added to the set. Because a set keeps each value only once, selecting the same empty operation repeatedly does not make the set grow. Three empty turns from `derive_direct_path()` still record only one of the three operations.
@@ -6065,7 +6060,7 @@ Processing finishes only when all three members of `PATH_OPERATIONS` have been a
 
 The complete graph was published before the loop began, so no additional source arc remains to arrive later. Together, those conditions give this runner its stopping rule: every receiver-facing graph operation has been checked empty after the last consumed message.
 
-The loop still has the `max_turns` bound at current line 227. Random selection can postpone one operation for many turns, so the code cannot assume that every operation will be selected within a small fixed number of turns. If the stopping rule has not been reached before the loop exhausts `max_turns`, current line 248 raises `GraphRunError`.
+The loop still has the `max_turns` bound at current line 215. Random selection can postpone one operation for many turns, so the code cannot assume that every operation will be selected within a small fixed number of turns. If the stopping rule has not been reached before the loop exhausts `max_turns`, current line 236 raises `GraphRunError`.
 
 ### 6. Compare two schedules
 
@@ -6110,7 +6105,7 @@ from ropemother_exercises.graph.runner import (
 from ropemother_exercises.graph.source import GraphSource
 ```
 
-After these import edits, `path_facts()` ends at current line 51 and `run_paths()` begins at line 54. The display code will go between them.
+After these import edits, `path_facts()` ends at current line 44 and `run_paths()` begins at line 47. The display code will go between them.
 
 Start with `format_paths()`:
 
@@ -6171,11 +6166,11 @@ The first two statements prepare the left and right traces separately. `left_wid
 
 The traces may contain different numbers of turns, so their prepared line collections may also have different lengths. `itertools.zip_longest()` supplies one left line and one right line at a time until both collections are exhausted. When one side ends first, `fillvalue=""` supplies an empty string for that side.
 
-The region beginning with `path_facts()` at current line 42 and ending at the start of `run_paths()` should now read:
+The region beginning with `path_facts()` at current line 35 and ending at the start of `run_paths()` should now read:
 
 ```python
 def path_facts(
-    paths: tuple[PathFound, ...]
+    paths: tuple[PathFound, ...],
 ) -> tuple[tuple[str, str, int], ...]:
     facts = []
 
@@ -6229,9 +6224,9 @@ def display_trace_comparison(
 def run_paths() -> None:
 ```
 
-Open `ropemother_exercises/graph/run_paths.py`. After the trace-display functions added above, `run_paths()` begins at current line 94. Its existing source setup uses `run_id = "source-facts"` at current line 96; leave that setup unchanged.
+Open `ropemother_exercises/graph/run_paths.py`. After the trace-display functions added above, `run_paths()` begins at current line 87. Its existing source setup uses `run_id = "source-facts"` at current line 89; leave that setup unchanged.
 
-The fixed-order display ends at current line 117. Immediately after that loop, add the two varying-order runs and display their traces together:
+The fixed-order display ends at current line 110. Immediately after that loop, add the two varying-order runs and display their traces together:
 
 ```python
     seed_two_result, seed_two_trace = run_random_order(
@@ -6264,7 +6259,7 @@ After the trace display, convert the completed results to the same representatio
 
 `path_facts()` produces the same sorted `(source, target, hop_count)` tuples for each completed result. `same_reachability` compares both varying-order results with `fixed_path_facts`.
 
-After these edits, `run_paths()`, at current lines 94–138, should read:
+After these edits, `run_paths()`, at current lines 87–131, should read:
 
 ```python
 def run_paths() -> None:
@@ -6565,7 +6560,7 @@ The 90° projection is shown vertically at the far right. Its back-projection pr
 
 Open `ropemother_exercises/image/examples/reconstruction.py`. `run_reconstruction_explanation()` carries out the same sequence shown in the display.
 
-At current lines 42–50, `measure_angular_projection()` produces the 0° projection:
+At current lines 35–43, `measure_angular_projection()` produces the 0° projection:
 
 ```python
     projection_0 = measure_angular_projection(
@@ -6573,13 +6568,13 @@ At current lines 42–50, `measure_angular_projection()` produces the 0° projec
         observation_id="0-degrees",
         target=target,
         angle_degrees=0.0,
-        bin_count=frame.width,
+        edge_bin_count=edge_bin_count,
         sample_count=sample_count,
         seed=11,
     )
 ```
 
-At current lines 79–82, each one-dimensional projection is back-projected into an image observation:
+At current lines 72–78, each one-dimensional projection is back-projected into an image observation:
 
 ```python
     observation_0 = image_observation_from_angular_projection(projection_0)
@@ -6591,7 +6586,7 @@ At current lines 79–82, each one-dimensional projection is back-projected into
     orthogonals_and_diagonals = (*orthogonals, observation_45, observation_135)
 ```
 
-At current lines 87–92, `geometric_covered_intensity()` fuses those image observations into the two reconstructions shown in the output:
+At current lines 80–85, `geometric_covered_intensity()` fuses those image observations into the two reconstructions shown in the output:
 
 ```python
     orthogonal_reconstruction = geometric_covered_intensity(
@@ -6612,7 +6607,7 @@ The reconstruction example had one caller control the whole sequence: it obtaine
 
 Open `ropemother_exercises/image/service/fusion.py`. The change from a direct handoff to a message handoff is easiest to see in `process_one()` and `_process_observation()`.
 
-At current lines 81–87, `process_one()` waits for one message and examines its payload:
+At current lines 77–83, `process_one()` waits for one message and examines its payload:
 
 ```python
     def process_one(self) -> None:
@@ -6626,7 +6621,7 @@ At current lines 81–87, `process_one()` waits for one message and examines its
 
 An `ImageObservation` takes the first branch. Instead of being passed from a sensor function directly into fusion, the observation has crossed the bus and arrived through `receive()`.
 
-The next stage is visible in `_process_observation()`, at current lines 89–117:
+The next stage is visible in `_process_observation()`, at current lines 85–113:
 
 ```python
     def _process_observation(self, observation: ImageObservation) -> None:
@@ -6662,11 +6657,11 @@ The next stage is visible in `_process_observation()`, at current lines 89–117
 
 The processor keeps the observations already received for each run. A newly arrived observation is added to that collection, and the fusion calculation receives the complete collection accumulated so far. The result is packaged as another `ImageObservation` and emitted through the bus. One incoming message can therefore advance the reconstruction without requiring the sensor that produced it to know how many other observations already exist or what will consume the result.
 
-`self._fusion_method(...)` at current line 103 is still an ordinary Python function call. Python functions can themselves be passed and stored as values; when the prepared service creates this processor, it supplies `geometric_covered_intensity` as that function. The processor can therefore receive a message, extract ordinary Python values from it, and invoke the same fusion calculation used in the direct example.
+`self._fusion_method(...)` at current line 99 is still an ordinary Python function call. Python functions can themselves be passed and stored as values; when the prepared service creates this processor, it supplies `geometric_covered_intensity` as that function. The processor can therefore receive a message, extract ordinary Python values from it, and invoke the same fusion calculation used in the direct example.
 
 There is a second kind of message in `process_one()`. After the first observation arrives, fusion can already publish a reconstruction. A second observation may improve it, and a third may improve it again. Nothing about any one `ImageObservation` says that it is the last observation for the run.
 
-`RunInputClosed` supplies that separate information. When it arrives, `_complete_run()` at current lines 119–135 identifies the most recent reconstruction produced for that run and publishes a `ReconstructionCompletion`:
+`RunInputClosed` supplies that separate information. When it arrives, `_complete_run()` at current lines 115–131 identifies the most recent reconstruction produced for that run and publishes a `ReconstructionCompletion`:
 
 ```python
     def _complete_run(self, input_closed: RunInputClosed) -> None:
@@ -6877,10 +6872,7 @@ The result is four sensor definitions of the same kind as `sensor_45` and `senso
 Each generated sensor still becomes a source through the same `attach(bus)` operation used earlier. Apply that operation to all four and keep the resulting sources together in a tuple:
 
 ```python
-half_angle_sources = tuple(
-    sensor.attach(bus)
-    for sensor in half_angle_sensors
-)
+half_angle_sources = tuple(sensor.attach(bus) for sensor in half_angle_sensors)
 ```
 
 The next run will make one measurement through each of the four existing sources and each of these four additions. Put those eight sources into one tuple now so the measurement loop can treat them alike:
@@ -7207,7 +7199,7 @@ Find `render_dashboard()`. Before changing it, read through the function once fr
 
 In the starter file, `render_dashboard()` first asks `dashboard_entries()` for the completed reconstruction entries. If there are none, it returns the `No reconstructions are available.` message immediately. Otherwise, the last line passes those entries to `render_dashboard_index()`, which produces the table currently printed by `./image dashboard`.
 
-`ropemother_exercises/image/dashboard.py`, lines 43–58:
+`ropemother_exercises/image/dashboard.py`, lines 37–52:
 
 ```python
 def dashboard_report(history: HistoryClient) -> DashboardReport:
@@ -7320,7 +7312,7 @@ def contrast_for(entry: DashboardEntry) -> float:
     return reconstruction_contrast(entry.reconstruction)
 ```
 
-Now find `render_dashboard_index()`. In the unmodified starter source, this function is at `ropemother_exercises/image/dashboard.py`, lines 58–70:
+Now find `render_dashboard_index()`. In the unmodified starter source, this function is at `ropemother_exercises/image/dashboard.py`, lines 52–64:
 
 ```python
 def render_dashboard_index(*entries: DashboardEntry) -> str:
@@ -7397,10 +7389,10 @@ from ropemother_exercises.image.events import (
 )
 
 
-
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class DashboardEntry:
     """Collect the ordinary evidence used to describe one reconstruction."""
+
     run_id: RunID
     reconstruction_id: str
     reconstruction: ImageObservation
@@ -7437,7 +7429,6 @@ def render_dashboard_index(*entries: DashboardEntry) -> str:
         "contrast",
     )
     rows = []
-
     for entry in entries:
         row = (
             render_run_id(entry.run_id),
@@ -7469,8 +7460,8 @@ def dashboard_entries(
 
     for completion_entry in completion_entries:
         completion = completion_entry.payload
-        reconstruction = (
-            _reconstruction_for(completion, reconstruction_entries)
+        reconstruction = _reconstruction_for(
+            completion, reconstruction_entries
         )
 
         if reconstruction is None:
@@ -7481,9 +7472,7 @@ def dashboard_entries(
             for entry in projection_entries
             if entry.payload.run_id == completion.run_id
         )
-        sensor_names = {
-            entry.msg_producer for entry in run_projection_entries
-        }
+        sensor_names = {entry.msg_producer for entry in run_projection_entries}
         measurement_count = sum(
             sum(entry.payload.sample_counts)
             for entry in run_projection_entries
@@ -7620,7 +7609,7 @@ Open `ropemother_exercises/image/report.py`.
 
 Start with the two functions that connect a recovered reconstruction to the text displayed in the terminal.
 
-`ropemother_exercises/image/report.py`, current lines 27–51:
+`ropemother_exercises/image/report.py`, current lines 20–44:
 
 ```python
 def reconstruction_report(
@@ -7653,14 +7642,14 @@ def render_reconstruction_report(reconstruction: ImageObservation) -> str:
 `reconstruction_report()` first uses the completion to recover the corresponding reconstruction from history. Once it has that `ImageObservation`, this line calls another function to decide how that reconstruction should look in the report:
 
 ```python
-rendering = render_reconstruction_report(reconstruction)
+    rendering = render_reconstruction_report(reconstruction)
 ```
 
 That call is the **delegation** in this relationship: `reconstruction_report()` is responsible for finding the result and constructing the `ReconstructionReport`, but it hands the narrower job of producing the report text to `render_reconstruction_report()`.
 
 The process that receives the report request is in a different file. There is no need to change it, but a short excerpt makes the division of work visible.
 
-`ropemother_exercises/image/service/report.py`, current lines 74–91:
+`ropemother_exercises/image/service/report.py`, current lines 66–83:
 
 ```python
         while True:
@@ -7714,7 +7703,7 @@ from ropemother_exercises.image.application.render import (
 
 Now return to `render_reconstruction_report()`. Its current implementation has only one job: render the reconstruction image as text.
 
-`ropemother_exercises/image/report.py`, current lines 50–51:
+`ropemother_exercises/image/report.py`, current lines 43–44:
 
 ```python
 def render_reconstruction_report(reconstruction: ImageObservation) -> str:
@@ -7755,7 +7744,6 @@ from ropemother_exercises.image.events import (
     ReconstructionCompletion,
     ReconstructionReport,
 )
-
 
 
 def reconstruction_report(
@@ -7944,7 +7932,7 @@ The dashboard's measurement count provides a convenient check that the compared 
 A 32×32 frame with:
 
 ```python
-edge_bin_count=32
+edge_bin_count = 32
 ```
 
 uses approximately one bin-width per image cell along an edge. Trying values such as 16 or 64 makes the projection regions wider or narrower without changing the angle itself.
