@@ -43,13 +43,22 @@ The exercises require Python 3.13 or newer. Check the version used by your `pyth
 python --version
 ```
 
-If `ropemother` is not already installed, install it with:
+Create a virtual environment inside the repository and activate it:
 
 ```sh
-pip install ropemother
+python -m venv .venv
+source .venv/bin/activate
+```
+
+Install the current developer release of `ropemother` with:
+
+```sh
+pip install --pre ropemother
 ```
 
 The `ropemother_exercises` package runs directly from this repository and does not need to be installed. The shell commands in these exercises use a POSIX-style shell such as `bash` or `zsh`.
+
+The exercises use more than one terminal. In each new terminal, return to the top-level `ropemother-exercises` directory and run `source .venv/bin/activate` before beginning.
 
 [README.md](README.md) contains fuller repository setup and project information. The instructions here contain the setup needed to begin the introductory activity.
 
