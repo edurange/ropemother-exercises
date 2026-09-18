@@ -2,7 +2,7 @@
 
 ## Before you begin
 
-These are hands-on exercises with the `ropemother` Python package. You will begin by operating a prepared image-reconstruction application, then work with smaller examples in which you send, receive, and process messages yourself.
+These are hands-on exercises with the `ropemother` Python package. The first section is a guided image-reconstruction exercise and can be completed on its own. Later sections work through the messaging model in more detail with smaller examples in which participants send, receive, and process messages directly.
 
 ### Prerequisites
 
@@ -64,7 +64,7 @@ The exercises use more than one terminal. In each new terminal, return to the to
 
 ### What you will do
 
-The opening activity uses a prepared image-reconstruction application. It simulates partial observations of a hidden black-and-white image and combines them into an estimate you can inspect. You will run the application, add new sensor measurements, and see how the reconstruction changes.
+In the opening activity, you run a small image-reconstruction program. It simulates partial observations of a hidden black-and-white image and combines them into an estimate you can inspect. You add sensor sources, complete runs and request reports, inspect the same completed work from a separate command, then edit and restart one reporting service without restarting the rest.
 
 The following section moves to a much smaller text-processing program. There you will send and receive simple messages yourself and connect small pieces of processing through `ropemother`.
 

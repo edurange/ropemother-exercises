@@ -2,9 +2,13 @@
 
 This page contains preparation information for *Software That Survives Change: Message-Based Design for Research and Student-Developed Projects*.
 
-A laptop is not required to attend or follow the tutorial. Participants who would like to work through the hands-on exercise during the session should bring a laptop and prepare it beforehand.
+The 90-minute conference tutorial uses only [Section I: Introduction: Image Reconstruction](EXERCISES.md#i-introduction-image-reconstruction) of the exercise collection. The remaining sections are follow-up exercises and are not part of the conference session.
 
-Comfort reading basic Python is the only programming prerequisite. The tutorial will introduce the messaging and image-reconstruction ideas used in the exercise.
+During the hands-on activity, participants run a small image-reconstruction program. They add sensor sources, complete runs and request reports, inspect the same completed work from a separate command, then edit and restart one reporting service without restarting the rest. These steps show how the parts communicate through messages, how one part can change without forcing changes elsewhere, and how earlier messages can be used later.
+
+A laptop is not required to attend or follow the tutorial. Participants who would like to work through the hands-on activity during the session should bring a laptop and prepare it beforehand.
+
+Comfort reading basic Python is the only programming prerequisite. The tutorial introduces the messaging and image-reconstruction ideas needed for the activity.
 
 ## Prepare to code along
 
