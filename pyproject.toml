@@ -56,3 +56,4 @@ target-version = ["py313"]
 
 [tool.pylint.main]
 py-version = "3.13"
+ignored-modules = ["ropemother"]

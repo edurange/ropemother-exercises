@@ -72,15 +72,15 @@ class Sensor(abc.ABC):
 
     @abc.abstractmethod
     def attach(self, bus: MessageEndpointFactory) -> "SensorSource":
-        pass
+        """Attach this sensor to message endpoints and return its source."""
 
     @abc.abstractmethod
     def describe(self) -> SensorDescription:
-        pass
+        """Return the portable description of this sensor configuration."""
 
     @abc.abstractmethod
     def _bin_regions(self, frame: ImageFrame) -> ProjectionRegions:
-        pass
+        """Return this sensor's cell regions for the given frame."""
 
 
 class SensorSource(abc.ABC):
@@ -109,7 +109,7 @@ class SensorSource(abc.ABC):
         run_id: RunID | None = None,
         seed: int | None = None,
     ) -> None:
-        pass
+        """Measure a target and publish the resulting observation."""
 
     def _measurement_run_id(self, run_id: RunID | None) -> RunID:
         if run_id is not None:
@@ -347,7 +347,7 @@ class SensorMessageEndpointFactory(MessageEndpointFactory):
 
     @abc.abstractmethod
     def _resolve_run_id(self, run_id: RunID | None = None) -> RunID:
-        pass
+        """Resolve an explicit or implicit image reconstruction run ID."""
 
 
 def angular_sensors_for_angles(
@@ -416,8 +416,8 @@ def ruler_fraction_group(depth: int) -> tuple[fractions.Fraction, ...]:
 
 
 def ruler_angle_group(depth: int) -> tuple[float, ...]:
-    fractions = ruler_fraction_group(depth)
-    return tuple(float(fraction * 180) for fraction in fractions)
+    fraction_group = ruler_fraction_group(depth)
+    return tuple(float(fraction * 180) for fraction in fraction_group)
 
 
 def subdivision_midpoints(

@@ -10,5 +10,3 @@ __all__ = [
 
 class BusExerciseBaseException(Exception):
     """Base exception for ropemother exercise package errors."""
-
-    pass

@@ -88,19 +88,13 @@ SERVICE_SHUTDOWN_MSG_TYPE: typing.Final[str] = "service-shutdown"
 class ExperimentID(TypedID):
     """Session-local identifier for a reusable Experiment definition."""
 
-    pass
-
 
 class InstrumentID(TypedID):
     """Session-local identifier for a reusable Instrument definition."""
 
-    pass
-
 
 class RunID(TypedID):
     """Session-local identifier for an image reconstruction run."""
-
-    pass
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)

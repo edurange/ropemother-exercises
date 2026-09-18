@@ -36,7 +36,6 @@ from ropemother_exercises.image import (
     dashboard_entries,
     measure_angular_projection,
     normalize_projection,
-    render_reconstructions,
 )
 from ropemother_exercises.image.application.trial import TrialRunner
 from ropemother_exercises.image.formats import (

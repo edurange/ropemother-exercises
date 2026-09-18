@@ -58,7 +58,6 @@ class BinaryImage(abc.ABC):
     @abc.abstractmethod
     def is_filled(self, cell: Cell) -> bool:
         """Return whether one cell is filled."""
-        pass
 
 
 @dataclasses.dataclass(frozen=True, init=False)

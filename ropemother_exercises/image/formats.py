@@ -705,11 +705,11 @@ def _sensor_description_kind_for(description: SensorDescription) -> str:
             for kind, adapter in _SENSOR_DESCRIPTION_ADAPTERS
             if isinstance(description, adapter.domain_type)
         )
-    except StopIteration:
+    except StopIteration as error:
         description_type = type(description).__name__
         raise UnsupportedSensorDescriptionError(
             f"unsupported sensor description: {description_type}"
-        )
+        ) from error
 
     return kind
 
@@ -721,9 +721,9 @@ def _sensor_description_adapter_for(kind: str) -> TypeAdapter:
             for adapter_kind, adapter in _SENSOR_DESCRIPTION_ADAPTERS
             if adapter_kind == kind
         )
-    except StopIteration:
+    except StopIteration as error:
         raise DescriptionRecordError(
             f"unsupported sensor description kind: {kind!r}"
-        )
+        ) from error
 
     return adapter
