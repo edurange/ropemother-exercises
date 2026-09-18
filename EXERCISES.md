@@ -1,4 +1,4 @@
-# Ropemother exercises
+# Ropemother Exercises
 
 ## Before you begin
 

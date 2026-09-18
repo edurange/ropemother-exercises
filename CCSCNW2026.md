@@ -1,10 +1,10 @@
-# CCSC Northwest 2026 tutorial preparation
+# CCSC Northwest 2026 Tutorial Preparation
 
 This page contains preparation information for *Software That Survives Change: Message-Based Design for Research and Student-Developed Projects*.
 
-The 90-minute conference tutorial uses only [Section I: Introduction: Image Reconstruction](EXERCISES.md#i-introduction-image-reconstruction) of the exercise collection. The remaining sections are follow-up exercises and are not part of the conference session.
+The 90-minute conference tutorial uses only [Section I: Introduction: Image Reconstruction](EXERCISES.md#i-introduction-image-reconstruction) of the exercise collection. The remaining sections are follow-up exercises and are not part of the conference session. If you wish to continue with the exercises after the tutorial, we welcome your feedback and input.
 
-During the hands-on activity, participants run a small image-reconstruction program. They add sensor sources, complete runs and request reports, inspect the same completed work from a separate command, then edit and restart one reporting service without restarting the rest. These steps show how the parts communicate through messages, how one part can change without forcing changes elsewhere, and how earlier messages can be used later.
+During the hands-on activity, participants will run a small image-reconstruction program. They add sensor sources, complete runs and request reports, inspect the same completed work from a separate command, then edit and restart one reporting service without restarting the rest. These steps show how the parts communicate through messages, how one part can change without forcing changes elsewhere, and how earlier messages can be used later.
 
 A laptop is not required to attend or follow the tutorial. Participants who would like to work through the hands-on activity during the session should bring a laptop and prepare it beforehand.
 
