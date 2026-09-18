@@ -1356,7 +1356,7 @@ The history setup above must be able to retain these richer TTY payloads and int
 
 The first derived interpretation uses only the raw-read observations. For each raw read after the first in a session, timing subtracts the previous raw-read timestamp from the current `observed_at_ns` value. The first raw read has no previous read, so its derived interval is `None`.
 
-The first five raw-read observations are source observations `0` through `4`. Their timestamps make the calculation visible before we add the processor:
+The first five raw-read observations are source observations `0` through `4`. Their timestamps make the calculation visible before the processor is introduced:
 
 | Observation |      Read time | Previous read time | Derived interval |
 | ----------: | -------------: | -----------------: | ---------------: |
@@ -1588,7 +1588,7 @@ With that insertion, the complete `try`/`finally` region should read:
         host.close()
 ```
 
-The source publishes the prepared recording first. `process_available()` then handles the timing processor's currently waiting input; the loop repeats until a pass handles none. The result walkthrough below will use the actual first and second passes to explain why that stopping condition is valid in this run.
+The source publishes the prepared recording first. `process_available()` then handles the timing processor's currently waiting input; the loop repeats until a pass handles none. The result walkthrough below uses the actual first and second passes to explain why that stopping condition is valid in this run.
 
 One helper remains from the source-sample run. Current lines 50–57 select only four source observations before printing them:
 
@@ -2056,7 +2056,7 @@ Start with the processor's connection to the bus. In `ropemother_exercises/tty/c
 
 `self._receiver` subscribes to `TIMING_MSG_TOPIC` from `TIMING_MSG_PRODUCER`. Both `InputTiming` and `InputTimingCompleted` are published on that stream, so this receiver supplies the two kinds of input the cadence processor handles.
 
-The two emitters publish cadence results on `CADENCE_MSG_TOPIC`: `_configuration_emitter` publishes `InputCadenceConfigured`, and `_span_emitter` publishes `InputCadenceSpan`. The constructor also stores the grouping setting and creates `_state_by_session`, which will hold unfinished grouping work between received timing messages.
+The two emitters publish cadence results on `CADENCE_MSG_TOPIC`: `_configuration_emitter` publishes `InputCadenceConfigured`, and `_span_emitter` publishes `InputCadenceSpan`. The constructor also stores the grouping setting and creates `_state_by_session`, which holds unfinished grouping work between received timing messages.
 
 Lines 105–109 use the configuration emitter in `publish_configuration()`:
 
@@ -4430,7 +4430,7 @@ from ropemother_exercises.tty.regex_analysis import (
 )
 ```
 
-`RawInputCodePointProcessor` is the processor whose observation-13 and observation-14 path we just followed. `CODE_POINT_MSG_TOPIC` names the topic on which it publishes its decoding records, and `RawInputCodePoint` will let the display helper distinguish decoded characters from other messages on that topic.
+`RawInputCodePointProcessor` is the processor examined above using observations 13 and 14. `CODE_POINT_MSG_TOPIC` names the topic on which it publishes its decoding records, and `RawInputCodePoint` lets the display helper distinguish decoded characters from other messages on that topic.
 
 The participant and result declarations are together at current lines 50–63 of `ropemother_exercises/tty/run_local.py`. Construct `RawInputCodePointProcessor` immediately before `reconstruction_processor`. Then add a subscription to `CODE_POINT_MSG_TOPIC` between `cadence_results` and `command_results`. With those two additions, the whole local region should read:
 
@@ -4488,9 +4488,9 @@ The existing `try` block begins at current line 67. There are three additions to
         host.close()
 ```
 
-`source.emit_all()` still publishes exactly the same 18 prepared source observations. The added `process_available()` call simply gives `RawInputCodePointProcessor` an opportunity to consume the raw-read and session-end messages already waiting for it. In particular, observations 13 and 14 will now pass through the decoding state we traced above.
+`source.emit_all()` still publishes exactly the same 18 prepared source observations. The added `process_available()` call simply gives `RawInputCodePointProcessor` an opportunity to consume the raw-read and session-end messages already waiting for it. In particular, observations 13 and 14 now pass through the decoding state described above.
 
-The decoder publishes a `RawInputCodePoint` for every completed character, but the example we want to inspect is specifically the character whose bytes cross from one source observation into another. Add a small display helper after `_display_available_payloads()` and before the final `if __name__ == "__main__":` block. This version prints only `RawInputCodePoint` results whose first and last source observations differ:
+The decoder publishes a `RawInputCodePoint` for every completed character, but this step focuses specifically on the character whose bytes cross from one source observation into another. Add a small display helper after `_display_available_payloads()` and before the final `if __name__ == "__main__":` block. This version prints only `RawInputCodePoint` results whose first and last source observations differ:
 
 ```python
 def _display_available_payloads(receiver: Receiver) -> None:
@@ -5082,7 +5082,7 @@ def derive_direct_path(runtime: GraphRuntime) -> int:
 
 If `receive_nowait()` returns an arc message, the rest of the call derives its direct path and passes the candidate through `emit_path_if_new()`. The call then returns `1`. If `receive_nowait()` returns `None`, there is no arc for this invocation to process, so it returns `0`.
 
-The effect is easier to recognize by calling the operation ourselves and watching the partial reachability result change. Start a Python interpreter from the repository root:
+The effect is easier to recognize by calling the operation directly and watching the partial reachability result change. Start a Python interpreter from the repository root:
 
 ```sh
 python
@@ -6772,7 +6772,7 @@ The detector remains 46 bins wide at every angle. At 0° and 90°, the image occ
 ...
 ```
 
-For the 0° sensor, cells in the same vertical strip contribute to the same projection bin. For the 90° sensor, cells in the same horizontal strip do instead. The edge resolution has not changed; only the viewing direction has. `sample_count` describes a different part of a measurement, so we will keep the prepared value unchanged while first varying the viewing direction.
+For the 0° sensor, cells in the same vertical strip contribute to the same projection bin. For the 90° sensor, cells in the same horizontal strip do instead. The edge resolution has not changed; only the viewing direction has. `sample_count` describes a different part of a measurement, so keep the prepared value unchanged while first varying the viewing direction.
 
 The fact that `sensor_0.show_bins(frame)` can describe this geometry without making a measurement is useful here. `sensor_0` and `sensor_90` are sensor definitions: they hold settings such as viewing angle, edge resolution, and sample count. The corresponding `sensor_0_source` and `sensor_90_source` were created by attaching those definitions to `bus`; those sources are the objects that participate in the running application and make measurements.
 
@@ -6942,7 +6942,7 @@ The loop did not need to know that there would be exactly eight reconstruction m
 
 ### 7. Change the sensor, keep the reconstruction path
 
-So far every measurement in the running application has come from an `AngularSensor`. Earlier, however, we saw that the fusion processor receives `ImageObservation` values through the bus; it is not given the angular sensor itself. That gives us something concrete to test: can a sensor measure the image in a substantially different way, turn its evidence into an `ImageObservation`, and contribute to reconstruction without changing the fusion processor?
+So far every measurement in the running application has come from an `AngularSensor`. Earlier, however, the fusion processor received `ImageObservation` values through the bus; it was not given the angular sensor itself. That raises a concrete question: can a sensor measure the image in a substantially different way, turn its evidence into an `ImageObservation`, and contribute to reconstruction without changing the fusion processor?
 
 The new sensor will use **perspective** geometry. Instead of parallel strips crossing the image, imagine a sensor at one viewpoint looking back toward the image through a fan-shaped field of view. Dividing that fan into sectors gives the sensor its projection bins.
 
@@ -7040,7 +7040,7 @@ That works because each sensor source is responsible for turning its own measure
 
 ### 8. Change how much evidence one sensor gathers
 
-Until now, changing a sensor has meant changing where or how it looks at the image. `sample_count` controls something different: how many randomly selected target cells contribute evidence to one measurement. We can see that distinction without changing the sensor's viewing direction or its projection bins.
+Until now, changing a sensor has meant changing where or how it looks at the image. `sample_count` controls something different: how many randomly selected target cells contribute evidence to one measurement. The comparison below makes that distinction visible without changing the sensor's viewing direction or its projection bins.
 
 The prepared 0° sensor uses the workspace's normal sample count:
 
@@ -7064,7 +7064,7 @@ Make a second 0° sensor with the same angle and the same edge resolution, but h
 >>> lower_sample_source = lower_sample_sensor.attach(bus)
 ```
 
-Using `sensor_0.angle_degrees` and `sensor_0.edge_bin_count` makes the intended comparison visible in the construction itself: the new sensor inherits those two settings from the prepared 0° definition, while `sample_count` is the value we deliberately change.
+Using `sensor_0.angle_degrees` and `sensor_0.edge_bin_count` makes the intended comparison visible in the construction itself: the new sensor inherits those two settings from the prepared 0° definition, while `sample_count` is the only value changed for this comparison.
 
 Make one run with the prepared 0° source. Use a new seed for this comparison and keep it for the second run as well:
 
@@ -7116,7 +7116,7 @@ print(f"{lower_sample_count} samples")
 print(lower_sample_report.rendering)
 ```
 
-The two measurements use the same target, 0° viewing direction, projection resolution, and random seed. What changed is how many target-cell samples the sensor gathered before producing its observation. The difference between these two settings is what `sample_count` describes; we can call that the sensor's **measurement depth**.
+The two measurements use the same target, 0° viewing direction, projection resolution, and random seed. What changed is how many target-cell samples the sensor gathered before producing its observation. Here, `sample_count` describes the sensor's **measurement depth**.
 
 The earlier angle experiments changed which directions supplied evidence, and the earlier `edge_bin_count` discussion showed how an angular projection's bin width is chosen. Neither of those changes is part of this comparison. Here the projection geometry stays fixed while the amount of evidence gathered for it changes. That gives `sample_count` a practical meaning when choosing a sensor configuration: increasing it spends more sampling work on the same view rather than adding another view or dividing that view differently.
 
@@ -7158,7 +7158,7 @@ Its listing identifies `instrument-1` and the four Angular sensors in the arrang
 - `sensor-45 (Angular)`
 - `sensor-135 (Angular)`
 
-A **run** and an **Instrument** therefore identify different things. A run is one reconstruction attempt made from particular measurements. An Instrument describes the sensor arrangement that can be used to make such an attempt. We can test the distinction instead of only naming it.
+A **run** and an **Instrument** therefore identify different things. A run is one reconstruction attempt made from particular measurements. An Instrument describes the sensor arrangement that can be used to make such an attempt. Test the distinction instead of only naming it.
 
 Ask the terminal to use `instrument-1` again:
 
@@ -7190,7 +7190,7 @@ This separates two moments that often change for different reasons: producing an
 
 ### 12. Change the dashboard without repeating the experiment
 
-The report just requested was built from reconstruction evidence that already exists. That gives us a useful kind of change to try: alter how those completed runs are presented without making another sensor measurement or reconstruction.
+The report just requested was built from reconstruction evidence that already exists. That suggests a useful kind of change to try: alter how those completed runs are presented without making another sensor measurement or reconstruction.
 
 First ask for just the dashboard so its current form is easy to compare with the result after the edit:
 
@@ -7200,7 +7200,7 @@ First ask for just the dashboard so its current form is easy to compare with the
 
 The dashboard is produced by its own long-running service. Changing the Python file will not change code that is already running; after the edit, that one service can be stopped and started again to load the new behavior while the broker, fusion service, and the other reporting service continue running.
 
-We are going to change the code responsible for that dashboard presentation first, then restart the dashboard service so the running application begins using the edited code. Open `ropemother_exercises/image/dashboard.py`.
+Change the code responsible for that dashboard presentation first, then restart the dashboard service so the running application begins using the edited code. Open `ropemother_exercises/image/dashboard.py`.
 
 #### a. Give the dashboard a heading
 
@@ -7612,7 +7612,7 @@ Before changing it, request the first run's reconstruction report and leave the 
 ./image report trial-1
 ```
 
-The reporting service is still running. Keep it running while editing the file; as with the dashboard changes, we will restart the affected service only after the new code is ready.
+The reporting service is still running. Keep it running while editing the file; as with the dashboard changes, restart the affected service only after the new code is ready.
 
 Open `ropemother_exercises/image/report.py`.
 
@@ -8181,4 +8181,4 @@ Across the exercises, message boundaries were useful when they allowed a new int
 
 The lasting design question is therefore not simply whether two parts of a program can communicate with messages:
 
-> **What change are we trying to keep local, and what should not have to change with it?**
+> **What change should remain local, and what should not have to change with it?**
