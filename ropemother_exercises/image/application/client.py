@@ -65,6 +65,11 @@ from ropemother_exercises.image.formats import (
 from ropemother_exercises.image.tomography.sensors import (
     SensorMessageEndpointFactory,
 )
+from ropemother_exercises.image.target.session import (
+    HIDDEN_TARGET,
+    TargetReference,
+    resolve_target_key,
+)
 
 
 class ImageIdentityClient:
@@ -175,7 +180,12 @@ class _ImageMessageBusClient(SensorMessageEndpointFactory):
 
         return self._implicit_run_id
 
-    def _close_run_input(self, run_id: RunID | None = None) -> None:
+    def _close_run_input(
+        self,
+        run_id: RunID | None = None,
+        *,
+        target: TargetReference = HIDDEN_TARGET,
+    ) -> None:
         clear_implicit_run_id = run_id is None
 
         if run_id is None:
@@ -186,7 +196,9 @@ class _ImageMessageBusClient(SensorMessageEndpointFactory):
                 "there is no implicit run input to close"
             )
 
-        self._run_input_closed_emitter.emit(RunInputClosed(run_id=run_id))
+        target_key = resolve_target_key(target)
+        input_closed = RunInputClosed(run_id=run_id, target_key=target_key)
+        self._run_input_closed_emitter.emit(input_closed)
 
         if clear_implicit_run_id:
             self._implicit_run_id = None
@@ -241,7 +253,10 @@ def create_image_identity_client(
 
 
 def close_run_input(
-    bus: MessageEndpointFactory, *, run_id: RunID | None = None
+    bus: MessageEndpointFactory,
+    *,
+    run_id: RunID | None = None,
+    target: TargetReference = HIDDEN_TARGET,
 ) -> None:
     """Close one run input through the prepared image client."""
     if not isinstance(bus, _ImageMessageBusClient):
@@ -249,7 +264,7 @@ def close_run_input(
             "close_run_input requires a prepared image message-bus client"
         )
 
-    bus._close_run_input(run_id)
+    bus._close_run_input(run_id, target=target)
 
 
 def create_reconstruction_report_client(

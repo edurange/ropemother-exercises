@@ -142,13 +142,13 @@ class AngularSensor(Sensor):
     angle_degrees: float
     edge_bin_count: int
     sample_count: int
+    detector_bin_count: int = dataclasses.field(init=False)
 
-    @property
-    def detector_bin_count(self) -> int:
+    def __post_init__(self) -> None:
         detector_bin_count = math.ceil(
             math.hypot(self.edge_bin_count, self.edge_bin_count)
         )
-        return detector_bin_count
+        object.__setattr__(self, "detector_bin_count", detector_bin_count)
 
     def attach(self, bus: MessageEndpointFactory) -> "AngularSensorSource":
         return AngularSensorSource(bus, sensor=self)
@@ -163,9 +163,10 @@ class AngularSensor(Sensor):
         return description
 
     def _bin_regions(self, frame: ImageFrame) -> ProjectionRegions:
-        return projection_strips(
+        strips = projection_strips(
             frame, self.angle_degrees, self.edge_bin_count
         )
+        return strips
 
 
 class AngularSensorSource(SensorSource):

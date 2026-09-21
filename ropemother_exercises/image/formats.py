@@ -30,6 +30,8 @@ from ropemother_exercises.image.events import (
     RunInstrumentCorrelation,
     SensorContribution,
     SensorDescription,
+    TargetKey,
+    TrialRequest,
 )
 from ropemother_exercises.image.exceptions import (
     DescriptionRecordError,
@@ -314,6 +316,57 @@ class InstrumentDescriptionAdapter(
         return InstrumentDescription(sensors=tuple(sensors))
 
 
+class TrialRequestAdapter(TypeAdapter[TrialRequest, JSONRecord]):
+    """Map trial requests to portable JSON records."""
+
+    domain_type = TrialRequest
+    serial_type = dict
+
+    def encode(self, value: TrialRequest) -> JSONRecord:
+        description = value.description
+
+        if isinstance(description, InstrumentDescription):
+            description_kind = "instrument"
+            record = INSTRUMENT_DESCRIPTION_FORMAT.adapter.encode(description)
+        elif isinstance(description, ExperimentDescription):
+            description_kind = "experiment"
+            record = EXPERIMENT_DESCRIPTION_FORMAT.adapter.encode(description)
+        else:
+            raise DescriptionRecordError(
+                f"unsupported trial description: {type(description)}"
+            )
+
+        trial_record: JSONRecord = {
+            "target_key": str(value.target_key),
+            "description_kind": description_kind,
+            "description": record,
+        }
+        return trial_record
+
+    def decode(self, data: JSONRecord) -> TrialRequest:
+        description_kind = data["description_kind"]
+        description_record = typing.cast(JSONRecord, data["description"])
+
+        if description_kind == "instrument":
+            description = INSTRUMENT_DESCRIPTION_FORMAT.adapter.decode(
+                description_record
+            )
+        elif description_kind == "experiment":
+            description = EXPERIMENT_DESCRIPTION_FORMAT.adapter.decode(
+                description_record
+            )
+        else:
+            raise DescriptionRecordError(
+                f"unsupported trial description kind: {description_kind!r}"
+            )
+
+        request = TrialRequest(
+            target_key=TargetKey(data["target_key"]),
+            description=description,
+        )
+        return request
+
+
 class PerspectiveProjectionAdapter(
     TypeAdapter[PerspectiveProjection, JSONRecord]
 ):
@@ -448,6 +501,7 @@ class ReconstructionCompletionAdapter(
     def encode(self, value: ReconstructionCompletion) -> JSONRecord:
         record: JSONRecord = {
             "run_id": int(value.run_id),
+            "target_key": str(value.target_key),
             "reconstruction_id": value.reconstruction_id,
         }
         return record
@@ -455,6 +509,7 @@ class ReconstructionCompletionAdapter(
     def decode(self, data: JSONRecord) -> ReconstructionCompletion:
         completion = ReconstructionCompletion(
             run_id=RunID(int(data["run_id"])),
+            target_key=TargetKey(data["target_key"]),
             reconstruction_id=data["reconstruction_id"],
         )
         return completion
@@ -471,6 +526,7 @@ class ReconstructionReportAdapter(
     def encode(self, value: ReconstructionReport) -> JSONRecord:
         record: JSONRecord = {
             "run_id": int(value.run_id),
+            "target_key": str(value.target_key),
             "reconstruction_id": value.reconstruction_id,
             "rendering": value.rendering,
         }
@@ -479,6 +535,7 @@ class ReconstructionReportAdapter(
     def decode(self, data: JSONRecord) -> ReconstructionReport:
         report = ReconstructionReport(
             run_id=RunID(int(data["run_id"])),
+            target_key=TargetKey(data["target_key"]),
             reconstruction_id=data["reconstruction_id"],
             rendering=data["rendering"],
         )
@@ -492,10 +549,18 @@ class RunInputClosedAdapter(TypeAdapter[RunInputClosed, JSONRecord]):
     serial_type = dict
 
     def encode(self, value: RunInputClosed) -> JSONRecord:
-        return {"run_id": int(value.run_id)}
+        record: JSONRecord = {
+            "run_id": int(value.run_id),
+            "target_key": str(value.target_key),
+        }
+        return record
 
     def decode(self, data: JSONRecord) -> RunInputClosed:
-        return RunInputClosed(run_id=RunID(int(data["run_id"])))
+        closure = RunInputClosed(
+            run_id=RunID(int(data["run_id"])),
+            target_key=TargetKey(data["target_key"]),
+        )
+        return closure
 
 
 class RunInstrumentCorrelationAdapter(
@@ -512,6 +577,7 @@ class RunInstrumentCorrelationAdapter(
         )
         record: JSONRecord = {
             "run_id": int(value.run_id),
+            "target_key": str(value.target_key),
             "instrument_id": int(value.instrument_id),
             "instrument": instrument,
         }
@@ -524,6 +590,7 @@ class RunInstrumentCorrelationAdapter(
         )
         correlation = RunInstrumentCorrelation(
             run_id=RunID(int(data["run_id"])),
+            target_key=TargetKey(data["target_key"]),
             instrument_id=InstrumentID(int(data["instrument_id"])),
             instrument=instrument,
         )
@@ -645,6 +712,12 @@ SENSOR_CONTRIBUTION_FORMAT: typing.Final = PortableFormat(
     serializer=JSONL_SERIALIZER,
 )
 
+TRIAL_REQUEST_FORMAT: typing.Final = PortableFormat(
+    key=PortableFormatKey.from_str("image-trial-request"),
+    adapter=TrialRequestAdapter(),
+    serializer=JSONL_SERIALIZER,
+)
+
 IMAGE_PORTABLE_FORMATS: typing.Final = (
     ANGULAR_PROJECTION_FORMAT,
     DASHBOARD_REPORT_FORMAT,
@@ -659,6 +732,7 @@ IMAGE_PORTABLE_FORMATS: typing.Final = (
     RUN_INPUT_CLOSED_FORMAT,
     RUN_INSTRUMENT_CORRELATION_FORMAT,
     SENSOR_CONTRIBUTION_FORMAT,
+    TRIAL_REQUEST_FORMAT,
 )
 
 

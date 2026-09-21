@@ -54,11 +54,20 @@ from ropemother_exercises.image.events import (
     ReconstructionReport,
     RunID,
     SensorDescription,
+    TargetKey,
+    TrialRequest,
 )
 from ropemother_exercises.image.formats import (
-    EXPERIMENT_DESCRIPTION_FORMAT,
     IMAGE_PORTABLE_FORMATS,
-    INSTRUMENT_DESCRIPTION_FORMAT,
+    TRIAL_REQUEST_FORMAT,
+)
+from ropemother_exercises.image.exceptions import TargetCatalogError
+from ropemother_exercises.image.target.catalog import parse_target_key
+from ropemother_exercises.image.target.session import (
+    HIDDEN_TARGET,
+    TargetReference,
+    resolve_target_key,
+    session_target_key,
 )
 from ropemother_exercises.image.tomography.reconstruction import (
     normalize_projection,
@@ -100,12 +109,6 @@ class ExperimentTerminal:
         self._history = preconfigured_history_client(bus)
         self._experiment_catalog = ExperimentCatalog(self._history)
         self._instrument_catalog = InstrumentCatalog(self._history)
-        request_type_formats = {
-            RUN_TRIAL_REQUEST_MSG_TYPE: (
-                INSTRUMENT_DESCRIPTION_FORMAT,
-                EXPERIMENT_DESCRIPTION_FORMAT,
-            )
-        }
         self._trial_client = bus.create_request_client(
             request_topic=TRIAL_REQUEST_MSG_TOPIC,
             reply_topic=TRIAL_REPLY_MSG_TOPIC,
@@ -113,8 +116,7 @@ class ExperimentTerminal:
             responder_producer=TRIAL_SERVICE_MSG_PRODUCER,
             request_msg_type=RUN_TRIAL_REQUEST_MSG_TYPE,
             reply_msg_type=RUN_TRIAL_REPLY_MSG_TYPE,
-            request_payload_format=INSTRUMENT_DESCRIPTION_FORMAT,
-            request_type_formats=request_type_formats,
+            request_payload_format=TRIAL_REQUEST_FORMAT,
         )
         self._report_client = create_reconstruction_report_client(bus)
         self._dashboard_client = bus.create_request_client(
@@ -148,11 +150,16 @@ class ExperimentTerminal:
                 self._display_run_report(run_id)
             case ["reports"]:
                 self._display_reconstruction_reports()
+            case ["target"]:
+                self._display_target()
             case ["run", value]:
-                if value.startswith("experiment-"):
-                    self._run_experiment(value)
+                self._run(value)
+            case ["run", value, target_value]:
+                target_key = _parse_target_key(target_value)
+                if target_key is None:
+                    print(f"Invalid Target Key: {target_value}")
                 else:
-                    self._run_instrument(value)
+                    self._run(value, target=target_key)
             case ["shutdown", service_name] | ["stop", service_name]:
                 self._shutdown_service(service_name)
             case _:
@@ -160,10 +167,11 @@ class ExperimentTerminal:
 
     def _display_usage(self) -> None:
         print(
-            "Commands: run instrument-id|experiment-id, instrument "
-            "[instrument-id], instruments, experiment [experiment-id], "
-            "experiments, report [run-id], reports, dashboard, listen, "
-            "shutdown report|dashboard, stop report|dashboard"
+            "Commands: run instrument-id|experiment-id [target-key], "
+            "instrument [instrument-id], instruments, experiment "
+            "[experiment-id], experiments, report [run-id], reports, "
+            "dashboard, target, listen, shutdown report|dashboard, stop "
+            "report|dashboard"
         )
 
     def _display_experiments(self) -> None:
@@ -242,7 +250,17 @@ class ExperimentTerminal:
         while True:
             self._display_message(self._receiver.receive())
 
-    def _run_instrument(self, value: str) -> None:
+    def _run(
+        self, value: str, *, target: TargetReference = HIDDEN_TARGET
+    ) -> None:
+        if value.startswith("experiment-"):
+            self._run_experiment(value, target=target)
+        else:
+            self._run_instrument(value, target=target)
+
+    def _run_instrument(
+        self, value: str, *, target: TargetReference = HIDDEN_TARGET
+    ) -> None:
         instrument_id = _parse_instrument_id(value)
 
         if instrument_id is None:
@@ -257,16 +275,19 @@ class ExperimentTerminal:
             return
 
         self._receiver.receive_available()
-        handle = self._trial_client.send(
-            instrument, payload_format=INSTRUMENT_DESCRIPTION_FORMAT
+        request = TrialRequest(
+            target_key=resolve_target_key(target), description=instrument
         )
+        handle = self._trial_client.send(request)
         reply = self._trial_client.receive(handle)
         run_ids = tuple(RunID(int(value)) for value in reply.payload)
         self._wait_for_run_completions(*run_ids)
         self._display_reconstruction_reports(*run_ids)
         self._display_dashboard()
 
-    def _run_experiment(self, value: str) -> None:
+    def _run_experiment(
+        self, value: str, *, target: TargetReference = HIDDEN_TARGET
+    ) -> None:
         experiment_id = _parse_experiment_id(value)
 
         if experiment_id is None:
@@ -285,9 +306,10 @@ class ExperimentTerminal:
             return
 
         self._receiver.receive_available()
-        handle = self._trial_client.send(
-            experiment, payload_format=EXPERIMENT_DESCRIPTION_FORMAT
+        request = TrialRequest(
+            target_key=resolve_target_key(target), description=experiment
         )
+        handle = self._trial_client.send(request)
         reply = self._trial_client.receive(handle)
         run_ids = tuple(RunID(int(value)) for value in reply.payload)
         self._wait_for_run_completions(*run_ids)
@@ -366,6 +388,9 @@ class ExperimentTerminal:
         reply = self._dashboard_client.call(None)
         print(reply.payload.rendering)
 
+    def _display_target(self) -> None:
+        print(f"Hidden target: {session_target_key()}")
+
     def _shutdown_service(self, service_name: str) -> None:
         service_producer = _SHUTDOWN_SERVICE_PRODUCERS.get(service_name)
 
@@ -413,6 +438,15 @@ def run_image_command_utility(*arguments: str) -> None:
         pass
     finally:
         bus.close()
+
+
+def _parse_target_key(value: str) -> TargetKey | None:
+    try:
+        target_key = parse_target_key(value)
+    except TargetCatalogError:
+        target_key = None
+
+    return target_key
 
 
 def _parse_experiment_id(value: str) -> ExperimentID | None:

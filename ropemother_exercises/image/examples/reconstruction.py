@@ -219,8 +219,7 @@ def _image_bin_span(regions: ProjectionRegions) -> tuple[int, int]:
     image_bin_indices = [
         bin_index for bin_index, cells in enumerate(regions) if cells
     ]
-    result = (image_bin_indices[0], image_bin_indices[-1])
-    return result
+    return image_bin_indices[0], image_bin_indices[-1]
 
 
 if __name__ == "__main__":

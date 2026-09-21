@@ -18,6 +18,9 @@ from ropemother_exercises.image.tomography.images import (
     bitmap_to_intensity_image,
 )
 
+type TextTableLine = tuple[str, ...]
+type TextTableGroup = tuple[TextTableLine, ...]
+
 _MYSTERY_FILL_SEED: typing.Final[int] = 7
 
 _MARKER_CHAR: typing.Final[str] = "#"
@@ -226,20 +229,17 @@ def render_reconstructions(*reconstructions: ImageObservation) -> str:
 
 
 def render_text_table(
-    headings: tuple[str, ...],
-    rows: collections.abc.Iterable[tuple[str, ...]],
+    headings: TextTableGroup,
+    entries: collections.abc.Iterable[TextTableGroup],
     *,
     gap: int = 3,
 ) -> str:
-    rows = tuple(rows)
-    columns = []
-
-    for column_index, heading in enumerate(headings):
-        values = [heading]
-        values.extend(row[column_index] for row in rows)
-        columns.append("\n".join(values))
-
-    return render_text_row(*columns, gap=gap)
+    groups = (headings, *tuple(entries))
+    line_iterator = itertools.chain.from_iterable(groups)
+    lines = tuple(line_iterator)
+    columns = itertools.zip_longest(*lines, fillvalue="")
+    blocks = tuple("\n".join(column) for column in columns)
+    return render_text_row(*blocks, gap=gap)
 
 
 def maximum_intensity(*images: IntensityImage) -> float:

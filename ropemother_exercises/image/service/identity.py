@@ -254,6 +254,7 @@ class IdentityService:
 
             correlation = RunInstrumentCorrelation(
                 run_id=payload.run_id,
+                target_key=payload.target_key,
                 instrument_id=entry.instrument_id,
                 instrument=entry.instrument,
             )

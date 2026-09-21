@@ -17,6 +17,8 @@ from ropemother_exercises.image.tomography.images import (
     IntensityImage,
 )
 
+type TrialDescription = InstrumentDescription | ExperimentDescription
+
 IDENTITY_CLIENT_MSG_PRODUCER: typing.Final[str] = "image-identity-client"
 IDENTITY_SERVICE_MSG_PRODUCER: typing.Final[str] = "image-identity-service"
 IMAGE_CLIENT_MSG_PRODUCER: typing.Final[str] = "image-client"
@@ -97,6 +99,10 @@ class RunID(TypedID):
     """Session-local identifier for an image reconstruction run."""
 
 
+class TargetKey(str):
+    """Stable non-privileged key for a supported reconstruction target."""
+
+
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class ImageObservation:
     run_id: RunID
@@ -175,6 +181,12 @@ class ExperimentDescription:
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
+class TrialRequest:
+    target_key: TargetKey
+    description: TrialDescription
+
+
+@dataclasses.dataclass(frozen=True, kw_only=True)
 class InstrumentCatalogEntry:
     instrument_id: InstrumentID
     instrument: InstrumentDescription
@@ -189,12 +201,14 @@ class ExperimentCatalogEntry:
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class ReconstructionCompletion:
     run_id: RunID
+    target_key: TargetKey
     reconstruction_id: str | None
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class ReconstructionReport:
     run_id: RunID
+    target_key: TargetKey
     reconstruction_id: str
     rendering: str
 
@@ -207,11 +221,13 @@ class DashboardReport:
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class RunInputClosed:
     run_id: RunID
+    target_key: TargetKey
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class RunInstrumentCorrelation:
     run_id: RunID
+    target_key: TargetKey
     instrument_id: InstrumentID
     instrument: InstrumentDescription
 

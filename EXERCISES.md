@@ -72,7 +72,7 @@ The TTY processing exercises use one recorded terminal interaction to derive sev
 
 ## I. Introduction: Image Reconstruction
 
-The concealed target in this exercise is a small black-and-white bitmap. A simulated sensor samples the target from one viewing direction, but a measurement from one direction does not reveal the bitmap completely. Measurements from several directions provide different pieces of evidence about which parts of the image are filled.
+The concealed target in this exercise is a small black-and-white bitmap. Each application session selects one hidden target, so different participants may be working with different images. A simulated sensor samples the target from one viewing direction, but a measurement from one direction does not reveal the bitmap completely. Measurements from several directions provide different pieces of evidence about which parts of the image are filled.
 
 > A **reconstruction** is the application's current estimate of the concealed image, formed from the sensor measurements collected so far.
 
@@ -126,7 +126,9 @@ In the workspace terminal, start the prepared workspace:
 python -i -m ropemother_exercises.image.workspace
 ```
 
-The `-i` option runs the workspace setup and then leaves the Python interpreter open at a `>>>` prompt. The setup prepares sensors at 0° and 90°, orthogonal (or perpendicular) directions, and makes one measurement with each. The image printed before the prompt is the reconstruction from those two sensor views.
+The `-i` option runs the workspace setup and then leaves the Python interpreter open at a `>>>` prompt. The setup prepares sensors at 0° and 90°, orthogonal (or perpendicular) directions, and makes one measurement with each. The workspace first prints the stable key for this session's hidden target, then the reconstruction from those two sensor views. The key appears after `Hidden target:`; the exact compact value varies with the selected target.
+
+A target key names a supported target reproducibly without displaying the bitmap. Keep the key if you want to compare work with another participant later; a fresh application can deliberately load the same target by key.
 
 > A **run** is one reconstruction attempt built from a group of sensor measurements.
 
@@ -134,7 +136,7 @@ The prepared run remains open when the `>>>` prompt appears, so further measurem
 
 The workspace is connected to the same message bus as the services started above. Its `bus` object represents that connection and is used when new sensor sources join the running application. The next section examines those messaging relationships directly.
 
-Leave the interpreter open. At any point, `show_workspace()` lists the prepared objects and helpers available at the prompt:
+Leave the interpreter open. At any point, `show_workspace()` lists the prepared objects and helpers available at the prompt, including `target_key` if you need to retrieve the hidden target's key again:
 
 ```pycon
 >>> show_workspace()
@@ -238,7 +240,7 @@ Tell the application explicitly that no more sensor input belongs to this run, t
 >>> completion = message.payload
 ```
 
-`close_run_input(bus)` establishes the end of the run's input. The `'reconstruction-completed'` message then identifies the reconstruction that belongs to that finished run. This explicit end matters whenever later work needs to distinguish “nothing else has arrived yet” from “nothing else belongs to this activity.” Later exercises return to that distinction in other problem domains.
+`close_run_input(bus)` establishes the end of the run's input. It also records which target the run used; because no target is named here, that is the session's hidden target identified by `target_key`. The `'reconstruction-completed'` message then identifies the reconstruction that belongs to that finished run. This explicit end matters whenever later work needs to distinguish “nothing else has arrived yet” from “nothing else belongs to this activity.” Later exercises return to that distinction in other problem domains.
 
 ### 6. Ask the report service about the completed run
 
@@ -399,7 +401,7 @@ For this exercise, that history lasts for the lifetime of the image application 
 
 Suppose someone using the report wants the completed runs listed in the opposite order. That changes how the existing results are presented, not how the sensor measurements are made or how the reconstructions are computed. The next step changes only the dashboard and tests whether the rest of the application and its completed work can remain in place.
 
-Open `ropemother_exercises/image/dashboard.py`. At lines 41–49, `render_dashboard()` asks `dashboard_entries()` for the completed reconstruction entries and passes them to `render_dashboard_index()`:
+Open `ropemother_exercises/image/dashboard.py`. At lines 43–51, `render_dashboard()` asks `dashboard_entries()` for the completed reconstruction entries and passes them to `render_dashboard_index()`:
 
 ```python
 def render_dashboard(history: HistoryClient) -> str:
@@ -415,7 +417,7 @@ def render_dashboard(history: HistoryClient) -> str:
 
 The final line passes the entries in their current order. Change only that call so `render_dashboard_index()` receives `reversed(entries)` instead.
 
-After the edit, lines 41–49 should read:
+After the edit, lines 43–51 should read:
 
 ```python
 def render_dashboard(history: HistoryClient) -> str:
@@ -6670,7 +6672,7 @@ The processor keeps the observations already received for each run. A newly arri
 
 There is a second kind of message in `process_one()`. After the first observation arrives, fusion can already publish a reconstruction. A second observation may improve it, and a third may improve it again. Nothing about any one `ImageObservation` says that it is the last observation for the run.
 
-`RunInputClosed` supplies that separate information. When it arrives, `_complete_run()` at current lines 115–131 identifies the most recent reconstruction produced for that run and publishes a `ReconstructionCompletion`:
+`RunInputClosed` supplies that separate information and carries the stable key of the target used for the run. When it arrives, `_complete_run()` at current lines 115–132 identifies the most recent reconstruction produced for that run and publishes a `ReconstructionCompletion`:
 
 ```python
     def _complete_run(self, input_closed: RunInputClosed) -> None:
@@ -6687,12 +6689,13 @@ There is a second kind of message in `process_one()`. After the first observatio
 
         completion = ReconstructionCompletion(
             run_id=input_closed.run_id,
+            target_key=input_closed.target_key,
             reconstruction_id=reconstruction_id,
         )
         self._completion_emitter.emit(completion)
 ```
 
-The completion message does not create another reconstruction. It tells later participants which reconstruction belongs to a run whose inputs are now finished. A pause between sensor messages cannot communicate that fact: another observation could still arrive later. Completion therefore has to be represented explicitly rather than inferred from silence.
+The completion message does not create another reconstruction. It preserves the target identity supplied when the run input closed and tells later participants which reconstruction belongs to a run whose inputs are now finished. A pause between sensor messages cannot communicate that fact: another observation could still arrive later. Completion therefore has to be represented explicitly rather than inferred from silence.
 
 `run_fusion_processor()` keeps calling `process_one()`, so after one message has been handled the service waits for another. The repeating sequence is now concrete: receive an observation, add it to the run's accumulated evidence, call the ordinary fusion function, publish the updated reconstruction, and wait for more input. Messaging determines how those values move between independently operating participants; the reconstruction calculation itself remains an ordinary computation over the values it receives.
 
@@ -6709,6 +6712,14 @@ $ python -m ropemother_exercises.image.application.host &
 Image application host is ready. Make sure to run the independent services separately.
 export ROPEMOTHER_CONNECTION_DESCRIPTOR=ropemother+unix:///...
 ```
+
+The unparameterized host command selects one supported target for the new session. To start a fresh application with a target whose key was shared earlier, use the key explicitly instead:
+
+```sh
+python -m ropemother_exercises.image.application.host --target TARGET_KEY &
+```
+
+The two forms are alternatives: ordinary startup asks the host to select a target, while `--target` deliberately selects the named target.
 
 Wait for the host's readiness message, `Image application host is ready. Make sure to run the independent services separately.` The connection descriptor works the same way it did in the basic messaging exercises: copy and run the printed `export ROPEMOTHER_CONNECTION_DESCRIPTOR=...` command in each shell that will start clients for this broker.
 
@@ -6841,7 +6852,7 @@ Close the input and receive the message marking that boundary:
 'reconstruction-completed'
 ```
 
-The image does not need to be reconstructed again when the input closes. The reconstruction displayed after the 135° measurement is already the latest result; closing the input tells the application that no later sensor contribution belongs to this run. The `'reconstruction-completed'` message lets the rest of the application refer to that result as the completed reconstruction rather than merely the newest one seen so far.
+The image does not need to be reconstructed again when the input closes. The reconstruction displayed after the 135° measurement is already the latest result; closing the input tells the application that no later sensor contribution belongs to this run. The close operation also records the target key for the run. Here no target is named explicitly, so the recorded key is the session's hidden target. The `'reconstruction-completed'` message lets the rest of the application refer to that result as the completed reconstruction rather than merely the newest one seen so far.
 
 Keep that completion message's payload and use it to request the report for the finished run:
 
@@ -7208,7 +7219,7 @@ Find `render_dashboard()`. Before changing it, read through the function once fr
 
 In the starter file, `render_dashboard()` first asks `dashboard_entries()` for the completed reconstruction entries. If there are none, it returns the `No reconstructions are available.` message immediately. Otherwise, the last line passes those entries to `render_dashboard_index()`, which produces the table currently printed by `./image dashboard`.
 
-`ropemother_exercises/image/dashboard.py`, lines 37–52:
+`ropemother_exercises/image/dashboard.py`, lines 39–54:
 
 ```python
 def dashboard_report(history: HistoryClient) -> DashboardReport:
@@ -7321,50 +7332,61 @@ def contrast_for(entry: DashboardEntry) -> float:
     return reconstruction_contrast(entry.reconstruction)
 ```
 
-Now find `render_dashboard_index()`. In the unmodified starter source, this function is at `ropemother_exercises/image/dashboard.py`, lines 52–64:
+Now find `render_dashboard_index()`. In the unmodified starter source, this function is at `ropemother_exercises/image/dashboard.py`, lines 54–71:
 
 ```python
 def render_dashboard_index(*entries: DashboardEntry) -> str:
-    headings = ("run", "reconstruction", "sensors", "measurements")
-    rows = []
-    for entry in entries:
-        row = (
-            render_run_id(entry.run_id),
-            entry.reconstruction_id,
-            str(entry.sensor_count),
-            str(entry.measurement_count),
+    headings = (
+        ("run", "reconstruction", "sensors", "measurements"),
+        ("  target",),
+    )
+    table_entries = tuple(
+        (
+            (
+                render_run_id(entry.run_id),
+                entry.reconstruction_id,
+                str(entry.sensor_count),
+                str(entry.measurement_count),
+            ),
+            (f"  {entry.target_key}",),
         )
-        rows.append(row)
-
-    return render_text_table(headings, rows)
+        for entry in entries
+    )
+    return render_text_table(headings, table_entries)
 ```
 
-The new column changes two matching parts of this function. Add `"contrast"` as the fifth heading, then add `f"{contrast_for(entry):.3f}"` as the fifth value in each row. Keeping those changes together preserves the correspondence between the table headings and the values beneath them. The `:.3f` formatting limits the displayed contrast to three digits after the decimal point; `contrast_for()` still returns the full floating-point value.
+The tuples inside `headings` describe the lines printed above the dashboard entries, and the tuples inside each table entry describe the corresponding lines printed for one completed run. The first line contains the values compared across runs. The indented second line identifies the target used for that run.
+
+The new column changes the first line in both places. Add `"contrast"` as the fifth cell in the first heading line, then add `f"{contrast_for(entry):.3f}"` as the fifth cell in the first line of each table entry. Leave the target line unchanged. Keeping those changes together preserves the correspondence between the comparison headings and the values beneath them. The `:.3f` formatting limits the displayed contrast to three digits after the decimal point; `contrast_for()` still returns the full floating-point value.
 
 After the change, the complete function should read:
 
 ```python
 def render_dashboard_index(*entries: DashboardEntry) -> str:
     headings = (
-        "run",
-        "reconstruction",
-        "sensors",
-        "measurements",
-        "contrast",
+        (
+            "run",
+            "reconstruction",
+            "sensors",
+            "measurements",
+            "contrast",
+        ),
+        ("  target",),
     )
-    rows = []
-
-    for entry in entries:
-        row = (
-            render_run_id(entry.run_id),
-            entry.reconstruction_id,
-            str(entry.sensor_count),
-            str(entry.measurement_count),
-            f"{contrast_for(entry):.3f}",
+    table_entries = tuple(
+        (
+            (
+                render_run_id(entry.run_id),
+                entry.reconstruction_id,
+                str(entry.sensor_count),
+                str(entry.measurement_count),
+                f"{contrast_for(entry):.3f}",
+            ),
+            (f"  {entry.target_key}",),
         )
-        rows.append(row)
-
-    return render_text_table(headings, rows)
+        for entry in entries
+    )
+    return render_text_table(headings, table_entries)
 ```
 
 With those changes combined with the heading edit from the previous step, `ropemother_exercises/image/dashboard.py` should now read:
@@ -7395,6 +7417,7 @@ from ropemother_exercises.image.events import (
     ImageObservation,
     ReconstructionCompletion,
     RunID,
+    TargetKey,
 )
 
 
@@ -7403,6 +7426,7 @@ class DashboardEntry:
     """Collect the ordinary evidence used to describe one reconstruction."""
 
     run_id: RunID
+    target_key: TargetKey
     reconstruction_id: str
     reconstruction: ImageObservation
     sensor_count: int
@@ -7431,24 +7455,29 @@ def contrast_for(entry: DashboardEntry) -> float:
 
 def render_dashboard_index(*entries: DashboardEntry) -> str:
     headings = (
-        "run",
-        "reconstruction",
-        "sensors",
-        "measurements",
-        "contrast",
+        (
+            "run",
+            "reconstruction",
+            "sensors",
+            "measurements",
+            "contrast",
+        ),
+        ("  target",),
     )
-    rows = []
-    for entry in entries:
-        row = (
-            render_run_id(entry.run_id),
-            entry.reconstruction_id,
-            str(entry.sensor_count),
-            str(entry.measurement_count),
-            f"{contrast_for(entry):.3f}",
+    table_entries = tuple(
+        (
+            (
+                render_run_id(entry.run_id),
+                entry.reconstruction_id,
+                str(entry.sensor_count),
+                str(entry.measurement_count),
+                f"{contrast_for(entry):.3f}",
+            ),
+            (f"  {entry.target_key}",),
         )
-        rows.append(row)
-
-    return render_text_table(headings, rows)
+        for entry in entries
+    )
+    return render_text_table(headings, table_entries)
 
 
 def dashboard_entries(
@@ -7488,6 +7517,7 @@ def dashboard_entries(
         )
         dashboard_entry = DashboardEntry(
             run_id=completion.run_id,
+            target_key=completion.target_key,
             reconstruction_id=reconstruction.observation_id,
             reconstruction=reconstruction,
             sensor_count=len(sensor_names),
@@ -7628,20 +7658,20 @@ def reconstruction_report(
     reconstruction_producer: str,
 ) -> ReconstructionReport | None:
     reconstruction = _reconstruction_for(
-        history,
-        completion,
-        reconstruction_producer=reconstruction_producer,
+        history, completion, reconstruction_producer=reconstruction_producer
     )
 
     if reconstruction is None:
         return None
 
     rendering = render_reconstruction_report(reconstruction)
-    return ReconstructionReport(
+    report = ReconstructionReport(
         run_id=reconstruction.run_id,
+        target_key=completion.target_key,
         reconstruction_id=reconstruction.observation_id,
         rendering=rendering,
     )
+    return report
 
 
 def render_reconstruction_report(reconstruction: ImageObservation) -> str:
@@ -7654,7 +7684,7 @@ def render_reconstruction_report(reconstruction: ImageObservation) -> str:
     rendering = render_reconstruction_report(reconstruction)
 ```
 
-That call is the **delegation** in this relationship: `reconstruction_report()` is responsible for finding the result and constructing the `ReconstructionReport`, but it hands the narrower job of producing the report text to `render_reconstruction_report()`.
+That call is the **delegation** in this relationship: `reconstruction_report()` is responsible for finding the result and constructing the `ReconstructionReport`, but it hands the narrower job of producing the report text to `render_reconstruction_report()`. The report record also keeps the target key from the completion so the result remains associated with the target that produced it; the target key is structured report information rather than part of the reconstruction rendering.
 
 The process that receives the report request is in a different file. There is no need to change it, but a short excerpt makes the division of work visible.
 
@@ -7725,10 +7755,10 @@ Keep that existing rendering, but store it in `image` rather than returning it i
 def render_reconstruction_report(reconstruction: ImageObservation) -> str:
     image = render_reconstructions(reconstruction)
     smoothness = reconstruction_smoothness(reconstruction)
-    return f"{image}\n\nsmoothness: {smoothness:.3f}"
+    return f"{image}\nsmoothness: {smoothness:.3f}"
 ```
 
-The image rendering still comes from `render_reconstructions()`. The new final line simply places a blank line and a three-decimal smoothness value underneath that existing text.
+The image rendering still comes from `render_reconstructions()`. The new final line places a three-decimal smoothness value directly underneath that existing text.
 
 Before restarting the service, the complete `ropemother_exercises/image/report.py` should read:
 
@@ -7762,26 +7792,26 @@ def reconstruction_report(
     reconstruction_producer: str,
 ) -> ReconstructionReport | None:
     reconstruction = _reconstruction_for(
-        history,
-        completion,
-        reconstruction_producer=reconstruction_producer,
+        history, completion, reconstruction_producer=reconstruction_producer
     )
 
     if reconstruction is None:
         return None
 
     rendering = render_reconstruction_report(reconstruction)
-    return ReconstructionReport(
+    report = ReconstructionReport(
         run_id=reconstruction.run_id,
+        target_key=completion.target_key,
         reconstruction_id=reconstruction.observation_id,
         rendering=rendering,
     )
+    return report
 
 
 def render_reconstruction_report(reconstruction: ImageObservation) -> str:
     image = render_reconstructions(reconstruction)
     smoothness = reconstruction_smoothness(reconstruction)
-    return f"{image}\n\nsmoothness: {smoothness:.3f}"
+    return f"{image}\nsmoothness: {smoothness:.3f}"
 
 
 def _reconstruction_for(
@@ -7809,6 +7839,8 @@ def _reconstruction_for(
 
     return None
 ```
+
+The same completed implementation can also be found at `_targets/image/report.py`.
 
 The file on disk is now ready, while the running reconstruction-report service still has the earlier code loaded. Stop that service:
 

@@ -20,6 +20,7 @@ from ropemother_exercises.image.events import (
     ImageObservation,
     ReconstructionCompletion,
     RunID,
+    TargetKey,
 )
 
 
@@ -28,6 +29,7 @@ class DashboardEntry:
     """Collect the ordinary evidence used to describe one reconstruction."""
 
     run_id: RunID
+    target_key: TargetKey
     reconstruction_id: str
     reconstruction: ImageObservation
     sensor_count: int
@@ -50,18 +52,23 @@ def render_dashboard(history: HistoryClient) -> str:
 
 
 def render_dashboard_index(*entries: DashboardEntry) -> str:
-    headings = ("run", "reconstruction", "sensors", "measurements")
-    rows = []
-    for entry in entries:
-        row = (
-            render_run_id(entry.run_id),
-            entry.reconstruction_id,
-            str(entry.sensor_count),
-            str(entry.measurement_count),
+    headings = (
+        ("run", "reconstruction", "sensors", "measurements"),
+        ("  target",),
+    )
+    table_entries = tuple(
+        (
+            (
+                render_run_id(entry.run_id),
+                entry.reconstruction_id,
+                str(entry.sensor_count),
+                str(entry.measurement_count),
+            ),
+            (f"  {entry.target_key}",),
         )
-        rows.append(row)
-
-    return render_text_table(headings, rows)
+        for entry in entries
+    )
+    return render_text_table(headings, table_entries)
 
 
 def dashboard_entries(
@@ -101,6 +108,7 @@ def dashboard_entries(
         )
         dashboard_entry = DashboardEntry(
             run_id=completion.run_id,
+            target_key=completion.target_key,
             reconstruction_id=reconstruction.observation_id,
             reconstruction=reconstruction,
             sensor_count=len(sensor_names),

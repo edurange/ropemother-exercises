@@ -87,17 +87,17 @@ def serve_reconstruction_report_requests(
         bus.close()
 
 
+def run_reconstruction_report_service() -> None:
+    serve_reconstruction_report_requests(
+        _geometric_fusion_reconstruction_report
+    )
+
+
 def _geometric_fusion_reconstruction_report(
     history: HistoryClient, completion: ReconstructionCompletion
 ) -> ReconstructionReport | None:
     return reconstruction_report(
         history, completion, reconstruction_producer="geometric-fusion"
-    )
-
-
-def run_reconstruction_report_service() -> None:
-    serve_reconstruction_report_requests(
-        _geometric_fusion_reconstruction_report
     )
 
 

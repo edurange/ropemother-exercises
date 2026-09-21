@@ -135,6 +135,8 @@ class ProjectionReconstructionProcessor:
             )
 
         completion = ReconstructionCompletion(
-            run_id=input_closed.run_id, reconstruction_id=reconstruction_id
+            run_id=input_closed.run_id,
+            target_key=input_closed.target_key,
+            reconstruction_id=reconstruction_id,
         )
         self._completion_emitter.emit(completion)

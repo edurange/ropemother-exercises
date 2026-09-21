@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-# ropemother_exercises/image/report.py
+# _targets/image/report.py
 
-"""Reconstruction report processor behavior for the image exercise."""
+"""Example completed reconstruction report extension for the image exercise."""
 
 from ropemother.capture import HistoryClient
 
+from ropemother_exercises.image.application.ranking import (
+    reconstruction_smoothness,
+)
 from ropemother_exercises.image.application.render import (
     render_reconstructions,
 )
@@ -41,7 +44,9 @@ def reconstruction_report(
 
 
 def render_reconstruction_report(reconstruction: ImageObservation) -> str:
-    return render_reconstructions(reconstruction)
+    image = render_reconstructions(reconstruction)
+    smoothness = reconstruction_smoothness(reconstruction)
+    return f"{image}\nsmoothness: {smoothness:.3f}"
 
 
 def _reconstruction_for(

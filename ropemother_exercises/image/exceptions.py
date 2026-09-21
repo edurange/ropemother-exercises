@@ -25,6 +25,7 @@ __all__ = [
     "InvalidTrialServicePayloadError",
     "ObservationRecordError",
     "SensorSourceError",
+    "TargetCatalogError",
     "UnsupportedSensorDescriptionError",
     "UnsupportedVectorElementError",
 ]
@@ -104,6 +105,10 @@ class ObservationRecordError(ValueError, BusExerciseBaseException):
 
 class SensorSourceError(RuntimeError, BusExerciseBaseException):
     """Raised when an attached sensor cannot publish a measurement."""
+
+
+class TargetCatalogError(ValueError, BusExerciseBaseException):
+    """Raised when a supported reconstruction target cannot be resolved."""
 
 
 class UnsupportedSensorDescriptionError(TypeError, BusExerciseBaseException):

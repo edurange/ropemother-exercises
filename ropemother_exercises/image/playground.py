@@ -30,6 +30,7 @@ from ropemother_exercises.image import (
     ReconstructionCompletion,
     RunID,
     RunInputClosed,
+    TargetKey,
     angular_back_projection,
     average_covered_intensity,
     average_intensity,
@@ -38,14 +39,30 @@ from ropemother_exercises.image import (
     normalize_projection,
 )
 from ropemother_exercises.image.application.trial import TrialRunner
+from ropemother_exercises.image.events import (
+    RUN_INSTRUMENT_CORRELATED_MSG_TYPE,
+    InstrumentDescription,
+    TrialRequest,
+)
 from ropemother_exercises.image.formats import (
     IMAGE_OBSERVATION_FORMAT,
     IMAGE_PORTABLE_FORMATS,
     RECONSTRUCTION_COMPLETION_FORMAT,
     RUN_INPUT_CLOSED_FORMAT,
+    TRIAL_REQUEST_FORMAT,
 )
-from ropemother_exercises.image.service.fusion import ImageFusionProcessor
 from ropemother_exercises.image.report import reconstruction_report
+from ropemother_exercises.image.service.fusion import ImageFusionProcessor
+from ropemother_exercises.image.service.identity import IdentityService
+from ropemother_exercises.image.target.catalog import (
+    ResolvedTarget,
+    choose_target,
+    resolve_target,
+)
+from ropemother_exercises.image.target.hidden import (
+    HiddenTarget,
+    snapshot_hidden_target,
+)
 
 
 def demo_angular_projection_sample_count() -> None:
@@ -325,7 +342,9 @@ def demo_run_completion_identifies_reconstruction() -> None:
         intensity_image={left_cell: 1.0, right_cell: 0.0},
         coverage_image={left_cell: 1.0, right_cell: 1.0},
     )
-    input_closed = RunInputClosed(run_id=run_id)
+    input_closed = RunInputClosed(
+        run_id=run_id, target_key=TargetKey("test-target")
+    )
 
     observation_emitter.emit(observation)
     processor.process_one()
@@ -411,6 +430,7 @@ def demo_reconstruction_report_recovers_completed_reconstruction() -> None:
     )
     completion = ReconstructionCompletion(
         run_id=canonical_reconstruction.run_id,
+        target_key=TargetKey("test-target"),
         reconstruction_id=canonical_reconstruction.observation_id,
     )
 
@@ -490,6 +510,9 @@ def demo_trial_runner_closes_run_input() -> None:
     )
     frame = ImageFrame(width=2, height=1)
     bitmap = Bitmap(frame=frame, filled_cells=(Cell(0, 0),))
+    target = ResolvedTarget(
+        key=TargetKey("test-target"), target=HiddenTarget(bitmap)
+    )
     sensor = AngularSensor(
         sensor_name="tutorial-sensor",
         angle_degrees=0.0,
@@ -500,7 +523,7 @@ def demo_trial_runner_closes_run_input() -> None:
     trial_runner = TrialRunner(bus, producer_name="tutorial-trial")
     canonical_run_id = RunID(1)
 
-    trial_runner.run_instrument(bitmap, instrument, run_id=canonical_run_id)
+    trial_runner.run_instrument(target, instrument, run_id=canonical_run_id)
     received_input_closed = input_closed_receiver.receive().payload
     received_run_id = received_input_closed.run_id
 
@@ -550,7 +573,9 @@ def demo_dashboard_entries_recover_reconstruction_history() -> None:
         coverage_image={left_cell: 1.0, right_cell: 1.0},
     )
     completion = ReconstructionCompletion(
-        run_id=canonical_run_id, reconstruction_id="reconstruction-1"
+        run_id=canonical_run_id,
+        target_key=TargetKey("test-target"),
+        reconstruction_id="reconstruction-1",
     )
     canonical_run_ids = (canonical_run_id,)
 
@@ -616,6 +641,290 @@ def demo_instrument_attaches_sensor_arrangement() -> None:
     print("\n")
 
 
+def demo_target_key_reproduces_target() -> None:
+    print("Demo: target key reproduces the selected target")
+    selected = choose_target()
+    canonical_snapshot = snapshot_hidden_target(selected.target)
+
+    reproduced = resolve_target(selected.key)
+    received_snapshot = snapshot_hidden_target(reproduced.target)
+
+    print(f"target_key={selected.key!r}")
+    success = received_snapshot == canonical_snapshot
+    print(f"same_target={success}")
+
+    print(f"({resolve_target.__name__}): ", end="")
+    if success:
+        print("Target key reproduced the selected target")
+    else:
+        print("Target key did not reproduce the selected target")
+    print("\n")
+
+
+def demo_trial_runner_records_target_key() -> None:
+    print("Demo: trial runner records the target key")
+    bus = DirectMessageBus(capture_sink=InMemoryCaptureSink())
+    input_closed_receiver = bus.subscribe(
+        msg_topic=RUN_MSG_TOPIC, msg_type=RUN_INPUT_CLOSED_MSG_TYPE
+    )
+    frame = ImageFrame(width=2, height=1)
+    bitmap = Bitmap(frame=frame, filled_cells=(Cell(0, 0),))
+    canonical_target_key = TargetKey("test-target")
+    target = ResolvedTarget(
+        key=canonical_target_key, target=HiddenTarget(bitmap)
+    )
+    sensor = AngularSensor(
+        sensor_name="tutorial-sensor",
+        angle_degrees=0.0,
+        edge_bin_count=2,
+        sample_count=12,
+    )
+    instrument = Instrument(sensor)
+    trial_runner = TrialRunner(bus, producer_name="tutorial-trial")
+
+    trial_runner.run_instrument(target, instrument, run_id=RunID(1))
+    input_closed = input_closed_receiver.receive().payload
+    received_target_key = input_closed.target_key
+
+    print(f"{canonical_target_key=}")
+    print(f"{received_target_key=}")
+    success = received_target_key == canonical_target_key
+    eq_string = "=="
+    if not success:
+        eq_string = "!="
+    print("received_target_key " + eq_string + " canonical_target_key")
+
+    print(f"({type(trial_runner).__name__}): ", end="")
+    if success:
+        print("Trial runner recorded the target key")
+    else:
+        print("Trial runner did not record the target key")
+    print("\n")
+
+
+def demo_run_completion_preserves_target_key() -> None:
+    print("Demo: run completion preserves the target key")
+    bus = DirectMessageBus(capture_sink=InMemoryCaptureSink())
+    processor = ImageFusionProcessor(
+        bus, processor_name="average-fusion", fusion_method=average_intensity
+    )
+    completion_receiver = bus.subscribe(
+        msg_topic=RECONSTRUCTION_MSG_TOPIC,
+        msg_producer="average-fusion",
+        msg_type=RECONSTRUCTION_COMPLETED_MSG_TYPE,
+    )
+    input_closed_emitter = bus.register_emitter(
+        msg_topic=RUN_MSG_TOPIC,
+        msg_producer="prepared-experiment-source",
+        msg_type=RUN_INPUT_CLOSED_MSG_TYPE,
+        payload_format=RUN_INPUT_CLOSED_FORMAT,
+    )
+    canonical_target_key = TargetKey("test-target")
+    input_closed = RunInputClosed(
+        run_id=RunID(1), target_key=canonical_target_key
+    )
+
+    input_closed_emitter.emit(input_closed)
+    processor.process_one()
+    completion = completion_receiver.receive().payload
+    received_target_key = completion.target_key
+
+    print(f"{canonical_target_key=}")
+    print(f"{received_target_key=}")
+    success = received_target_key == canonical_target_key
+    eq_string = "=="
+    if not success:
+        eq_string = "!="
+    print("received_target_key " + eq_string + " canonical_target_key")
+
+    print(f"({type(processor).__name__}): ", end="")
+    if success:
+        print("Run completion preserved the target key")
+    else:
+        print("Run completion did not preserve the target key")
+    print("\n")
+
+
+def demo_run_instrument_correlation_preserves_target_key() -> None:
+    print("Demo: run-to-Instrument correlation preserves the target key")
+    bus = DirectMessageBus(capture_sink=InMemoryCaptureSink())
+    service = IdentityService(bus)
+    correlation_receiver = bus.subscribe(
+        msg_topic=RUN_MSG_TOPIC, msg_type=RUN_INSTRUMENT_CORRELATED_MSG_TYPE
+    )
+    input_closed_emitter = bus.register_emitter(
+        msg_topic=RUN_MSG_TOPIC,
+        msg_producer="prepared-experiment-source",
+        msg_type=RUN_INPUT_CLOSED_MSG_TYPE,
+        payload_format=RUN_INPUT_CLOSED_FORMAT,
+    )
+    canonical_target_key = TargetKey("test-target")
+    input_closed = RunInputClosed(
+        run_id=RunID(1), target_key=canonical_target_key
+    )
+
+    input_closed_emitter.emit(input_closed)
+    service.handle_available()
+    correlation = correlation_receiver.receive().payload
+    received_target_key = correlation.target_key
+
+    print(f"{canonical_target_key=}")
+    print(f"{received_target_key=}")
+    success = received_target_key == canonical_target_key
+    eq_string = "=="
+    if not success:
+        eq_string = "!="
+    print("received_target_key " + eq_string + " canonical_target_key")
+
+    print(f"({type(service).__name__}): ", end="")
+    if success:
+        print("Run-to-Instrument correlation preserved the target key")
+    else:
+        print("Run-to-Instrument correlation did not preserve the target key")
+    print("\n")
+
+
+def demo_reconstruction_report_preserves_target_key() -> None:
+    print("Demo: reconstruction report preserves the target key")
+    reconstruction_producer = "prepared-reconstruction"
+    host = _image_history_host()
+    host.start()
+    bus = host.client()
+    history = preconfigured_history_client(bus)
+    reconstruction_emitter = bus.register_emitter(
+        msg_topic=RECONSTRUCTION_MSG_TOPIC,
+        msg_producer=reconstruction_producer,
+        msg_type=IMAGE_RECONSTRUCTED_MSG_TYPE,
+        payload_format=IMAGE_OBSERVATION_FORMAT,
+    )
+    frame = ImageFrame(width=2, height=1)
+    left_cell = Cell(0, 0)
+    right_cell = Cell(1, 0)
+    reconstruction = ImageObservation(
+        run_id=RunID(1),
+        observation_id="prepared-reconstruction-1",
+        frame=frame,
+        intensity_image={left_cell: 1.0, right_cell: 0.0},
+        coverage_image={left_cell: 1.0, right_cell: 1.0},
+    )
+    canonical_target_key = TargetKey("test-target")
+    completion = ReconstructionCompletion(
+        run_id=reconstruction.run_id,
+        target_key=canonical_target_key,
+        reconstruction_id=reconstruction.observation_id,
+    )
+
+    reconstruction_emitter.emit(reconstruction)
+    report = reconstruction_report(
+        history, completion, reconstruction_producer=reconstruction_producer
+    )
+    received_target_key = report.target_key if report is not None else None
+    host.close()
+
+    print(f"{canonical_target_key=}")
+    print(f"{received_target_key=}")
+    success = received_target_key == canonical_target_key
+    eq_string = "=="
+    if not success:
+        eq_string = "!="
+    print("received_target_key " + eq_string + " canonical_target_key")
+
+    print(f"({reconstruction_report.__name__}): ", end="")
+    if success:
+        print("Reconstruction report preserved the target key")
+    else:
+        print("Reconstruction report did not preserve the target key")
+    print("\n")
+
+
+def demo_dashboard_entry_preserves_target_key() -> None:
+    print("Demo: dashboard entry preserves the target key")
+    reconstruction_producer = "prepared-reconstruction"
+    host = _image_history_host()
+    host.start()
+    bus = host.client()
+    reconstruction_emitter = bus.register_emitter(
+        msg_topic=RECONSTRUCTION_MSG_TOPIC,
+        msg_producer=reconstruction_producer,
+        msg_type=IMAGE_RECONSTRUCTED_MSG_TYPE,
+        payload_format=IMAGE_OBSERVATION_FORMAT,
+    )
+    completion_emitter = bus.register_emitter(
+        msg_topic=RECONSTRUCTION_MSG_TOPIC,
+        msg_producer=reconstruction_producer,
+        msg_type=RECONSTRUCTION_COMPLETED_MSG_TYPE,
+        payload_format=RECONSTRUCTION_COMPLETION_FORMAT,
+    )
+    frame = ImageFrame(width=2, height=1)
+    left_cell = Cell(0, 0)
+    right_cell = Cell(1, 0)
+    reconstruction = ImageObservation(
+        run_id=RunID(1),
+        observation_id="reconstruction-1",
+        frame=frame,
+        intensity_image={left_cell: 1.0, right_cell: 0.0},
+        coverage_image={left_cell: 1.0, right_cell: 1.0},
+    )
+    canonical_target_key = TargetKey("test-target")
+    completion = ReconstructionCompletion(
+        run_id=reconstruction.run_id,
+        target_key=canonical_target_key,
+        reconstruction_id=reconstruction.observation_id,
+    )
+
+    reconstruction_emitter.emit(reconstruction)
+    completion_emitter.emit(completion)
+    history = preconfigured_history_client(bus)
+    entries = dashboard_entries(
+        history, reconstruction_producer=reconstruction_producer
+    )
+    received_target_key = entries[0].target_key if entries else None
+    host.close()
+
+    print(f"{canonical_target_key=}")
+    print(f"{received_target_key=}")
+    success = received_target_key == canonical_target_key
+    eq_string = "=="
+    if not success:
+        eq_string = "!="
+    print("received_target_key " + eq_string + " canonical_target_key")
+
+    print(f"({dashboard_entries.__name__}): ", end="")
+    if success:
+        print("Dashboard entry preserved the target key")
+    else:
+        print("Dashboard entry did not preserve the target key")
+    print("\n")
+
+
+def demo_trial_request_preserves_target_key() -> None:
+    print("Demo: trial request preserves the target key")
+    canonical_target_key = TargetKey("test-target")
+    request = TrialRequest(
+        target_key=canonical_target_key,
+        description=InstrumentDescription(sensors=()),
+    )
+    record = TRIAL_REQUEST_FORMAT.adapter.encode(request)
+
+    restored = TRIAL_REQUEST_FORMAT.adapter.decode(record)
+    received_target_key = restored.target_key
+
+    print(f"{canonical_target_key=}")
+    print(f"{received_target_key=}")
+    success = received_target_key == canonical_target_key
+    eq_string = "=="
+    if not success:
+        eq_string = "!="
+    print("received_target_key " + eq_string + " canonical_target_key")
+
+    print(f"({type(restored).__name__}): ", end="")
+    if success:
+        print("Trial request preserved the target key")
+    else:
+        print("Trial request did not preserve the target key")
+    print("\n")
+
+
 def run_all_demos() -> None:
     demo_angular_projection_sample_count()
     demo_projection_normalization()
@@ -629,6 +938,13 @@ def run_all_demos() -> None:
     demo_trial_runner_closes_run_input()
     demo_dashboard_entries_recover_reconstruction_history()
     demo_instrument_attaches_sensor_arrangement()
+    demo_target_key_reproduces_target()
+    demo_trial_runner_records_target_key()
+    demo_run_completion_preserves_target_key()
+    demo_run_instrument_correlation_preserves_target_key()
+    demo_reconstruction_report_preserves_target_key()
+    demo_dashboard_entry_preserves_target_key()
+    demo_trial_request_preserves_target_key()
 
 
 if __name__ == "__main__":

@@ -22,7 +22,7 @@ from ropemother_exercises.image import (
     ruler_angle_group,
     ruler_fraction_group,
 )
-from ropemother_exercises.image.target.session import session_target
+from ropemother_exercises.image.target.session import session_resolved_target
 
 
 def show_workspace() -> None:
@@ -30,6 +30,7 @@ def show_workspace() -> None:
     _print_name_grid(
         (
             "target",
+            "target_key",
             "frame",
             "bus",
             "report_client",
@@ -106,7 +107,8 @@ def _print_joined_message() -> None:
     )
 
 
-def _print_prepared_reconstruction(reconstruction, frame) -> None:
+def _print_prepared_reconstruction(reconstruction, frame, target_key) -> None:
+    print(f"Hidden target: {target_key}")
     print("Orthogonal reconstruction from the prepared 0° and 90° sensors:\n")
     print(render_intensity_image(reconstruction.intensity_image, frame))
     print(
@@ -120,7 +122,10 @@ def _print_prepared_reconstruction(reconstruction, frame) -> None:
 
 
 if __name__ == "__main__":
-    target = session_target()
+    _resolved_target = session_resolved_target()
+    target = _resolved_target.target
+    target_key = _resolved_target.key
+    del _resolved_target
     frame = target.frame
     edge_bin_count = max(frame.width, frame.height)
     samples_per_sensor = 512
@@ -167,4 +172,4 @@ if __name__ == "__main__":
         )
         reconstruction = run_receiver.receive().payload
 
-        _print_prepared_reconstruction(reconstruction, frame)
+        _print_prepared_reconstruction(reconstruction, frame, target_key)

@@ -3,6 +3,7 @@
 
 """Run the prepared image application host."""
 
+import argparse
 import shlex
 import signal
 import subprocess
@@ -17,9 +18,17 @@ from ropemother.service import (
     preconfigured_history_host,
 )
 
-from ropemother_exercises.image.exceptions import ImageApplicationHostError
+from ropemother_exercises.image.events import TargetKey
+from ropemother_exercises.image.exceptions import (
+    ImageApplicationHostError,
+    TargetCatalogError,
+)
 from ropemother_exercises.image.formats import IMAGE_PORTABLE_FORMATS
-from ropemother_exercises.image.target.generator import create_hidden_target
+from ropemother_exercises.image.target.catalog import (
+    choose_target,
+    parse_target_key,
+    resolve_target,
+)
 from ropemother_exercises.image.target.session import store_session_target
 
 _LONG_LIVED_SERVICES = {
@@ -31,8 +40,11 @@ _PROCESS_STOP_TIMEOUT_SECONDS = 2.0
 _SERVICE_START_TIMEOUT_SECONDS = 5.0
 
 
-def run_application_host() -> None:
-    target = create_hidden_target()
+def run_application_host(target_key: TargetKey | None = None) -> None:
+    if target_key is None:
+        target = choose_target()
+    else:
+        target = resolve_target(target_key)
 
     with tempfile.TemporaryDirectory(
         prefix="ropemother-image-"
@@ -130,7 +142,7 @@ def _wait_for_services_to_stop(
         if stopped:
             names = ", ".join(stopped)
             raise ImageApplicationHostError(
-                "image application service stopped: " + names
+                f"image application service stopped: {names}"
             )
 
         time.sleep(0.25)
@@ -149,5 +161,23 @@ def _stop_process(process: subprocess.Popen[bytes]) -> None:
         process.wait()
 
 
+def _target_key_argument(value: str) -> TargetKey:
+    try:
+        return parse_target_key(value)
+    except TargetCatalogError as error:
+        raise argparse.ArgumentTypeError(str(error)) from error
+
+
+def _parse_target_key() -> TargetKey | None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--target",
+        metavar="TARGET_KEY",
+        type=_target_key_argument,
+        help="use a specific supported target for this application session",
+    )
+    return parser.parse_args().target
+
+
 if __name__ == "__main__":
-    run_application_host()
+    run_application_host(_parse_target_key())

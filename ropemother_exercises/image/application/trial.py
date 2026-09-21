@@ -22,9 +22,7 @@ from ropemother_exercises.image.events import (
     RunInputClosed,
 )
 from ropemother_exercises.image.formats import RUN_INPUT_CLOSED_FORMAT
-from ropemother_exercises.image.tomography.measurements import (
-    MeasurementTarget,
-)
+from ropemother_exercises.image.target.catalog import ResolvedTarget
 from ropemother_exercises.image.tomography.sensors import SensorAttachments
 
 
@@ -51,7 +49,7 @@ class TrialRunner:
         return self._identity.allocate_run_id()
 
     def run(
-        self, target: MeasurementTarget, experiment: Experiment
+        self, target: ResolvedTarget, experiment: Experiment
     ) -> tuple[RunID, ...]:
         description = describe_experiment(experiment)
         self._identity.identify_experiment(description)
@@ -65,7 +63,7 @@ class TrialRunner:
 
     def run_instrument(
         self,
-        target: MeasurementTarget,
+        target: ResolvedTarget,
         instrument: Instrument,
         *,
         run_id: RunID | None = None,
@@ -79,8 +77,9 @@ class TrialRunner:
             source.measure(
                 run_id=run_id,
                 observation_id=f"observation-{sensor_number}",
-                target=target,
+                target=target.target,
             )
 
-        self._input_closed_emitter.emit(RunInputClosed(run_id=run_id))
+        input_closed = RunInputClosed(run_id=run_id, target_key=target.key)
+        self._input_closed_emitter.emit(input_closed)
         return run_id
