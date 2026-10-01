@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # ropemother_exercises/image/target/bitmap_assets.py
 
-"""Prepared inner bitmap asset loading for image reconstruction exercises."""
+"""Prepared bitmap loading for image reconstruction exercises."""
 
-import collections.abc
+import dataclasses
 import importlib.resources
 import json
 import typing
@@ -17,21 +17,53 @@ from ropemother_exercises.image.tomography.images import (
     ImageFrame,
 )
 
-ASSET_FILE: typing.Final[str] = "prepared_bitmaps.json"
+PREPARED_BITMAP_FILE: typing.Final[str] = "prepared_bitmaps.json"
 
 
-def load_bitmap_asset(asset_id: str) -> Bitmap:
-    document = _load_asset_document()
-    record = document.get(asset_id)
+@dataclasses.dataclass(frozen=True, kw_only=True)
+class PreparedBitmapSource:
+    description: str
+    bitmap: Bitmap
 
-    if record is None:
-        raise BitmapAssetError(f"unknown bitmap asset: {asset_id}")
-    if not isinstance(record, dict):
-        raise BitmapAssetError(
-            f"bitmap asset is not stored as an object: {asset_id}"
+
+def load_prepared_bitmap_sources() -> tuple[PreparedBitmapSource, ...]:
+    resource = importlib.resources.files("ropemother_exercises.image.target")
+    bitmap_path = resource.joinpath(PREPARED_BITMAP_FILE)
+
+    with bitmap_path.open("r", encoding="utf-8") as bitmap_file:
+        document = json.load(bitmap_file)
+
+    if not isinstance(document, list):
+        raise BitmapAssetError("prepared bitmap document is not a list")
+
+    sources = []
+
+    for record in document:
+        if not isinstance(record, dict):
+            raise BitmapAssetError("prepared bitmap record is not an object")
+
+        try:
+            description = record["description"]
+            frame = ImageFrame(
+                width=record["width"],
+                height=record["height"],
+            )
+            start = record["start"]
+            deltas = tuple(record["deltas"])
+            bitmap = decode_linear_index_delta_bitmap(frame, start, deltas)
+        except (KeyError, TypeError) as error:
+            raise BitmapAssetError("invalid prepared bitmap record") from error
+
+        if not isinstance(description, str):
+            raise BitmapAssetError("prepared bitmap description is not text")
+
+        source = PreparedBitmapSource(
+            description=description,
+            bitmap=bitmap,
         )
+        sources.append(source)
 
-    return _bitmap_from_record(record)
+    return tuple(sources)
 
 
 def decode_linear_index_delta_bitmap(
@@ -109,59 +141,3 @@ def cell_from_linear_index(index: int, frame: ImageFrame) -> Cell:
         raise BitmapAssetError(f"bitmap index out of frame: {index}")
 
     return Cell(index % frame.width, index // frame.width)
-
-
-def _bitmap_from_record(
-    record: collections.abc.Mapping[str, object],
-) -> Bitmap:
-    width = _required_int(record, "width")
-    height = _required_int(record, "height")
-    start = _required_int(record, "start")
-    deltas = _required_int_tuple(record, "deltas")
-
-    frame = ImageFrame(width=width, height=height)
-    return decode_linear_index_delta_bitmap(frame, start, deltas)
-
-
-def _load_asset_document() -> collections.abc.Mapping[str, object]:
-    resource = importlib.resources.files("ropemother_exercises.image.target")
-    asset_path = resource.joinpath(ASSET_FILE)
-
-    with asset_path.open("r", encoding="utf-8") as asset_file:
-        document = json.load(asset_file)
-
-    if not isinstance(document, dict):
-        raise BitmapAssetError("bitmap asset document is not an object")
-
-    return document
-
-
-def _required_int(
-    record: collections.abc.Mapping[str, object], key: str
-) -> int:
-    value = record.get(key)
-
-    if isinstance(value, bool) or not isinstance(value, int):
-        raise BitmapAssetError(f"bitmap asset field is not an integer: {key}")
-
-    return value
-
-
-def _required_int_tuple(
-    record: collections.abc.Mapping[str, object], key: str
-) -> tuple[int, ...]:
-    value = record.get(key)
-
-    if not isinstance(value, list):
-        message = f"bitmap asset field is not an integer list: {key}"
-        raise BitmapAssetError(message)
-
-    values = []
-    for item in value:
-        if isinstance(item, bool) or not isinstance(item, int):
-            raise BitmapAssetError(
-                f"bitmap asset field is not an integer list: {key}"
-            )
-        values.append(item)
-
-    return tuple(values)

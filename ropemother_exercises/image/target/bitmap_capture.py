@@ -22,7 +22,7 @@ from ropemother_exercises.image.application.render import (
 )
 from ropemother_exercises.image.exceptions import BitmapCaptureError
 from ropemother_exercises.image.target.bitmap_assets import (
-    ASSET_FILE,
+    PREPARED_BITMAP_FILE,
     encode_bitmap_asset_record,
 )
 from ropemother_exercises.image.tomography.images import (
@@ -48,7 +48,7 @@ _CAPTURE_USAGE: typing.Final[str] = (
 )
 
 _PREPARED_BITMAP_PATH: typing.Final[pathlib.Path] = (
-    pathlib.Path(__file__).parent / ASSET_FILE
+    pathlib.Path(__file__).parent / PREPARED_BITMAP_FILE
 )
 
 
@@ -95,28 +95,24 @@ def capture_sprite(
 
 
 def save_bitmap_assets(
-    bitmaps: collections.abc.Mapping[str, Bitmap], write_mode: AssetWriteMode
+    bitmaps: collections.abc.Sequence[tuple[str, Bitmap]],
+    write_mode: AssetWriteMode,
 ) -> None:
-    records: JSONRecord = {}
+    records: list[JSONRecord] = []
 
-    for asset_id, bitmap in bitmaps.items():
-        if not asset_id.strip():
-            raise BitmapCaptureError("asset_id must not be empty")
-
+    for description, bitmap in bitmaps:
         record = encode_bitmap_asset_record(bitmap)
-        records[asset_id] = record
+        record["description"] = description
+        records.append(record)
 
     if write_mode == "append":
-        document = _load_prepared_bitmap_document()
-        duplicate_ids = sorted(set(document).intersection(records))
+        with _PREPARED_BITMAP_PATH.open("r", encoding="utf-8") as asset_file:
+            document = json.load(asset_file)
 
-        if duplicate_ids:
-            duplicate_id = duplicate_ids[0]
-            raise BitmapCaptureError(
-                f"bitmap asset already exists: {duplicate_id}"
-            )
+        if not isinstance(document, list):
+            raise BitmapCaptureError("prepared bitmap document is not a list")
 
-        document.update(records)
+        document.extend(records)
     elif write_mode == "overwrite":
         document = records
     else:
@@ -124,15 +120,16 @@ def save_bitmap_assets(
             f"unknown bitmap asset write mode: {write_mode}"
         )
 
-    _write_prepared_bitmap_document(document)
+    with _PREPARED_BITMAP_PATH.open("w", encoding="utf-8") as asset_file:
+        json.dump(document, asset_file, indent=2, ensure_ascii=False)
+        asset_file.write("\n")
 
 
 def save_sprite_source(
     source_path: str | pathlib.Path,
     interpret_pixel: PixelInterpreter,
     write_mode: AssetWriteMode,
-    asset_prefix: str | None = None,
-) -> tuple[str, ...]:
+) -> int:
     source_path = pathlib.Path(source_path)
 
     if source_path.is_dir():
@@ -144,21 +141,16 @@ def save_sprite_source(
             f"sprite source does not exist: {source_path}"
         )
 
-    bitmaps: dict[str, Bitmap] = {}
+    bitmaps = []
 
     for sprite_path in sprite_paths:
-        asset_id = _sprite_asset_id(sprite_path, asset_prefix)
-
-        if asset_id in bitmaps:
-            raise BitmapCaptureError(
-                f"duplicate sprite asset identifier: {asset_id}"
-            )
-
+        description = sprite_path.stem.rstrip("0123456789")
+        description = description.replace("_", " ").capitalize()
         bitmap = capture_sprite(sprite_path, interpret_pixel)
-        bitmaps[asset_id] = bitmap
+        bitmaps.append((description, bitmap))
 
     save_bitmap_assets(bitmaps, write_mode)
-    return tuple(bitmaps)
+    return len(bitmaps)
 
 
 def render_sprite_capture(
@@ -354,14 +346,14 @@ def print_bitmap_capture_from_arguments() -> None:
             arguments.cell_columns,
         )
     elif arguments.command == "save-sprites":
-        asset_ids = save_sprite_source(
+        saved_count = save_sprite_source(
             arguments.source_path,
             interpret_white_black_transparent,
             arguments.write_mode,
-            arguments.prefix,
         )
-        saved_count = len(asset_ids)
-        rendering = f"saved {saved_count} bitmap assets to {ASSET_FILE}"
+        rendering = (
+            f"saved {saved_count} prepared bitmaps to {PREPARED_BITMAP_FILE}"
+        )
     else:
         raise BitmapCaptureError(
             f"unknown bitmap capture command: {arguments.command}"
@@ -434,22 +426,6 @@ def _load_catalog_document() -> dict[str, object]:
         raise BitmapCaptureError("glyph catalog is not an object")
 
     return document
-
-
-def _load_prepared_bitmap_document() -> dict[str, object]:
-    with _PREPARED_BITMAP_PATH.open("r", encoding="utf-8") as asset_file:
-        document = json.load(asset_file)
-
-    if not isinstance(document, dict):
-        raise BitmapCaptureError("bitmap asset document is not an object")
-
-    return document
-
-
-def _write_prepared_bitmap_document(document: dict[str, object]) -> None:
-    with _PREPARED_BITMAP_PATH.open("w", encoding="utf-8") as asset_file:
-        json.dump(document, asset_file, indent=2, ensure_ascii=False)
-        asset_file.write("\n")
 
 
 def _glyphs_from_text(glyph_text: str) -> tuple[str, ...]:
@@ -620,17 +596,6 @@ def _sprite_paths(directory_path: pathlib.Path) -> tuple[pathlib.Path, ...]:
     return tuple(sprite_paths)
 
 
-def _sprite_asset_id(
-    sprite_path: pathlib.Path, asset_prefix: str | None
-) -> str:
-    asset_id = sprite_path.stem
-
-    if asset_prefix:
-        asset_id = f"{asset_prefix}_{asset_id}"
-
-    return asset_id
-
-
 def _render_failed_sprite(
     sprite_path: pathlib.Path,
     error: BitmapCaptureError,
@@ -667,19 +632,15 @@ def _capture_argument_parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
 
     glyph_parser = commands.add_parser(
-        "glyphs",
-        help="render glyph candidates from a font",
+        "glyphs", help="render glyph candidates from a font"
     )
     glyph_parser.add_argument("font_path", help="path to a font file")
     glyph_parser.add_argument(
-        "group_name",
-        nargs="?",
-        help="optional glyph catalog group",
+        "group_name", nargs="?", help="optional glyph catalog group"
     )
 
     sprite_parser = commands.add_parser(
-        "sprites",
-        help="render one sprite or a directory of sprites",
+        "sprites", help="render one sprite or a directory of sprites"
     )
     sprite_parser.add_argument(
         "source_path",
@@ -701,17 +662,12 @@ def _capture_argument_parser() -> argparse.ArgumentParser:
     )
 
     save_parser = commands.add_parser(
-        "save-sprites",
-        help="save one sprite or a directory of sprites",
+        "save-sprites", help="save one sprite or a directory of sprites"
     )
     save_parser.add_argument(
         "source_path",
         type=pathlib.Path,
         help="PNG file or directory containing PNG files",
-    )
-    save_parser.add_argument(
-        "--prefix",
-        help="optional identifier prefix for this sprite set",
     )
 
     write_modes = save_parser.add_mutually_exclusive_group(required=True)

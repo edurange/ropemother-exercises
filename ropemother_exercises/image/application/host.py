@@ -18,7 +18,12 @@ from ropemother.service import (
     preconfigured_history_host,
 )
 
-from ropemother_exercises.image.events import TargetKey
+from ropemother_exercises.image.events import (
+    ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER,
+    IDENTITY_SERVICE_MSG_PRODUCER,
+    TRIAL_SERVICE_MSG_PRODUCER,
+    TargetKey,
+)
 from ropemother_exercises.image.exceptions import (
     ImageApplicationHostError,
     TargetCatalogError,
@@ -32,9 +37,13 @@ from ropemother_exercises.image.target.catalog import (
 from ropemother_exercises.image.target.session import store_session_target
 
 _LONG_LIVED_SERVICES = {
-    "image-identity-service": "ropemother_exercises.image.service.identity",
-    "trial-service": "ropemother_exercises.image.service.trial",
-    "geometric-fusion": "ropemother_exercises.image.service.fusion",
+    IDENTITY_SERVICE_MSG_PRODUCER: (
+        "ropemother_exercises.image.service.identity"
+    ),
+    TRIAL_SERVICE_MSG_PRODUCER: "ropemother_exercises.image.service.trial",
+    ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER: (
+        "ropemother_exercises.image.service.algebraic"
+    ),
 }
 _PROCESS_STOP_TIMEOUT_SECONDS = 2.0
 _SERVICE_START_TIMEOUT_SECONDS = 5.0

@@ -123,6 +123,23 @@ def threshold_intensity_image(
     return Bitmap(frame=frame, filled_cells=filled_cells)
 
 
+def threshold_intensity_image_by_fraction(
+    frame: ImageFrame,
+    image: IntensityImage,
+    threshold_fraction: float = 0.5,
+) -> Bitmap:
+    if not 0.0 <= threshold_fraction <= 1.0:
+        raise ValueError("threshold_fraction must be between 0.0 and 1.0")
+
+    maximum = max(image.values(), default=0.0)
+
+    if maximum <= 0.0:
+        return Bitmap(frame=frame, filled_cells=())
+
+    threshold = maximum * threshold_fraction
+    return threshold_intensity_image(frame, image, threshold)
+
+
 def centered_point_for_cell(cell: Cell, frame: ImageFrame) -> Point2D:
     x = cell.x + 0.5 - frame.width / 2
     y = frame.height / 2 - cell.y - 0.5

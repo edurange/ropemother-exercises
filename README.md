@@ -1,4 +1,4 @@
-# Ropemother exercises
+# `ropemother-exercises`
 
 Hands-on exercises for learning message-based software design with the `ropemother` Python package.
 

@@ -1,27 +1,46 @@
 #!/usr/bin/env python3
 # ropemother_exercises/image/target/catalog.py
 
-"""Stable identities and resolution for supported reconstruction targets."""
+"""Catalog and resolution for supported reconstruction targets."""
 
-import collections.abc
 import dataclasses
 import hashlib
-import json
 import random
 
 from ropemother_exercises.image.events import TargetKey
 from ropemother_exercises.image.exceptions import TargetCatalogError
+from ropemother_exercises.image.target.bitmap_assets import (
+    load_prepared_bitmap_sources,
+)
 from ropemother_exercises.image.target.generator import (
-    tutorial_target_bitmap_from_asset,
+    diagnostic_x_target_bitmap,
+    egg_shell_target_bitmap,
+    prepared_target_bitmap,
+    rock_matrix_target_bitmap,
 )
 from ropemother_exercises.image.target.hidden import HiddenTarget
+from ropemother_exercises.image.tomography.images import Bitmap
 
-type _TargetKeyValidator = collections.abc.Callable[[TargetKey], None]
-type _TargetResolver = collections.abc.Callable[[TargetKey], HiddenTarget]
-
-_PREPARED_BITMAP_KEY_PREFIX = "a"
 _TARGET_KEY_ALPHABET = "0123456789abcdefghjkmnpqrstvwxyz"
-_DEFAULT_TARGET_KEY_BODY_LENGTH = 7
+
+_DIAGNOSTIC_KEY_PREFIX = "a"
+_BARE_PREPARED_KEY_PREFIX = "b"
+_HULLED_PREPARED_KEY_PREFIX = "c"
+
+_DIAGNOSTIC_TARGETS = {
+    TargetKey("a000"): diagnostic_x_target_bitmap,
+}
+
+_BARE_PREPARED_SOURCE_WIDTH = 3
+_HULLED_KEY_BODY_LENGTH = 8
+
+_EGG_SHELL_FORM = 0
+_ROCK_MATRIX_FORM = 1
+_HULL_FORMS = (
+    _EGG_SHELL_FORM,
+    _ROCK_MATRIX_FORM,
+)
+_HULLED_VARIATION_COUNT = 256
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -31,127 +50,198 @@ class ResolvedTarget:
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
-class _TargetFamily:
-    validate_key: _TargetKeyValidator
-    resolve: _TargetResolver
-
-
-@dataclasses.dataclass(frozen=True, kw_only=True)
-class _PreparedTargetSpecification:
-    asset_id: str
-    seed: int
-    key_body_length: int = _DEFAULT_TARGET_KEY_BODY_LENGTH
+class _HulledTargetRealization:
+    source_index: int
+    hull_form: int
+    variation: int
 
 
 def choose_target() -> ResolvedTarget:
-    keys = tuple(_PREPARED_TARGET_SPECIFICATIONS_BY_KEY)
-    return resolve_target(random.SystemRandom().choice(keys))
+    rng = random.SystemRandom()
+    body = "".join(
+        rng.choices(_TARGET_KEY_ALPHABET, k=_HULLED_KEY_BODY_LENGTH)
+    )
+    checksum = _target_key_checksum(f"prepared-hulled-v2:{body}")
+    key = TargetKey(f"{_HULLED_PREPARED_KEY_PREFIX}{body}{checksum}")
+    return resolve_target(key)
 
 
 def parse_target_key(value: str) -> TargetKey:
     key = TargetKey(value)
-    family = _target_family(key)
-    family.validate_key(key)
+    prefix = key[:1]
+
+    if prefix == _DIAGNOSTIC_KEY_PREFIX:
+        if key not in _DIAGNOSTIC_TARGETS:
+            raise TargetCatalogError(f"unknown diagnostic target key: {key}")
+    elif prefix == _BARE_PREPARED_KEY_PREFIX:
+        _bare_source_index(key)
+    elif prefix == _HULLED_PREPARED_KEY_PREFIX:
+        _hulled_target_realization(key)
+    else:
+        raise TargetCatalogError(f"unknown target key: {key}")
+
     return key
 
 
 def resolve_target(key: TargetKey) -> ResolvedTarget:
-    family = _target_family(key)
-    family.validate_key(key)
-    target = family.resolve(key)
-    return ResolvedTarget(key=key, target=target)
+    prefix = key[:1]
 
+    if prefix == _DIAGNOSTIC_KEY_PREFIX:
+        bitmap_factory = _DIAGNOSTIC_TARGETS.get(key)
 
-def _target_key_body(document: str, length: int) -> str:
-    digest = hashlib.sha256(document.encode("utf-8")).digest()
-    bit_count = length * 5
-    value = int.from_bytes(digest, "big") >> (len(digest) * 8 - bit_count)
-    shifts = range(bit_count - 5, -1, -5)
-    alphabet = _TARGET_KEY_ALPHABET
-    return "".join(alphabet[(value >> shift) & 31] for shift in shifts)
+        if bitmap_factory is None:
+            raise TargetCatalogError(f"unknown diagnostic target key: {key}")
 
-
-def _prepared_target_key(
-    specification: _PreparedTargetSpecification,
-) -> TargetKey:
-    record = {
-        "scheme": "prepared-bitmap-v1",
-        "asset_id": specification.asset_id,
-        "seed": specification.seed,
-    }
-    document = json.dumps(record, sort_keys=True, separators=(",", ":"))
-    body = _target_key_body(document, specification.key_body_length)
-    return TargetKey(f"{_PREPARED_BITMAP_KEY_PREFIX}{body}")
-
-
-_PREPARED_TARGET_SPECIFICATIONS = (
-    _PreparedTargetSpecification(
-        asset_id="Software_Warning_Sign_Circle_Question_Mark_Help", seed=101
-    ),
-    _PreparedTargetSpecification(asset_id="Travel_Ship_Anchor_Navy", seed=103),
-    _PreparedTargetSpecification(
-        asset_id="RPG_Stat_HP_Health_Heart", seed=109
-    ),
-    _PreparedTargetSpecification(
-        asset_id="Boardgames_Chess_Piece_Knight_Big", seed=113
-    ),
-    _PreparedTargetSpecification(
-        asset_id="Weather_Moon_Night_Crescent_Darkness_Mode_Twilight_Big",
-        seed=127,
-    ),
-    _PreparedTargetSpecification(
-        asset_id="Map_Markers_Tree_Forest_Pine", seed=131
-    ),
-    _PreparedTargetSpecification(
-        asset_id="Travel_Ship_Sailing_Boat", seed=139
-    ),
-    _PreparedTargetSpecification(
-        asset_id="Tools_Crafting_Key_Unlock_2", seed=149
-    ),
-    _PreparedTargetSpecification(
-        asset_id="Weather_Thunderstorm_Cloud_Lightning_Zap", seed=157
-    ),
-    _PreparedTargetSpecification(
-        asset_id="Travel_UFO_Alien_Spaceship", seed=163
-    ),
-)
-_PREPARED_TARGET_SPECIFICATIONS_BY_KEY = {
-    _prepared_target_key(specification): specification
-    for specification in _PREPARED_TARGET_SPECIFICATIONS
-}
-
-if len(_PREPARED_TARGET_SPECIFICATIONS_BY_KEY) != len(
-    _PREPARED_TARGET_SPECIFICATIONS
-):
-    raise TargetCatalogError("prepared target keys are not unique")
-
-
-def _validate_prepared_target_key(key: TargetKey) -> None:
-    if key not in _PREPARED_TARGET_SPECIFICATIONS_BY_KEY:
-        raise TargetCatalogError(f"unknown prepared target key: {key}")
-
-
-def _resolve_prepared_target(key: TargetKey) -> HiddenTarget:
-    specification = _PREPARED_TARGET_SPECIFICATIONS_BY_KEY[key]
-    bitmap = tutorial_target_bitmap_from_asset(
-        specification.asset_id, specification.seed
-    )
-    return HiddenTarget(bitmap)
-
-
-_TARGET_FAMILIES = {
-    _PREPARED_BITMAP_KEY_PREFIX: _TargetFamily(
-        validate_key=_validate_prepared_target_key,
-        resolve=_resolve_prepared_target,
-    ),
-}
-
-
-def _target_family(key: TargetKey) -> _TargetFamily:
-    key_prefix = key[:1]
-    family = _TARGET_FAMILIES.get(key_prefix)
-
-    if family is None:
+        bitmap = bitmap_factory()
+    elif prefix == _BARE_PREPARED_KEY_PREFIX:
+        source_index = _bare_source_index(key)
+        bitmap = prepared_target_bitmap(source_index)
+    elif prefix == _HULLED_PREPARED_KEY_PREFIX:
+        realization = _hulled_target_realization(key)
+        bitmap = _hulled_target_bitmap(realization)
+    else:
         raise TargetCatalogError(f"unknown target key: {key}")
 
-    return family
+    return ResolvedTarget(key=key, target=HiddenTarget(bitmap))
+
+
+def bare_prepared_target_key(key: TargetKey) -> TargetKey | None:
+    prefix = key[:1]
+
+    if prefix == _DIAGNOSTIC_KEY_PREFIX:
+        if key not in _DIAGNOSTIC_TARGETS:
+            raise TargetCatalogError(f"unknown diagnostic target key: {key}")
+
+        bare_key = None
+    elif prefix == _BARE_PREPARED_KEY_PREFIX:
+        _bare_source_index(key)
+        bare_key = key
+    elif prefix == _HULLED_PREPARED_KEY_PREFIX:
+        realization = _hulled_target_realization(key)
+        source_code = _encode_base32(
+            realization.source_index, width=_BARE_PREPARED_SOURCE_WIDTH
+        )
+        bare_key = TargetKey(f"{_BARE_PREPARED_KEY_PREFIX}{source_code}")
+    else:
+        raise TargetCatalogError(f"unknown target key: {key}")
+
+    return bare_key
+
+
+def target_source_description(key: TargetKey) -> str:
+    prefix = key[:1]
+
+    if prefix == _DIAGNOSTIC_KEY_PREFIX:
+        if key not in _DIAGNOSTIC_TARGETS:
+            raise TargetCatalogError(f"unknown diagnostic target key: {key}")
+
+        description = "Diagnostic X"
+    elif prefix == _BARE_PREPARED_KEY_PREFIX:
+        source_index = _bare_source_index(key)
+        description = _prepared_source_description(source_index)
+    elif prefix == _HULLED_PREPARED_KEY_PREFIX:
+        realization = _hulled_target_realization(key)
+        description = _prepared_source_description(realization.source_index)
+    else:
+        raise TargetCatalogError(f"unknown target key: {key}")
+
+    return description
+
+
+def _bare_source_index(key: TargetKey) -> int:
+    expected_length = _BARE_PREPARED_SOURCE_WIDTH + 1
+
+    if len(key) != expected_length:
+        raise TargetCatalogError(f"invalid bare prepared target key: {key}")
+
+    source_index = _decode_base32(key[1:])
+    sources = load_prepared_bitmap_sources()
+
+    if source_index >= len(sources):
+        raise TargetCatalogError(f"unknown bare prepared target key: {key}")
+
+    return source_index
+
+
+def _decode_base32(value: str) -> int:
+    result = 0
+
+    for character in value:
+        try:
+            digit = _TARGET_KEY_ALPHABET.index(character)
+        except ValueError as error:
+            raise TargetCatalogError(
+                "target key contains an invalid character"
+            ) from error
+        result = result * len(_TARGET_KEY_ALPHABET) + digit
+
+    return result
+
+
+def _encode_base32(value: int, *, width: int) -> str:
+    digits = []
+
+    for _ in range(width):
+        value, digit = divmod(value, len(_TARGET_KEY_ALPHABET))
+        digits.append(_TARGET_KEY_ALPHABET[digit])
+
+    if value != 0:
+        raise TargetCatalogError("target key value exceeds field width")
+
+    return "".join(reversed(digits))
+
+
+def _prepared_source_description(source_index: int) -> str:
+    sources = load_prepared_bitmap_sources()
+    return sources[source_index].description
+
+
+def _hulled_target_bitmap(realization: _HulledTargetRealization) -> Bitmap:
+    if realization.hull_form == _EGG_SHELL_FORM:
+        bitmap = egg_shell_target_bitmap(
+            realization.source_index,
+            realization.variation,
+        )
+    else:
+        bitmap = rock_matrix_target_bitmap(
+            realization.source_index,
+            realization.variation,
+        )
+
+    return bitmap
+
+
+def _hulled_target_realization(key: TargetKey) -> _HulledTargetRealization:
+    expected_length = _HULLED_KEY_BODY_LENGTH + 2
+
+    if len(key) != expected_length:
+        raise TargetCatalogError(f"invalid hulled prepared target key: {key}")
+
+    body = key[1:-1]
+
+    if any(character not in _TARGET_KEY_ALPHABET for character in body):
+        raise TargetCatalogError("target key contains an invalid character")
+
+    expected_checksum = _target_key_checksum(f"prepared-hulled-v2:{body}")
+
+    if key[-1] != expected_checksum:
+        raise TargetCatalogError(f"invalid hulled prepared target key: {key}")
+
+    sources = load_prepared_bitmap_sources()
+
+    if not sources:
+        raise TargetCatalogError("prepared target catalog is empty")
+
+    rng = random.Random(body)
+    source_index = rng.randrange(len(sources))
+    hull_form = rng.choice(_HULL_FORMS)
+    variation = rng.randrange(_HULLED_VARIATION_COUNT)
+    hull_target = _HulledTargetRealization(
+        source_index=source_index, hull_form=hull_form, variation=variation
+    )
+    return hull_target
+
+
+def _target_key_checksum(document: str) -> str:
+    digest = hashlib.sha256(document.encode("utf-8")).digest()
+    return _TARGET_KEY_ALPHABET[digest[0] & 31]

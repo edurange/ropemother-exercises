@@ -24,10 +24,12 @@ from ropemother_exercises.image.application.client import (
 )
 from ropemother_exercises.image.application.render import (
     SHADED_BLOCKS,
+    render_bitmap,
     render_horizontal_profile,
     render_run_id,
 )
 from ropemother_exercises.image.events import (
+    ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER,
     ANGULAR_PROJECTION_OBSERVED_MSG_TYPE,
     DASHBOARD_REPLY_MSG_TOPIC,
     DASHBOARD_REPORT_MSG_TYPE,
@@ -62,14 +64,20 @@ from ropemother_exercises.image.formats import (
     TRIAL_REQUEST_FORMAT,
 )
 from ropemother_exercises.image.exceptions import TargetCatalogError
-from ropemother_exercises.image.target.catalog import parse_target_key
+from ropemother_exercises.image.target.catalog import (
+    bare_prepared_target_key,
+    parse_target_key,
+    target_source_description,
+)
+from ropemother_exercises.image.target.hidden import decode_hidden_target
 from ropemother_exercises.image.target.session import (
     HIDDEN_TARGET,
     TargetReference,
     resolve_target_key,
+    resolve_target_reference,
     session_target_key,
 )
-from ropemother_exercises.image.tomography.reconstruction import (
+from ropemother_exercises.image.tomography.back_projection import (
     normalize_projection,
 )
 
@@ -150,6 +158,30 @@ class ExperimentTerminal:
                 self._display_run_report(run_id)
             case ["reports"]:
                 self._display_reconstruction_reports()
+            case ["silhouette"]:
+                self._display_target_silhouette()
+            case ["silhouette", target_value]:
+                target_key = _parse_target_key(target_value)
+                if target_key is None:
+                    print(f"Invalid Target Key: {target_value}")
+                else:
+                    self._display_target_silhouette(target_key)
+            case ["keys"]:
+                self._display_target_keys()
+            case ["keys", target_value]:
+                target_key = _parse_target_key(target_value)
+                if target_key is None:
+                    print(f"Invalid Target Key: {target_value}")
+                else:
+                    self._display_target_keys(target_key)
+            case ["reveal"]:
+                self._reveal_target()
+            case ["reveal", target_value]:
+                target_key = _parse_target_key(target_value)
+                if target_key is None:
+                    print(f"Invalid Target Key: {target_value}")
+                else:
+                    self._reveal_target(target_key)
             case ["target"]:
                 self._display_target()
             case ["run", value]:
@@ -170,7 +202,8 @@ class ExperimentTerminal:
             "Commands: run instrument-id|experiment-id [target-key], "
             "instrument [instrument-id], instruments, experiment "
             "[experiment-id], experiments, report [run-id], reports, "
-            "dashboard, target, listen, shutdown report|dashboard, stop "
+            "dashboard, silhouette [target-key], target, keys [target-key], "
+            "reveal [target-key], listen, shutdown report|dashboard, stop "
             "report|dashboard"
         )
 
@@ -323,9 +356,13 @@ class ExperimentTerminal:
             message = self._receiver.receive()
             payload = message.payload
             self._display_message(message)
+            message_is_algebraic_reconstruction = (
+                message.msg_producer == ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER
+            )
 
             if (
                 isinstance(payload, ReconstructionCompletion)
+                and message_is_algebraic_reconstruction
                 and payload.run_id in pending
             ):
                 pending.remove(payload.run_id)
@@ -349,7 +386,7 @@ class ExperimentTerminal:
         entries = self._history.select_all(
             msg_topic=RECONSTRUCTION_MSG_TOPIC,
             msg_type=RECONSTRUCTION_COMPLETED_MSG_TYPE,
-            msg_producer="geometric-fusion",
+            msg_producer=ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER,
         )
         completions = tuple(
             entry.payload
@@ -390,6 +427,36 @@ class ExperimentTerminal:
 
     def _display_target(self) -> None:
         print(f"Hidden target: {session_target_key()}")
+
+    def _display_target_silhouette(
+        self, target: TargetReference = HIDDEN_TARGET
+    ) -> None:
+        resolved_target = resolve_target_reference(target)
+        print(render_bitmap(resolved_target.target.silhouette))
+
+    def _display_target_keys(
+        self, target_key: TargetKey | None = None
+    ) -> None:
+        if target_key is None:
+            target_key = session_target_key()
+
+        self._print_target_keys(target_key)
+
+    def _reveal_target(self, target: TargetReference = HIDDEN_TARGET) -> None:
+        resolved_target = resolve_target_reference(target)
+        description = target_source_description(resolved_target.key)
+        bitmap = decode_hidden_target(resolved_target.target)
+        rendering = render_bitmap(bitmap, cell_columns=2)
+        self._print_target_keys(resolved_target.key)
+        print(f"Catalog description: {description}\n")
+        print(rendering)
+
+    def _print_target_keys(self, target_key: TargetKey) -> None:
+        inner_image_key = bare_prepared_target_key(target_key)
+        print(f"Target key: {target_key}")
+
+        if inner_image_key is not None and inner_image_key != target_key:
+            print(f"Inner image key: {inner_image_key}")
 
     def _shutdown_service(self, service_name: str) -> None:
         service_producer = _SHUTDOWN_SERVICE_PRODUCERS.get(service_name)

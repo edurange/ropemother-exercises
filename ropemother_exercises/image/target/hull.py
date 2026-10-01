@@ -3,16 +3,11 @@
 
 """Fitted enclosing hulls for prepared inner bitmap figures."""
 
-import argparse
 import dataclasses
 import itertools
 import math
 import random
 
-from ropemother_exercises.image.application.render import (
-    ASCII_SHADES,
-    TerminalRenderer,
-)
 from ropemother_exercises.image.exceptions import InvalidHullInputError
 from ropemother_exercises.image.target.footprint import (
     Rect2D,
@@ -28,8 +23,6 @@ from ropemother_exercises.image.tomography.images import (
     Bitmap,
     Cell,
     ImageFrame,
-    bitmap_to_intensity_image,
-    overlay_bitmap_on_intensity_image,
 )
 
 
@@ -47,14 +40,13 @@ class EggShellHullProfile:
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class RockMatrixHullProfile:
-    padding_cells: float = 3.0
-    width_scale: float = 1.10
-    height_scale: float = 1.10
+    padding_cells: float = 2.0
+    irregularity: float = 1.0
+    minimum_side_count: int = 3
+    maximum_side_count: int = 8
+    surface_cut_count: int = 3
     rotation_degrees: float = 0.0
-    roughness: float = 0.22
-    stroke_radius: float = 0.75
     seed: int | None = 0
-    sample_count: int = 96
 
 
 def egg_shell_hull(
@@ -95,16 +87,140 @@ def rock_matrix_hull(
     if len(footprint_points) == 0:
         hull = Bitmap(frame=target.frame, filled_cells=())
     else:
-        path = _rock_matrix_path_for_footprint(
-            footprint_points, active_profile
+        filled_cells = _rock_matrix_cells_for_footprint(
+            footprint_points, target.frame, active_profile
         )
-        hull = _rasterize_closed_path_outline(
-            path=path,
-            frame=target.frame,
-            stroke_radius=active_profile.stroke_radius,
-        )
+        hull = Bitmap(frame=target.frame, filled_cells=filled_cells)
 
     return hull
+
+
+def _apply_rock_matrix_surface_cuts(
+    mass: set[Cell],
+    protected_cells: set[Cell],
+    profile: RockMatrixHullProfile,
+    rng: random.Random,
+) -> set[Cell]:
+    shaped_mass = set(mass)
+
+    for _ in range(profile.surface_cut_count):
+        boundary = sorted(_outer_mass_outline(shaped_mass))
+
+        if len(boundary) == 0:
+            break
+
+        anchor = rng.choice(boundary)
+        radius = rng.uniform(0.75, 1.75 + profile.irregularity)
+        cut = _surface_cut_cells(shaped_mass, anchor, radius, rng)
+        candidate = shaped_mass - cut
+
+        if not protected_cells <= candidate:
+            continue
+        if not _cells_are_four_connected(candidate):
+            continue
+        if not _cells_are_four_connected(_outer_mass_outline(candidate)):
+            continue
+
+        shaped_mass = candidate
+
+    return shaped_mass
+
+
+def _cells_are_four_connected(cells: set[Cell]) -> bool:
+    neighbor_offsets = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    pending = []
+    visited = set()
+
+    if len(cells) > 0:
+        start = next(iter(cells))
+        pending.append(start)
+        visited.add(start)
+
+    while len(pending) > 0:
+        cell = pending.pop()
+
+        for dx, dy in neighbor_offsets:
+            neighbor = Cell(cell.x + dx, cell.y + dy)
+
+            if neighbor not in cells:
+                continue
+            if neighbor in visited:
+                continue
+
+            visited.add(neighbor)
+            pending.append(neighbor)
+
+    return len(visited) == len(cells)
+
+
+def _convex_hull(points: tuple[Point2D, ...]) -> tuple[Point2D, ...]:
+    unique_points = sorted(set(points), key=lambda point: (point.x, point.y))
+    hull_points = list(unique_points)
+
+    if len(unique_points) > 1:
+        lower = []
+
+        for point in unique_points:
+            while len(lower) >= 2:
+                turn = _cross_product(lower[-2], lower[-1], point)
+
+                if turn > 0.0:
+                    break
+
+                lower.pop()
+
+            lower.append(point)
+
+        upper = []
+
+        for point in reversed(unique_points):
+            while len(upper) >= 2:
+                turn = _cross_product(upper[-2], upper[-1], point)
+
+                if turn > 0.0:
+                    break
+
+                upper.pop()
+
+            upper.append(point)
+
+        hull_points = lower[:-1] + upper[:-1]
+
+    return tuple(hull_points)
+
+
+def _cross_product(origin: Point2D, a: Point2D, b: Point2D) -> float:
+    ax = a.x - origin.x
+    ay = a.y - origin.y
+    bx = b.x - origin.x
+    by = b.y - origin.y
+    return ax * by - ay * bx
+
+
+def _egg_shell_path_for_bounds(
+    bounds: Rect2D, profile: EggShellHullProfile
+) -> tuple[Point2D, ...]:
+    if profile.sample_count < 8:
+        raise InvalidHullInputError("sample_count must be at least 8")
+    if profile.bottom_bulge < -0.75:
+        raise InvalidHullInputError("bottom_bulge is too negative")
+
+    center = Point2D(bounds.center.x, bounds.center.y + profile.y_bias)
+    radius_x = max(0.5, bounds.width / 2.0)
+    radius_y = max(0.5, bounds.height / 2.0)
+    points = []
+
+    for index in range(profile.sample_count):
+        angle = math.tau * index / profile.sample_count
+        vertical = math.sin(angle)
+        lower_portion = max(0.0, vertical)
+        width_factor = 1.0 + profile.bottom_bulge * lower_portion
+        x = center.x + radius_x * width_factor * math.cos(angle)
+        y = center.y + radius_y * vertical
+        points.append(Point2D(x, y))
+
+    points.append(points[0])
+    return tuple(points)
 
 
 def _egg_shell_path_for_footprint(
@@ -130,116 +246,161 @@ def _egg_shell_path_for_footprint(
     return rotate_points_around(local_path, anchor, rotation)
 
 
-def _egg_shell_path_for_bounds(
-    bounds: Rect2D, profile: EggShellHullProfile
-) -> tuple[Point2D, ...]:
-    if profile.sample_count < 8:
-        raise InvalidHullInputError("sample_count must be at least 8")
-    if profile.bottom_bulge < -0.75:
-        raise InvalidHullInputError("bottom_bulge is too negative")
+def _fit_rock_matrix_mass(
+    mass: set[Cell],
+    protected_cells: set[Cell],
+    frame: ImageFrame,
+    profile: RockMatrixHullProfile,
+    rng: random.Random,
+) -> set[Cell]:
+    working_region = set()
 
-    center = Point2D(bounds.center.x, bounds.center.y + profile.y_bias)
-    radius_x = max(0.5, bounds.width / 2.0)
-    radius_y = max(0.5, bounds.height / 2.0)
-    points = []
+    for cell in frame.cells():
+        if 0 < cell.x < frame.width - 1 and 0 < cell.y < frame.height - 1:
+            working_region.add(cell)
 
-    for index in range(profile.sample_count):
-        angle = math.tau * index / profile.sample_count
-        point = _egg_shell_point(
-            center=center,
-            radius_x=radius_x,
-            radius_y=radius_y,
-            angle=angle,
-            bottom_bulge=profile.bottom_bulge,
+    if not protected_cells <= working_region:
+        raise InvalidHullInputError(
+            "rock matrix protected footprint reaches the reserved border"
         )
-        points.append(point)
 
-    points.append(points[0])
-    return tuple(points)
+    fitted_mass = set(mass)
+    in_bounds_mass = fitted_mass & working_region
+
+    if not _cells_are_four_connected(in_bounds_mass):
+        raise InvalidHullInputError(
+            "rock matrix scaffold is disconnected inside the working region"
+        )
+
+    border_cells = fitted_mass - working_region
+
+    while len(border_cells) > 0:
+        side, side_cells = _select_border_side(border_cells, frame, rng)
+        candidate = _subtract_border_cut(
+            fitted_mass, side_cells, side, frame, profile, rng
+        )
+        candidate_border_cells = candidate - working_region
+        candidate_in_bounds = candidate & working_region
+        reduced_border = len(candidate_border_cells) < len(border_cells)
+        preserved_core = protected_cells <= candidate
+        connected = _cells_are_four_connected(candidate_in_bounds)
+
+        if not (reduced_border and preserved_core and connected):
+            candidate = fitted_mass - side_cells
+            candidate_border_cells = candidate - working_region
+
+        fitted_mass = candidate
+        border_cells = candidate_border_cells
+
+    return fitted_mass
 
 
-def _egg_shell_point(
-    center: Point2D,
-    radius_x: float,
-    radius_y: float,
-    angle: float,
-    bottom_bulge: float,
+def _intersect_support_lines(
+    first_normal: Point2D,
+    first_support: float,
+    second_normal: Point2D,
+    second_support: float,
 ) -> Point2D:
-    vertical = math.sin(angle)
-    lower_portion = max(0.0, vertical)
-    width_factor = 1.0 + bottom_bulge * lower_portion
-    x = center.x + radius_x * width_factor * math.cos(angle)
-    y = center.y + radius_y * vertical
+    determinant = (
+        first_normal.x * second_normal.y - first_normal.y * second_normal.x
+    )
+
+    if abs(determinant) < 1e-9:
+        raise InvalidHullInputError(
+            "rock matrix scaffold contains parallel adjacent sides"
+        )
+
+    x_numerator = (
+        second_normal.y * first_support - first_normal.y * second_support
+    )
+    y_numerator = (
+        first_normal.x * second_support - second_normal.x * first_support
+    )
+    x = x_numerator / determinant
+    y = y_numerator / determinant
+
     return Point2D(x, y)
 
 
-def _rock_matrix_path_for_footprint(
-    footprint_points: tuple[Point2D, ...], profile: RockMatrixHullProfile
-) -> tuple[Point2D, ...]:
-    if len(footprint_points) == 0:
-        raise InvalidHullInputError(
-            "cannot fit hull around an empty footprint"
-        )
+def _outer_mass_outline(mass: set[Cell]) -> set[Cell]:
+    outline = set()
 
-    rotation = math.radians(profile.rotation_degrees)
-    image_bounds = bounds_for_points(footprint_points)
-    anchor = image_bounds.center
-    local_footprint = rotate_points_around(footprint_points, anchor, -rotation)
-    local_bounds = bounds_for_points(local_footprint)
-    padded_bounds = expand_rect(local_bounds, profile.padding_cells)
-    fitted_bounds = scale_rect(
-        padded_bounds,
-        width_scale=profile.width_scale,
-        height_scale=profile.height_scale,
-    )
-    local_path = _rock_matrix_path_for_bounds(fitted_bounds, profile)
-    return rotate_points_around(local_path, anchor, rotation)
+    for cell in mass:
+        for dx, dy in itertools.product((-1, 0, 1), repeat=2):
+            if dx == 0 and dy == 0:
+                continue
+
+            neighbor = Cell(cell.x + dx, cell.y + dy)
+
+            if neighbor not in mass:
+                outline.add(cell)
+                break
+
+    return outline
 
 
-def _rock_matrix_path_for_bounds(
-    bounds: Rect2D, profile: RockMatrixHullProfile
-) -> tuple[Point2D, ...]:
-    if profile.sample_count < 8:
-        raise InvalidHullInputError("sample_count must be at least 8")
-    if profile.roughness < 0.0:
-        raise InvalidHullInputError("roughness must not be negative")
-
-    center = bounds.center
-    radius_x = max(0.5, bounds.width / math.sqrt(2.0))
-    radius_y = max(0.5, bounds.height / math.sqrt(2.0))
-    radius_factors = _rock_matrix_radius_factors(profile)
-    points = []
-
-    for index in range(profile.sample_count):
-        angle = math.tau * index / profile.sample_count
-        radius_factor = radius_factors[index]
-        x = center.x + radius_x * radius_factor * math.cos(angle)
-        y = center.y + radius_y * radius_factor * math.sin(angle)
-        points.append(Point2D(x, y))
-
-    points.append(points[0])
-    return tuple(points)
+def _point_for_cell_center(cell: Cell) -> Point2D:
+    return Point2D(cell.x + 0.5, cell.y + 0.5)
 
 
-def _rock_matrix_radius_factors(
-    profile: RockMatrixHullProfile,
-) -> tuple[float, ...]:
-    rng = random.Random(profile.seed)
-    raw_offsets = []
+def _point_in_polygon(point: Point2D, polygon: tuple[Point2D, ...]) -> bool:
+    crossings = 0
 
-    for _ in range(profile.sample_count):
-        raw_offsets.append(rng.uniform(0.0, profile.roughness))
+    if len(polygon) >= 3:
+        for first, second in zip(polygon, polygon[1:] + polygon[:1]):
+            crosses_scanline = (first.y > point.y) != (second.y > point.y)
 
-    factors = []
+            if not crosses_scanline:
+                continue
 
-    for index in range(profile.sample_count):
-        previous_offset = raw_offsets[index - 1]
-        current_offset = raw_offsets[index]
-        next_offset = raw_offsets[(index + 1) % profile.sample_count]
-        offset = (previous_offset + 2.0 * current_offset + next_offset) / 4.0
-        factors.append(1.0 + offset)
+            vertical_change = second.y - first.y
+            horizontal_change = second.x - first.x
+            scanline_offset = point.y - first.y
+            edge_fraction = scanline_offset / vertical_change
+            edge_x = first.x + edge_fraction * horizontal_change
 
-    return tuple(factors)
+            if point.x < edge_x:
+                crossings += 1
+
+    return crossings % 2 == 1
+
+
+def _point_survives_border_cut(
+    point: Point2D,
+    side: str,
+    frame: ImageFrame,
+    center: float,
+    half_span: float,
+    depth: float,
+    skew: float,
+) -> bool:
+    if side in ("top", "bottom"):
+        lateral_offset = point.x - center
+    else:
+        lateral_offset = point.y - center
+
+    if abs(lateral_offset) > half_span:
+        survives = True
+    else:
+        span_fraction = abs(lateral_offset) / half_span
+        central_strength = 1.0 - span_fraction * span_fraction
+        reach = depth * (0.35 + 0.65 * central_strength)
+        reach += skew * lateral_offset
+
+        if side == "top":
+            cut_limit = 0.5 + max(0.0, reach)
+            survives = point.y > cut_limit
+        elif side == "bottom":
+            cut_limit = frame.height - 0.5 - max(0.0, reach)
+            survives = point.y < cut_limit
+        elif side == "left":
+            cut_limit = 0.5 + max(0.0, reach)
+            survives = point.x > cut_limit
+        else:
+            cut_limit = frame.width - 0.5 - max(0.0, reach)
+            survives = point.x < cut_limit
+
+    return survives
 
 
 def _rasterize_closed_path_outline(
@@ -260,275 +421,228 @@ def _rasterize_closed_path_outline(
     return Bitmap(frame=frame, filled_cells=filled_cells)
 
 
-def _point_for_cell_center(cell: Cell) -> Point2D:
-    x, y = cell
-    return Point2D(x + 0.5, y + 0.5)
+def _rasterize_polygon_mass(
+    polygon: tuple[Point2D, ...], frame: ImageFrame
+) -> set[Cell]:
+    if len(polygon) < 3:
+        raise InvalidHullInputError(
+            "rock matrix polygon must have at least three points"
+        )
 
-
-def _inner_ellipse_center(args: argparse.Namespace) -> Point2D:
-    center_x = args.inner_center_x
-    center_y = args.inner_center_y
-
-    if center_x is None:
-        center_x = args.frame_width / 2.0
-    if center_y is None:
-        center_y = args.frame_height / 2.0
-
-    return Point2D(center_x, center_y)
-
-
-def _inner_ellipse_bitmap(args: argparse.Namespace) -> Bitmap:
-    if args.inner_radius_x <= 0.0:
-        raise InvalidHullInputError("inner_radius_x must be positive")
-    if args.inner_radius_y <= 0.0:
-        raise InvalidHullInputError("inner_radius_y must be positive")
-
-    frame = ImageFrame(width=args.frame_width, height=args.frame_height)
-    center = _inner_ellipse_center(args)
+    closed_polygon = polygon + (polygon[0],)
     filled_cells = set()
 
     for cell in frame.cells():
-        x, y = cell
-        dx = (x + 0.5 - center.x) / args.inner_radius_x
-        dy = (y + 0.5 - center.y) / args.inner_radius_y
-        distance = dx * dx + dy * dy
+        point = _point_for_cell_center(cell)
+        inside = _point_in_polygon(point, polygon)
+        distance = distance_to_polyline(point, closed_polygon)
 
-        if distance <= 1.0:
+        if inside or distance <= 0.51:
             filled_cells.add(cell)
 
-    return Bitmap(frame=frame, filled_cells=filled_cells)
+    return filled_cells
 
 
-def _interval_values(
-    start: float, stop: float, count: int
-) -> tuple[float, ...]:
-    if count < 1:
-        raise InvalidHullInputError("count must be at least 1")
+def _rock_matrix_cells_for_footprint(
+    footprint_points: tuple[Point2D, ...],
+    frame: ImageFrame,
+    profile: RockMatrixHullProfile,
+) -> set[Cell]:
+    if len(footprint_points) == 0:
+        raise InvalidHullInputError(
+            "cannot fit hull around an empty footprint"
+        )
+    if profile.padding_cells < 0.0:
+        raise InvalidHullInputError("padding_cells must not be negative")
+    if profile.irregularity < 0.0:
+        raise InvalidHullInputError("irregularity must not be negative")
+    if profile.minimum_side_count < 3:
+        raise InvalidHullInputError("minimum_side_count must be at least 3")
+    if profile.maximum_side_count < profile.minimum_side_count:
+        raise InvalidHullInputError(
+            "maximum_side_count must not be below minimum_side_count"
+        )
+    if profile.surface_cut_count < 0:
+        raise InvalidHullInputError("surface_cut_count must not be negative")
+    if frame.width < 3 or frame.height < 3:
+        raise InvalidHullInputError(
+            "rock matrix frame must have an empty outer border"
+        )
 
-    if count == 1:
-        values = (start,)
+    core_path = _convex_hull(footprint_points)
+    protected_cells = _rock_matrix_protected_cells(
+        core_path, frame, profile.padding_cells
+    )
+    rng = random.Random(profile.seed)
+    side_count = rng.randint(
+        profile.minimum_side_count, profile.maximum_side_count
+    )
+    scaffold = _rock_matrix_scaffold(core_path, side_count, profile, rng)
+    mass = _rasterize_polygon_mass(scaffold, frame)
+
+    if not protected_cells <= mass:
+        raise InvalidHullInputError(
+            "rock matrix scaffold does not contain protected footprint"
+        )
+
+    mass = _fit_rock_matrix_mass(mass, protected_cells, frame, profile, rng)
+    mass = _apply_rock_matrix_surface_cuts(mass, protected_cells, profile, rng)
+    outline = _outer_mass_outline(mass)
+
+    if not _cells_are_four_connected(outline):
+        raise InvalidHullInputError("rock matrix outline is not connected")
+
+    return outline
+
+
+def _rock_matrix_protected_cells(
+    core_path: tuple[Point2D, ...], frame: ImageFrame, padding: float
+) -> set[Cell]:
+    closed_core = core_path + (core_path[0],)
+    protected = set()
+
+    for cell in frame.cells():
+        point = _point_for_cell_center(cell)
+        inside = _point_in_polygon(point, core_path)
+        distance = distance_to_polyline(point, closed_core)
+
+        if inside or distance <= padding:
+            protected.add(cell)
+
+    return protected
+
+
+def _rock_matrix_scaffold(
+    core_path: tuple[Point2D, ...],
+    side_count: int,
+    profile: RockMatrixHullProfile,
+    rng: random.Random,
+) -> tuple[Point2D, ...]:
+    rotation = math.radians(profile.rotation_degrees)
+    phase_jitter = rng.uniform(-math.pi / side_count, math.pi / side_count)
+    phase = rotation + phase_jitter
+    normals = []
+    supports = []
+
+    for side_index in range(side_count):
+        angle = phase + math.tau * side_index / side_count
+        normal = Point2D(math.cos(angle), math.sin(angle))
+        extra = rng.uniform(0.0, 2.5 * profile.irregularity)
+        support = max(
+            point.x * normal.x + point.y * normal.y for point in core_path
+        )
+        normals.append(normal)
+        supports.append(support + profile.padding_cells + extra)
+
+    vertices = []
+
+    for side_index in range(side_count):
+        next_index = (side_index + 1) % side_count
+        vertex = _intersect_support_lines(
+            normals[side_index],
+            supports[side_index],
+            normals[next_index],
+            supports[next_index],
+        )
+        vertices.append(vertex)
+
+    return tuple(vertices)
+
+
+def _select_border_side(
+    border_cells: set[Cell], frame: ImageFrame, rng: random.Random
+) -> tuple[str, set[Cell]]:
+    sides = ["top", "bottom", "left", "right"]
+    cells_by_side = {side: set() for side in sides}
+
+    for cell in border_cells:
+        if cell.y == 0:
+            cells_by_side["top"].add(cell)
+        if cell.y == frame.height - 1:
+            cells_by_side["bottom"].add(cell)
+        if cell.x == 0:
+            cells_by_side["left"].add(cell)
+        if cell.x == frame.width - 1:
+            cells_by_side["right"].add(cell)
+
+    maximum = max(len(cells) for cells in cells_by_side.values())
+    candidate_sides = []
+
+    for side, cells in cells_by_side.items():
+        if len(cells) == maximum and maximum > 0:
+            candidate_sides.append(side)
+
+    if len(candidate_sides) == 0:
+        raise InvalidHullInputError(
+            "rock matrix mass has no detectable offending side"
+        )
+
+    side = rng.choice(candidate_sides)
+    return side, cells_by_side[side]
+
+
+def _subtract_border_cut(
+    mass: set[Cell],
+    side_cells: set[Cell],
+    side: str,
+    frame: ImageFrame,
+    profile: RockMatrixHullProfile,
+    rng: random.Random,
+) -> set[Cell]:
+    if len(side_cells) == 0:
+        raise InvalidHullInputError(
+            "rock matrix border cut has no cells on the selected side"
+        )
+
+    if side in ("top", "bottom"):
+        lateral_values = [cell.x + 0.5 for cell in side_cells]
     else:
-        step = (stop - start) / (count - 1)
-        values = tuple(start + step * index for index in range(count))
+        lateral_values = [cell.y + 0.5 for cell in side_cells]
 
-    return values
+    center = sum(lateral_values) / len(lateral_values)
+    center += rng.uniform(-1.0, 1.0)
+    half_span = rng.uniform(3.0, 6.0 + 2.0 * profile.irregularity)
+    depth = rng.uniform(1.5, 2.5 + 1.5 * profile.irregularity)
+    skew = rng.uniform(-0.30, 0.30)
+    candidate = set()
 
-
-def _egg_shell_parameter_variations(
-    args: argparse.Namespace,
-) -> tuple[tuple[float, float], ...]:
-    rotations = _interval_values(
-        args.rotation_start, args.rotation_stop, args.rotation_count
-    )
-    bottom_bulges = _interval_values(
-        args.bottom_bulge_start,
-        args.bottom_bulge_stop,
-        args.bottom_bulge_count,
-    )
-    variations = []
-
-    for rotation_degrees, bottom_bulge in itertools.product(
-        rotations, bottom_bulges
-    ):
-        variations.append((rotation_degrees, bottom_bulge))
-
-    return tuple(variations)
-
-
-def _egg_shell_profile_for_parameter_variation(
-    rotation_degrees: float, bottom_bulge: float, args: argparse.Namespace
-) -> EggShellHullProfile:
-    profile = EggShellHullProfile(
-        padding_cells=args.padding_cells,
-        width_scale=args.width_scale,
-        height_scale=args.height_scale,
-        y_bias=args.y_bias,
-        bottom_bulge=bottom_bulge,
-        rotation_degrees=rotation_degrees,
-        stroke_radius=args.stroke_radius,
-        sample_count=args.sample_count,
-    )
-    return profile
-
-
-def _rock_matrix_parameter_variations(
-    args: argparse.Namespace,
-) -> tuple[tuple[float, float], ...]:
-    rotations = _interval_values(
-        args.rotation_start, args.rotation_stop, args.rotation_count
-    )
-    roughness_values = _interval_values(
-        args.roughness_start, args.roughness_stop, args.roughness_count
-    )
-    variations = []
-
-    for rotation_degrees, roughness in itertools.product(
-        rotations, roughness_values
-    ):
-        variations.append((rotation_degrees, roughness))
-
-    return tuple(variations)
-
-
-def _rock_matrix_profile_for_parameter_variation(
-    rotation_degrees: float, roughness: float, args: argparse.Namespace
-) -> RockMatrixHullProfile:
-    profile = RockMatrixHullProfile(
-        padding_cells=args.padding_cells,
-        width_scale=args.width_scale,
-        height_scale=args.height_scale,
-        rotation_degrees=rotation_degrees,
-        roughness=roughness,
-        stroke_radius=args.stroke_radius,
-        seed=args.seed,
-        sample_count=args.sample_count,
-    )
-    return profile
-
-
-def _render_egg_shell_visual_check(args: argparse.Namespace) -> str:
-    frame = ImageFrame(width=args.frame_width, height=args.frame_height)
-    inner = _inner_ellipse_bitmap(args)
-    renderer = TerminalRenderer(
-        frame=frame, palette=ASCII_SHADES, cell_columns=args.cell_columns
-    )
-    sections = []
-
-    for rotation, bulge in _egg_shell_parameter_variations(args):
-        profile = _egg_shell_profile_for_parameter_variation(
-            rotation_degrees=rotation, bottom_bulge=bulge, args=args
+    for cell in mass:
+        point = _point_for_cell_center(cell)
+        survives_cut = _point_survives_border_cut(
+            point, side, frame, center, half_span, depth, skew
         )
-        hull = egg_shell_hull(inner, profile)
-        image = bitmap_to_intensity_image(hull, args.hull_value)
-        image = overlay_bitmap_on_intensity_image(
-            image, inner, args.inner_value
-        )
-        header = _egg_shell_visual_check_header(profile, args)
-        rendered = renderer.render(image)
-        section = f"{header}\n{rendered}"
-        sections.append(section)
 
-    return "\n\n".join(sections)
+        if survives_cut:
+            candidate.add(cell)
+
+    return candidate
 
 
-def _render_rock_matrix_visual_check(args: argparse.Namespace) -> str:
-    frame = ImageFrame(width=args.frame_width, height=args.frame_height)
-    inner = _inner_ellipse_bitmap(args)
-    renderer = TerminalRenderer(
-        frame=frame, palette=ASCII_SHADES, cell_columns=args.cell_columns
-    )
-    sections = []
+def _surface_cut_cells(
+    mass: set[Cell], anchor: Cell, radius: float, rng: random.Random
+) -> set[Cell]:
+    center_x = sum(cell.x + 0.5 for cell in mass) / len(mass)
+    center_y = sum(cell.y + 0.5 for cell in mass) / len(mass)
+    center = Point2D(center_x, center_y)
+    anchor_point = _point_for_cell_center(anchor)
+    dx = anchor_point.x - center.x
+    dy = anchor_point.y - center.y
+    length = math.hypot(dx, dy)
+    cut = set()
 
-    for rotation, roughness in _rock_matrix_parameter_variations(args):
-        profile = _rock_matrix_profile_for_parameter_variation(
-            rotation_degrees=rotation, roughness=roughness, args=args
-        )
-        hull = rock_matrix_hull(inner, profile)
-        image = bitmap_to_intensity_image(hull, args.hull_value)
-        image = overlay_bitmap_on_intensity_image(
-            image, inner, args.inner_value
-        )
-        header = _rock_matrix_visual_check_header(profile, args)
-        rendered = renderer.render(image)
-        section = f"{header}\n{rendered}"
-        sections.append(section)
+    if length > 0.0:
+        offset_scale = rng.uniform(0.2, 0.9) * radius / length
+        cut_x = anchor_point.x + dx * offset_scale
+        cut_y = anchor_point.y + dy * offset_scale
+        cut_center = Point2D(cut_x, cut_y)
 
-    return "\n\n".join(sections)
+        for cell in mass:
+            point = _point_for_cell_center(cell)
+            offset_x = point.x - cut_center.x
+            offset_y = point.y - cut_center.y
+            distance = math.hypot(offset_x, offset_y)
 
+            if distance <= radius:
+                cut.add(cell)
 
-def _egg_shell_visual_check_header(
-    profile: EggShellHullProfile, args: argparse.Namespace
-) -> str:
-    center = _inner_ellipse_center(args)
-    header = (
-        "hull_style=egg-shell "
-        "rotation={profile.rotation_degrees:.2f} "
-        "bottom_bulge={profile.bottom_bulge:.2f} "
-        "width_scale={profile.width_scale:.2f} "
-        "height_scale={profile.height_scale:.2f} "
-        "inner=ellipse(cx={center.x:.2f}, cy={center.y:.2f}, "
-        "rx={args.inner_radius_x:.2f}, ry={args.inner_radius_y:.2f})"
-    ).format(profile=profile, args=args, center=center)
-    return header
-
-
-def _rock_matrix_visual_check_header(
-    profile: RockMatrixHullProfile, args: argparse.Namespace
-) -> str:
-    center = _inner_ellipse_center(args)
-    header = (
-        "hull_style=rock-matrix "
-        "rotation={profile.rotation_degrees:.2f} "
-        "roughness={profile.roughness:.2f} "
-        "seed={profile.seed} "
-        "width_scale={profile.width_scale:.2f} "
-        "height_scale={profile.height_scale:.2f} "
-        "inner=ellipse(cx={center.x:.2f}, cy={center.y:.2f}, "
-        "rx={args.inner_radius_x:.2f}, ry={args.inner_radius_y:.2f})"
-    ).format(profile=profile, args=args, center=center)
-    return header
-
-
-def _build_target_hull_visual_check_arg_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Render target hull visual checks."
-    )
-    parser.add_argument(
-        "--hull-style",
-        choices=("egg-shell", "rock-matrix", "all"),
-        default="egg-shell",
-    )
-    parser.add_argument("--frame-width", type=int, default=32)
-    parser.add_argument("--frame-height", type=int, default=32)
-    parser.add_argument("--cell-columns", type=int, default=1)
-    parser.add_argument("--inner-center-x", type=float, default=None)
-    parser.add_argument("--inner-center-y", type=float, default=None)
-    parser.add_argument("--inner-radius-x", type=float, default=3.0)
-    parser.add_argument("--inner-radius-y", type=float, default=2.0)
-    parser.add_argument("--inner-value", type=float, default=0.6)
-    parser.add_argument("--hull-value", type=float, default=1.0)
-    parser.add_argument("--padding-cells", type=float, default=2.0)
-    parser.add_argument("--width-scale", type=float, default=1.05)
-    parser.add_argument("--height-scale", type=float, default=1.25)
-    parser.add_argument("--y-bias", type=float, default=0.0)
-    parser.add_argument("--stroke-radius", type=float, default=0.65)
-    parser.add_argument("--sample-count", type=int, default=96)
-    parser.add_argument("--rotation-start", type=float, default=-18.0)
-    parser.add_argument("--rotation-stop", type=float, default=18.0)
-    parser.add_argument("--rotation-count", type=int, default=3)
-    parser.add_argument("--bottom-bulge-start", type=float, default=0.0)
-    parser.add_argument("--bottom-bulge-stop", type=float, default=0.25)
-    parser.add_argument("--bottom-bulge-count", type=int, default=2)
-    parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--roughness-start", type=float, default=0.10)
-    parser.add_argument("--roughness-stop", type=float, default=0.35)
-    parser.add_argument("--roughness-count", type=int, default=2)
-    return parser
-
-
-def _render_target_hull_visual_check(args: argparse.Namespace) -> str:
-    if args.hull_style == "egg-shell":
-        output = _render_egg_shell_visual_check(args)
-    elif args.hull_style == "rock-matrix":
-        output = _render_rock_matrix_visual_check(args)
-    elif args.hull_style == "all":
-        sections = [
-            _render_egg_shell_visual_check(args),
-            _render_rock_matrix_visual_check(args),
-        ]
-        output = "\n\n".join(sections)
-    else:
-        raise InvalidHullInputError(f"unknown hull style: {args.hull_style}")
-
-    return output
-
-
-def _run_target_hull_visual_check_from_cli() -> None:
-    parser = _build_target_hull_visual_check_arg_parser()
-    args = parser.parse_args()
-    output = _render_target_hull_visual_check(args)
-    print(output)
-
-
-if __name__ == "__main__":
-    _run_target_hull_visual_check_from_cli()
+    return cut

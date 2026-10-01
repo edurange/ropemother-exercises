@@ -13,6 +13,7 @@ from ropemother.service import (
 )
 
 from ropemother_exercises.image.events import (
+    ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER,
     RECONSTRUCTION_REPORT_CLIENT_MSG_PRODUCER,
     RECONSTRUCTION_REPORT_MSG_TYPE,
     RECONSTRUCTION_REPORT_REQUEST_MSG_TYPE,
@@ -88,17 +89,18 @@ def serve_reconstruction_report_requests(
 
 
 def run_reconstruction_report_service() -> None:
-    serve_reconstruction_report_requests(
-        _geometric_fusion_reconstruction_report
-    )
+    serve_reconstruction_report_requests(_algebraic_reconstruction_report)
 
 
-def _geometric_fusion_reconstruction_report(
+def _algebraic_reconstruction_report(
     history: HistoryClient, completion: ReconstructionCompletion
 ) -> ReconstructionReport | None:
-    return reconstruction_report(
-        history, completion, reconstruction_producer="geometric-fusion"
+    report = reconstruction_report(
+        history,
+        completion,
+        reconstruction_producer=ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER,
     )
+    return report
 
 
 if __name__ == "__main__":

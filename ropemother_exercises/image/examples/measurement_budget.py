@@ -18,10 +18,10 @@ from ropemother_exercises.image.events import (
 )
 from ropemother_exercises.image.service.fusion import ImageFusionProcessor
 from ropemother_exercises.image.target.generator import create_hidden_target
-from ropemother_exercises.image.tomography.images import BinaryImage
-from ropemother_exercises.image.tomography.reconstruction import (
+from ropemother_exercises.image.tomography.fusion import (
     geometric_covered_intensity,
 )
+from ropemother_exercises.image.tomography.images import BinaryImage
 from ropemother_exercises.image.tomography.sensors import (
     angular_sensors_for_angles,
     ruler_angle_group,

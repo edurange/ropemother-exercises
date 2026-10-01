@@ -66,7 +66,8 @@ def session_target() -> HiddenTarget:
 
 
 def session_target_key() -> TargetKey:
-    return session_resolved_target().key
+    record = _load_session_target_record()
+    return TargetKey(record["target_key"])
 
 
 def resolve_target_reference(

@@ -38,12 +38,17 @@ from ropemother_exercises.image.exceptions import (
     ObservationRecordError,
     UnsupportedSensorDescriptionError,
 )
+from ropemother_exercises.image.tomography.evidence import (
+    CellCoefficient,
+    LinearMeasurement,
+    ReconstructionEvidence,
+)
 from ropemother_exercises.image.tomography.geometry import (
     GeometryScale,
     Point2D,
     ReferenceLength,
 )
-from ropemother_exercises.image.tomography.images import ImageFrame
+from ropemother_exercises.image.tomography.images import Cell, ImageFrame
 
 
 class AngularProjectionAdapter(TypeAdapter[AngularProjection, JSONRecord]):
@@ -215,7 +220,7 @@ class InstrumentCatalogEntryAdapter(
 
 
 class ImageObservationAdapter(TypeAdapter[ImageObservation, JSONRecord]):
-    """Map image observations to flat, frame-ordered JSON records."""
+    """Map image observations to frame-ordered JSON records."""
 
     domain_type = ImageObservation
     serial_type = dict
@@ -239,6 +244,14 @@ class ImageObservationAdapter(TypeAdapter[ImageObservation, JSONRecord]):
             "intensity_values": intensity_values,
             "coverage_values": coverage_values,
         }
+
+        if value.reconstruction_evidence is not None:
+            record["reconstruction_evidence"] = (
+                _encode_reconstruction_evidence(
+                    value.reconstruction_evidence, value.frame
+                )
+            )
+
         return record
 
     def decode(self, data: JSONRecord) -> ImageObservation:
@@ -270,12 +283,17 @@ class ImageObservationAdapter(TypeAdapter[ImageObservation, JSONRecord]):
             intensity_image[cell] = float(intensity_value)
             coverage_image[cell] = float(coverage_value)
 
+        reconstruction_evidence = _decode_optional_reconstruction_evidence(
+            data, frame
+        )
+
         observation = ImageObservation(
             run_id=RunID(int(data["run_id"])),
             observation_id=data["observation_id"],
             frame=frame,
             intensity_image=intensity_image,
             coverage_image=coverage_image,
+            reconstruction_evidence=reconstruction_evidence,
         )
         return observation
 
@@ -746,6 +764,113 @@ _SENSOR_DESCRIPTION_ADAPTERS: typing.Final = (
 class _ProjectionProfile:
     intensity_sums: tuple[float, ...]
     sample_counts: tuple[int, ...]
+
+
+def _decode_cell_coefficients(
+    data: JSONRecord, frame_cells: tuple[Cell, ...]
+) -> tuple[CellCoefficient, ...]:
+    cell_indices = data["cell_indices"]
+    coefficient_values = data["coefficients"]
+
+    if len(cell_indices) != len(coefficient_values):
+        raise ObservationRecordError(
+            "evidence cell indices and coefficients must have same length"
+        )
+
+    coefficients = []
+
+    for index_value, coefficient_value in zip(
+        cell_indices, coefficient_values, strict=True
+    ):
+        index = int(index_value)
+
+        if index < 0 or index >= len(frame_cells):
+            raise ObservationRecordError(
+                f"evidence cell index out of frame: {index}"
+            )
+
+        coefficient = CellCoefficient(
+            cell=frame_cells[index],
+            coefficient=float(coefficient_value),
+        )
+        coefficients.append(coefficient)
+
+    return tuple(coefficients)
+
+
+def _decode_optional_reconstruction_evidence(
+    data: JSONRecord, frame: ImageFrame
+) -> ReconstructionEvidence | None:
+    evidence_value = data.get("reconstruction_evidence")
+
+    if evidence_value is None:
+        return None
+
+    evidence_record = typing.cast(JSONRecord, evidence_value)
+    return _decode_reconstruction_evidence(evidence_record, frame)
+
+
+def _decode_reconstruction_evidence(
+    data: JSONRecord, frame: ImageFrame
+) -> ReconstructionEvidence:
+    measurements = []
+    frame_cells = frame.cells()
+
+    for measurement_value in data["measurements"]:
+        measurement_record = typing.cast(JSONRecord, measurement_value)
+        coefficients = _decode_cell_coefficients(
+            measurement_record, frame_cells
+        )
+        measurement = LinearMeasurement(
+            measured_intensity=float(measurement_record["measured_intensity"]),
+            strength=float(measurement_record["strength"]),
+            coefficients=coefficients,
+        )
+        measurements.append(measurement)
+
+    evidence = ReconstructionEvidence(
+        frame=frame, measurements=tuple(measurements)
+    )
+    return evidence
+
+
+def _encode_reconstruction_evidence(
+    evidence: ReconstructionEvidence, frame: ImageFrame
+) -> JSONRecord:
+    if evidence.frame != frame:
+        raise ObservationRecordError(
+            "reconstruction evidence must use observation frame"
+        )
+
+    frame_cells = frame.cells()
+    indices_by_cell = {cell: index for index, cell in enumerate(frame_cells)}
+    measurements = []
+
+    for measurement in evidence.measurements:
+        cell_indices = []
+        coefficient_values = []
+
+        for value in measurement.coefficients:
+            try:
+                index = indices_by_cell[value.cell]
+            except KeyError as error:
+                raise ObservationRecordError(
+                    f"evidence cell lies outside observation frame: "
+                    f"{value.cell}"
+                ) from error
+
+            cell_indices.append(index)
+            coefficient_values.append(value.coefficient)
+
+        record: JSONRecord = {
+            "measured_intensity": measurement.measured_intensity,
+            "strength": measurement.strength,
+            "cell_indices": cell_indices,
+            "coefficients": coefficient_values,
+        }
+        measurements.append(record)
+
+    return {"measurements": measurements}
 
 
 def _decode_projection_profile(data: JSONRecord) -> _ProjectionProfile:

@@ -11,22 +11,27 @@ from ropemother_exercises.image.application.render import (
     render_text_row,
     render_vertical_profile,
 )
-from ropemother_exercises.image.tomography.images import Bitmap, ImageFrame
+from ropemother_exercises.image.target.generator import (
+    diagnostic_x_target_bitmap,
+)
+from ropemother_exercises.image.tomography.algebraic import (
+    algebraic_reconstruction,
+)
+from ropemother_exercises.image.tomography.back_projection import (
+    image_observation_from_angular_projection,
+    normalize_projection,
+)
+from ropemother_exercises.image.tomography.images import Bitmap
 from ropemother_exercises.image.tomography.measurements import (
     ProjectionRegions,
     measure_angular_projection,
     projection_strips,
 )
-from ropemother_exercises.image.tomography.reconstruction import (
-    geometric_covered_intensity,
-    image_observation_from_angular_projection,
-    normalize_projection,
-)
 
 
 def run_reconstruction_explanation(target: Bitmap | None = None) -> None:
     if target is None:
-        target = _example_target()
+        target = diagnostic_x_target_bitmap()
 
     frame = target.frame
     edge_bin_count = max(frame.width, frame.height)
@@ -77,10 +82,8 @@ def run_reconstruction_explanation(target: Bitmap | None = None) -> None:
     orthogonals = (observation_0, observation_90)
     orthogonals_and_diagonals = (*orthogonals, observation_45, observation_135)
 
-    orthogonal_reconstruction = geometric_covered_intensity(
-        frame, *orthogonals
-    )
-    four_angle_reconstruction = geometric_covered_intensity(
+    orthogonal_reconstruction = algebraic_reconstruction(frame, *orthogonals)
+    four_angle_reconstruction = algebraic_reconstruction(
         frame, *orthogonals_and_diagonals
     )
 
@@ -196,23 +199,6 @@ def run_reconstruction_explanation(target: Bitmap | None = None) -> None:
         f"{down_arrow}\n"
         f"{four_angle_block}"
     )
-
-
-def _example_target() -> Bitmap:
-    frame = ImageFrame(width=32, height=32)
-    filled_cells = []
-
-    for cell in frame.cells():
-        inside_x = 4 <= cell.x <= 27
-        inside_y = 4 <= cell.y <= 27
-        on_forward_diagonal = abs(cell.x - cell.y) <= 1
-        on_reverse_diagonal = abs(cell.x + cell.y - 31) <= 1
-
-        if inside_x and inside_y:
-            if on_forward_diagonal or on_reverse_diagonal:
-                filled_cells.append(cell)
-
-    return Bitmap(frame=frame, filled_cells=filled_cells)
 
 
 def _image_bin_span(regions: ProjectionRegions) -> tuple[int, int]:

@@ -18,9 +18,15 @@ from ropemother_exercises.image import (
     create_reconstruction_report_client,
     evenly_spaced_angles,
     perspective_sensors_for_bearings,
+    render_bitmap,
     render_intensity_image,
+    render_quadrant_bitmap,
     ruler_angle_group,
     ruler_fraction_group,
+    threshold_intensity_image_by_fraction,
+)
+from ropemother_exercises.image.events import (
+    ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER,
 )
 from ropemother_exercises.image.target.session import session_resolved_target
 
@@ -66,7 +72,10 @@ def show_workspace() -> None:
             "ruler_angle_group",
             "ruler_fraction_group",
             "close_run_input",
+            "render_bitmap",
             "render_intensity_image",
+            "render_quadrant_bitmap",
+            "threshold_intensity_image_by_fraction",
             "IMAGE_RADIUS_UNIT_LENGTH",
             "PIXEL_UNIT_LENGTH",
         ),
@@ -129,14 +138,14 @@ if __name__ == "__main__":
     frame = target.frame
     edge_bin_count = max(frame.width, frame.height)
     samples_per_sensor = 512
-    fusion_name = "geometric-fusion"
+    reconstruction_name = ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER
 
     bus = connect_image_client_to_message_bus()
     report_client = create_reconstruction_report_client(bus)
 
     run_receiver = bus.subscribe(
         msg_topic=RECONSTRUCTION_MSG_TOPIC,
-        msg_producer=fusion_name,
+        msg_producer=reconstruction_name,
         msg_type=(
             IMAGE_RECONSTRUCTED_MSG_TYPE,
             RECONSTRUCTION_COMPLETED_MSG_TYPE,

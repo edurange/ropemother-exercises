@@ -34,14 +34,12 @@ include = ["ropemother_exercises*"]
 ]
 
 [project.optional-dependencies]
-pillow = [
-    "pillow",
-]
 test = [
     "pytest",
 ]
 dev = [
     "black",
+    "pillow",
     "pylint",
     "pytest",
 ]

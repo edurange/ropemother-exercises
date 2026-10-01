@@ -8,6 +8,9 @@ import typing
 
 from ropemother.util import TypedID
 
+from ropemother_exercises.image.tomography.evidence import (
+    ReconstructionEvidence,
+)
 from ropemother_exercises.image.tomography.geometry import (
     Point2D,
     ReferenceLength,
@@ -19,6 +22,9 @@ from ropemother_exercises.image.tomography.images import (
 
 type TrialDescription = InstrumentDescription | ExperimentDescription
 
+ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER: typing.Final[str] = (
+    "algebraic-reconstruction"
+)
 IDENTITY_CLIENT_MSG_PRODUCER: typing.Final[str] = "image-identity-client"
 IDENTITY_SERVICE_MSG_PRODUCER: typing.Final[str] = "image-identity-service"
 IMAGE_CLIENT_MSG_PRODUCER: typing.Final[str] = "image-client"
@@ -110,6 +116,7 @@ class ImageObservation:
     frame: ImageFrame
     intensity_image: IntensityImage
     coverage_image: IntensityImage
+    reconstruction_evidence: ReconstructionEvidence | None = None
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)

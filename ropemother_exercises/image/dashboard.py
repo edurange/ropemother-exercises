@@ -12,6 +12,7 @@ from ropemother_exercises.image.application.render import (
     render_text_table,
 )
 from ropemother_exercises.image.events import (
+    ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER,
     IMAGE_RECONSTRUCTED_MSG_TYPE,
     PROJECTION_MSG_TOPIC,
     RECONSTRUCTION_COMPLETED_MSG_TYPE,
@@ -42,7 +43,7 @@ def dashboard_report(history: HistoryClient) -> DashboardReport:
 
 def render_dashboard(history: HistoryClient) -> str:
     entries = dashboard_entries(
-        history, reconstruction_producer="geometric-fusion"
+        history, reconstruction_producer=ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER
     )
 
     if not entries:
@@ -52,22 +53,21 @@ def render_dashboard(history: HistoryClient) -> str:
 
 
 def render_dashboard_index(*entries: DashboardEntry) -> str:
-    headings = (
-        ("run", "reconstruction", "sensors", "measurements"),
-        ("  target",),
-    )
-    table_entries = tuple(
-        (
-            (
-                render_run_id(entry.run_id),
-                entry.reconstruction_id,
-                str(entry.sensor_count),
-                str(entry.measurement_count),
-            ),
-            (f"  {entry.target_key}",),
+    first_line_headings = ("run", "reconstruction", "sensors", "measurements")
+    second_line_headings = ("  target",)
+    headings = (first_line_headings, second_line_headings)
+
+    table_entries = []
+    for entry in entries:
+        first_line = (
+            render_run_id(entry.run_id),
+            entry.reconstruction_id,
+            str(entry.sensor_count),
+            str(entry.measurement_count),
         )
-        for entry in entries
-    )
+        second_line = (f"  {entry.target_key}",)
+        table_entry = (first_line, second_line)
+        table_entries.append(table_entry)
     return render_text_table(headings, table_entries)
 
 

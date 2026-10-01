@@ -7,7 +7,9 @@ import random
 import typing
 
 from ropemother_exercises.image.exceptions import InvalidBitmapError
-from ropemother_exercises.image.target.bitmap_assets import load_bitmap_asset
+from ropemother_exercises.image.target.bitmap_assets import (
+    load_prepared_bitmap_sources,
+)
 from ropemother_exercises.image.target.hidden import HiddenTarget
 from ropemother_exercises.image.target.hull import (
     EggShellHullProfile,
@@ -21,25 +23,20 @@ from ropemother_exercises.image.tomography.images import (
     ImageFrame,
 )
 
-_PREPARED_INNER_ASSET_ID: typing.Final[str] = (
-    "Software_Warning_Sign_Circle_Question_Mark_Help"
-)
+_DEFAULT_PREPARED_SOURCE_INDEX: typing.Final[int] = 70
 
 
 def demo_target_bitmap() -> Bitmap:
-    frame = ImageFrame(width=32, height=32)
-    inner = load_bitmap_asset(_PREPARED_INNER_ASSET_ID)
-    placed_inner = _center_bitmap_in_frame(inner, frame)
+    inner = prepared_target_bitmap(_DEFAULT_PREPARED_SOURCE_INDEX)
     profile = EggShellHullProfile(
         padding_cells=3.0,
         width_scale=1.05,
         height_scale=1.10,
         bottom_bulge=0.15,
-        stroke_radius=0.65,
         sample_count=96,
     )
-    hull = egg_shell_hull(placed_inner, profile)
-    return _compose_target(placed_inner, hull)
+    hull = egg_shell_hull(inner, profile)
+    return _compose_target(inner, hull)
 
 
 def chamfered_target_bitmap() -> Bitmap:
@@ -64,32 +61,63 @@ def chamfered_target_bitmap() -> Bitmap:
     return Bitmap(frame=frame, filled_cells=filled_cells)
 
 
-def tutorial_target_bitmap(seed: int | str | None = None) -> Bitmap:
-    return tutorial_target_bitmap_from_asset(_PREPARED_INNER_ASSET_ID, seed)
+def diagnostic_x_target_bitmap() -> Bitmap:
+    frame = ImageFrame(width=32, height=32)
+    filled_cells = []
+
+    for cell in frame.cells():
+        inside_x = 4 <= cell.x <= 27
+        inside_y = 4 <= cell.y <= 27
+        on_forward_diagonal = abs(cell.x - cell.y) <= 1
+        on_reverse_diagonal = abs(cell.x + cell.y - 31) <= 1
+
+        if inside_x and inside_y:
+            if on_forward_diagonal or on_reverse_diagonal:
+                filled_cells.append(cell)
+
+    return Bitmap(frame=frame, filled_cells=filled_cells)
 
 
-def tutorial_target_bitmap_from_asset(
-    asset_id: str, seed: int | str | None = None
+def prepared_target_bitmap(source_index: int) -> Bitmap:
+    sources = load_prepared_bitmap_sources()
+
+    if source_index < 0 or source_index >= len(sources):
+        raise InvalidBitmapError(
+            f"unknown prepared bitmap source index: {source_index}"
+        )
+
+    frame = ImageFrame(width=32, height=32)
+    return _center_bitmap_in_frame(sources[source_index].bitmap, frame)
+
+
+def egg_shell_target_bitmap(
+    source_index: int, seed: int | str | None = None
 ) -> Bitmap:
     rng = random.Random(seed)
-    frame = ImageFrame(width=32, height=32)
-    inner = load_bitmap_asset(asset_id)
-    centered_inner = _center_bitmap_in_frame(inner, frame)
+    centered_inner = prepared_target_bitmap(source_index)
     placed_inner = _randomly_place_inner(centered_inner, rng, max_offset=1)
     profile = _tutorial_hull_profile(rng)
     hull = egg_shell_hull(placed_inner, profile)
     return _compose_target(placed_inner, hull)
 
 
-def practice_target_bitmap(seed: int | str | None = None) -> Bitmap:
+def rock_matrix_target_bitmap(
+    source_index: int, seed: int | str | None = None
+) -> Bitmap:
     rng = random.Random(seed)
-    frame = ImageFrame(width=32, height=32)
-    inner = load_bitmap_asset(_PREPARED_INNER_ASSET_ID)
-    centered_inner = _center_bitmap_in_frame(inner, frame)
+    centered_inner = prepared_target_bitmap(source_index)
     placed_inner = _randomly_place_inner(centered_inner, rng, max_offset=2)
     profile = _practice_hull_profile(rng)
     hull = rock_matrix_hull(placed_inner, profile)
     return _compose_target(placed_inner, hull)
+
+
+def tutorial_target_bitmap(seed: int | str | None = None) -> Bitmap:
+    return egg_shell_target_bitmap(_DEFAULT_PREPARED_SOURCE_INDEX, seed)
+
+
+def practice_target_bitmap(seed: int | str | None = None) -> Bitmap:
+    return rock_matrix_target_bitmap(_DEFAULT_PREPARED_SOURCE_INDEX, seed)
 
 
 def create_hidden_target(seed: int | str | None = None) -> HiddenTarget:
@@ -104,7 +132,6 @@ def _tutorial_hull_profile(rng: random.Random) -> EggShellHullProfile:
         y_bias=rng.uniform(-0.10, 0.10),
         bottom_bulge=rng.uniform(0.06, 0.24),
         rotation_degrees=rng.uniform(-8.0, 8.0),
-        stroke_radius=0.65,
         sample_count=96,
     )
     return profile
@@ -112,14 +139,13 @@ def _tutorial_hull_profile(rng: random.Random) -> EggShellHullProfile:
 
 def _practice_hull_profile(rng: random.Random) -> RockMatrixHullProfile:
     profile = RockMatrixHullProfile(
-        padding_cells=rng.uniform(0.8, 1.5),
-        width_scale=rng.uniform(1.00, 1.08),
-        height_scale=rng.uniform(1.00, 1.10),
-        rotation_degrees=rng.uniform(-12.0, 12.0),
-        roughness=rng.uniform(0.08, 0.18),
-        stroke_radius=0.65,
+        padding_cells=rng.uniform(1.7, 2.5),
+        irregularity=rng.triangular(0.65, 1.70, 1.20),
+        minimum_side_count=3,
+        maximum_side_count=8,
+        surface_cut_count=rng.randint(2, 5),
+        rotation_degrees=rng.uniform(-15.0, 15.0),
         seed=rng.randrange(2**32),
-        sample_count=96,
     )
     return profile
 

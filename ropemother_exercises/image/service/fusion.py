@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # ropemother_exercises/image/service/fusion.py
 
-"""Image-fusion processor and prepared application entry point."""
+"""Image-fusion processor and geometric-fusion service entry point."""
 
 import collections.abc
 
@@ -30,11 +30,11 @@ from ropemother_exercises.image.formats import (
     IMAGE_PORTABLE_FORMATS,
     RECONSTRUCTION_COMPLETION_FORMAT,
 )
-from ropemother_exercises.image.tomography.images import IntensityImage
-from ropemother_exercises.image.tomography.reconstruction import (
+from ropemother_exercises.image.tomography.fusion import (
     average_coverage,
     geometric_covered_intensity,
 )
+from ropemother_exercises.image.tomography.images import IntensityImage
 
 
 class ImageFusionProcessor:

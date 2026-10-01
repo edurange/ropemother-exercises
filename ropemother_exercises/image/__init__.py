@@ -18,7 +18,9 @@ from ropemother_exercises.image.application.ranking import (
     reconstruction_smoothness,
 )
 from ropemother_exercises.image.application.render import (
+    render_bitmap,
     render_intensity_image,
+    render_quadrant_bitmap,
     render_reconstructions,
 )
 from ropemother_exercises.image.dashboard import (
@@ -68,17 +70,20 @@ from ropemother_exercises.image.tomography.images import (
     Bitmap,
     Cell,
     ImageFrame,
+    threshold_intensity_image_by_fraction,
 )
 from ropemother_exercises.image.tomography.measurements import (
     measure_angular_projection,
 )
-from ropemother_exercises.image.tomography.reconstruction import (
+from ropemother_exercises.image.tomography.back_projection import (
     angular_back_projection,
+    image_observation_from_angular_projection,
+    normalize_projection,
+)
+from ropemother_exercises.image.tomography.fusion import (
     average_covered_intensity,
     average_intensity,
     geometric_covered_intensity,
-    image_observation_from_angular_projection,
-    normalize_projection,
 )
 from ropemother_exercises.image.tomography.sensors import (
     AngularSensor,
@@ -156,11 +161,14 @@ __all__ = [
     "perspective_sensors_for_bearings",
     "reconstruction_contrast",
     "reconstruction_smoothness",
+    "render_bitmap",
     "render_dashboard",
     "render_dashboard_index",
     "render_intensity_image",
+    "render_quadrant_bitmap",
     "render_reconstruction_report",
     "render_reconstructions",
     "ruler_angle_group",
     "ruler_fraction_group",
+    "threshold_intensity_image_by_fraction",
 ]

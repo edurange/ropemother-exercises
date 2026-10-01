@@ -1,6 +1,7 @@
-# Ropemother Exercises
+# `ropemother-exercises`
 
-## Before you begin
+
+## Orientation and Setup
 
 These are hands-on exercises with the `ropemother` Python package. The first section is a guided image-reconstruction exercise and can be completed on its own. Later sections work through the messaging model in more detail with smaller examples in which participants send, receive, and process messages directly.
 
@@ -62,7 +63,7 @@ The exercises use more than one terminal. In each new terminal, return to the to
 
 [README.md](README.md) contains fuller repository setup and project information. The instructions here contain the setup needed to begin the introductory activity.
 
-### What you will do
+### What You Will Do
 
 In the opening activity, you run a small image-reconstruction program. It simulates partial observations of a hidden black-and-white image and combines them into an estimate you can inspect. You add sensor sources, complete runs and request reports, inspect the same completed work from a separate command, then edit and restart one reporting service without restarting the rest.
 
@@ -83,7 +84,7 @@ Open two terminal windows or tabs.
 - Use the **application terminal** for the host and reporting services that remain running, and for the short `./image` commands used later.
 - Use the **workspace terminal** for the interactive Python session used to make sensor measurements.
 
-### 1. Start the image application
+### 1. Start the Image Application
 
 The image application makes three related roles visible at startup. The **host** is the long-running program that starts the application's message-bus broker and its core reconstruction services. The **broker** accepts published messages and delivers them to matching subscribers. A **service** is a long-running application participant that performs one job while communicating through that broker.
 
@@ -116,7 +117,7 @@ Leave these processes running and switch to the workspace terminal.
 
 Run the same complete `export ROPEMOTHER_CONNECTION_DESCRIPTOR=...` command in the workspace terminal. Each terminal has its own shell, so the descriptor must also be available there before starting a program that connects to the application.
 
-### 2. Open the interactive image workspace
+### 2. Open the Interactive Image Workspace
 
 The interactive workspace provides the sensing side of the running application: it prepares two sensor sources, starts a reconstruction run, and leaves the Python prompt connected so additional measurements can be made.
 
@@ -128,7 +129,15 @@ python -i -m ropemother_exercises.image.workspace
 
 The `-i` option runs the workspace setup and then leaves the Python interpreter open at a `>>>` prompt. The setup prepares sensors at 0° and 90°, orthogonal (or perpendicular) directions, and makes one measurement with each. The workspace first prints the stable key for this session's hidden target, then the reconstruction from those two sensor views. The key appears after `Hidden target:`; the exact compact value varies with the selected target.
 
-A target key names a supported target reproducibly without displaying the bitmap. Keep the key if you want to compare work with another participant later; a fresh application can deliberately load the same target by key.
+A target key names a supported target reproducibly without displaying the bitmap. Keep the key if you want to return to the same target later or compare work with another participant; a fresh application can deliberately load the same target by key.
+
+Before adding another sensor, look at the hidden target's silhouette:
+
+```pycon
+>>> print(render_bitmap(target.silhouette))
+```
+
+The silhouette shows the target's outer shape while the image inside remains hidden. The objective is to identify that hidden image from one-dimensional projections taken from different angles, like a simplified form of tomography or X-ray imaging.
 
 > A **run** is one reconstruction attempt built from a group of sensor measurements.
 
@@ -142,7 +151,7 @@ Leave the interpreter open. At any point, `show_workspace()` lists the prepared 
 >>> show_workspace()
 ```
 
-### 3. Add a 45° sensor
+### 3. Add a 45° Sensor
 
 The workspace already has `bus`, the connection this interpreter uses to join the running application's message bus. Passing that connection to `sensor.attach(bus)` connects a sensor to the same application.
 
@@ -176,19 +185,19 @@ Make one measurement:
 
 The sensor source measures the concealed target using the 45° sensor settings and sends the resulting observation through the message bus. The reconstruction processor is already receiving sensor observations there, so the new evidence contributes to the open reconstruction run.
 
-The prepared `run_receiver` waits for reconstruction results from the `geometric-fusion` processor. Receive the next result and inspect the three labels attached to its message:
+The prepared `run_receiver` waits for reconstruction results. Receive the next result and inspect the three labels attached to its message:
 
 ```pycon
 >>> message = run_receiver.receive()
 >>> message.msg_topic
 'image.reconstruction'
 >>> message.msg_producer
-'geometric-fusion'
+'algebraic-reconstruction'
 >>> message.msg_type
 'image-reconstructed'
 ```
 
-For this message, the **topic** `image.reconstruction` groups it with reconstruction traffic, the **producer** `geometric-fusion` identifies the processor that sent it, and the **message type** `image-reconstructed` identifies it as an updated reconstruction. Those are the values `run_receiver` uses to wait for this reconstruction traffic rather than unrelated application messages.
+For this message, the **topic** `image.reconstruction` groups it with reconstruction traffic, the **producer** `algebraic-reconstruction` identifies the processor that sent it, and the **message type** `image-reconstructed` identifies it as an updated reconstruction. Those are the values `run_receiver` uses to wait for this reconstruction traffic rather than unrelated application messages.
 
 The reconstruction result is carried as the message's **payload**:
 
@@ -199,9 +208,9 @@ The reconstruction result is carried as the message's **payload**:
 
 At this point, the useful distinction is concrete: the topic, producer, and message type identify the reconstruction message that arrived, while the payload contains the reconstruction itself.
 
-Adding the 45° measurement changed the sensing side of the running application: another sensor definition and source were added, and another observation entered the run. The reconstruction processor was neither edited nor restarted. It was already receiving this kind of observation through the message bus, so accepting evidence from the new sensor did not require a corresponding change to the reconstruction code.
+Adding the 45° measurement changed the sensing side of the running application: another sensor definition and source were added, and another observation entered the run. The reconstruction processor was neither edited nor restarted. It was already receiving this kind of sensor evidence through the message bus, so accepting evidence from the new sensor did not require a corresponding change to the reconstruction code.
 
-### 4. Add the other diagonal
+### 4. Add the Other Diagonal
 
 Apply the same sensor settings at 135°:
 
@@ -226,7 +235,7 @@ print(render_intensity_image(reconstruction.intensity_image, frame))
 
 The open run now contains observations from 0°, 45°, 90°, and 135°. The 135° source participates in the same way as the 45° source: it sends another sensor observation through the message bus, and the unchanged reconstruction processor incorporates that observation into another reconstruction.
 
-### 5. Complete the four-angle run
+### 5. Complete the Four-Angle Run
 
 The application has produced an updated reconstruction after each measurement, but the most recent result *so far* is not automatically the final one. A pause in arriving messages does not prove that no more measurements will be sent.
 
@@ -242,7 +251,7 @@ Tell the application explicitly that no more sensor input belongs to this run, t
 
 `close_run_input(bus)` establishes the end of the run's input. It also records which target the run used; because no target is named here, that is the session's hidden target identified by `target_key`. The `'reconstruction-completed'` message then identifies the reconstruction that belongs to that finished run. This explicit end matters whenever later work needs to distinguish “nothing else has arrived yet” from “nothing else belongs to this activity.” Later exercises return to that distinction in other problem domains.
 
-### 6. Ask the report service about the completed run
+### 6. Ask the Report Service About the Completed Run
 
 The workspace already has `report_client`, a prepared object for making requests to the reconstruction-report service. Request a report for the completed run:
 
@@ -256,11 +265,11 @@ The workspace already has `report_client`, a prepared object for making requests
 
 Here `call()` sends the completed-run information to the reporting service and waits for the corresponding answer. The reply payload is the completed reconstruction report.
 
-The report includes the completed run and a rendering of its reconstruction. For example, it can begin with `Run: trial-1` and `Reconstruction: reconstruction-...`, followed by the reconstructed image.
+The report begins with the run identifier, the concealed target key, and the reconstruction identifier, followed by the full reconstruction rendering. The target key should be the same value shown as `target_key` in the workspace, so the report carries enough identity to associate this result with the concealed target without revealing that target.
 
-`trial-1` is the application's identifier for this particular run. The exact reconstruction identifier and rendered pixels vary with the prepared target.
+The exact run identifier, target key, reconstruction identifier, and rendered pixels vary with the current application session and selected target.
 
-### 7. Prepare four additional sensor angles
+### 7. Prepare Four Additional Sensor Angles
 
 The first completed run used four viewing directions: 0°, 45°, 90°, and 135°. The second run will keep those directions and add the four directions between them, giving eight evenly spaced views. The comparison uses the same sensor measurement settings while gathering observations from a broader set of directions. Repeating the same construction and attachment pattern for four more sensors also makes a practical question visible: how much of that routine messaging setup has to be written out individually?
 
@@ -302,7 +311,7 @@ for sensor in additional_sensors:
 
 Message-based applications commonly provide this kind of support for repeated participant setup. Helpers and ordinary application code can construct and connect groups of participants without changing the messaging relationships those participants use.
 
-### 8. Reuse the existing sources in an eight-angle run
+### 8. Reuse the Existing Sources in an Eight-Angle Run
 
 The four sensor sources used in the first run are still attached to the bus, and the previous step attached four more. The second run can use all eight sources together without replacing or reconfiguring the original four. Collect the existing and additional sources into one tuple:
 
@@ -363,11 +372,30 @@ The first report used four viewing directions; the second used eight. The edge r
 
 The second run reused the four sensor sources that were already attached and added four more alongside them. The reconstruction processor continued receiving the same kind of sensor-observation messages, so adding sources did not require a corresponding change to the reconstruction processor. The helper and loops reduced repeated setup and triggering; they did not change how those sources communicate with reconstruction.
 
-### 9. Inspect the completed work from another client
+### 9. Inspect the Completed Work from Another Client
 
 Leave the Python interpreter open in the workspace terminal. No further command is needed there for this comparison; switch to the application terminal.
 
 Earlier, `report_client` was a prepared client object inside the workspace interpreter. The repository also provides `./image`, a standalone command-line client for the same running image application. Each invocation starts a new Python program, connects to the application, performs one requested operation, prints the result, and exits. That new process does not share the variables or Python objects in the workspace interpreter.
+
+In the workspace, `render_bitmap(target.silhouette)` rendered the silhouette for the current target. The standalone client provides the same view, along with commands for retrieving the target's key information:
+
+```sh
+./image silhouette
+./image target
+./image keys
+```
+
+`silhouette` renders the target's outer shape. `target` prints the current session's target key. `keys` prints the target key and, when there is one, its related inner-image key without displaying either image.
+
+If you have another target key—for example, one saved from an earlier session or received from another participant—you can supply it to commands that accept a target key:
+
+```sh
+./image silhouette TARGET_KEY
+./image keys TARGET_KEY
+```
+
+> **Optional spoiler:** After comparing the reconstructions, `./image reveal` displays the exact hidden target. `./image reveal TARGET_KEY` displays another supported target whose key you already have.
 
 The workspace created both completed reconstruction runs. Now ask the running application for that completed work from a process that did not create either run. Run the combined report command:
 
@@ -397,16 +425,16 @@ The image host provides the history service for this application. The reporting 
 
 For this exercise, that history lasts for the lifetime of the image application host. It is kept in memory rather than saved as persistent run data on the filesystem, so stopping the host clears it. That lifetime is a choice made by this exercise application's setup, not a general property of `ropemother`, message history, or message-based design.
 
-### 10. Change and restart the dashboard
+### 10. Change and Restart the Dashboard
 
 Suppose someone using the report wants the completed runs listed in the opposite order. That changes how the existing results are presented, not how the sensor measurements are made or how the reconstructions are computed. The next step changes only the dashboard and tests whether the rest of the application and its completed work can remain in place.
 
-Open `ropemother_exercises/image/dashboard.py`. At lines 43–51, `render_dashboard()` asks `dashboard_entries()` for the completed reconstruction entries and passes them to `render_dashboard_index()`:
+Open `ropemother_exercises/image/dashboard.py`. At lines 44–52, `render_dashboard()` asks `dashboard_entries()` for the completed reconstruction entries and passes them to `render_dashboard_index()`:
 
 ```python
 def render_dashboard(history: HistoryClient) -> str:
     entries = dashboard_entries(
-        history, reconstruction_producer="geometric-fusion"
+        history, reconstruction_producer=ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER
     )
 
     if not entries:
@@ -417,12 +445,12 @@ def render_dashboard(history: HistoryClient) -> str:
 
 The final line passes the entries in their current order. Change only that call so `render_dashboard_index()` receives `reversed(entries)` instead.
 
-After the edit, lines 43–51 should read:
+After the edit, lines 44–52 should read:
 
 ```python
 def render_dashboard(history: HistoryClient) -> str:
     entries = dashboard_entries(
-        history, reconstruction_producer="geometric-fusion"
+        history, reconstruction_producer=ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER
     )
 
     if not entries:
@@ -464,6 +492,19 @@ The required route is complete. The running application can now be used for furt
 - In the still-open workspace, reuse the attached sensor sources for another reconstruction, or construct another `AngularSensor` while varying `angle_degrees`, `edge_bin_count`, or `sample_count` to explore viewing direction, projection resolution, or measurement depth.
 - Make another change in `ropemother_exercises/image/dashboard.py`, then stop and restart only the dashboard service and request the dashboard again.
 - Change the presentation of one reconstruction in `ropemother_exercises/image/report.py`, restart only the reconstruction-report service, and request an earlier run again.
+
+The workspace also includes optional helpers for inspecting which cells carry the strongest reconstructed signal. `threshold_intensity_image_by_fraction()` converts the continuous intensities into a binary `Bitmap`. Its `threshold_fraction` is relative to that reconstruction's maximum intensity: lower values keep more cells, while higher values keep only stronger cells. For example:
+
+```python
+thresholded = threshold_intensity_image_by_fraction(
+    frame,
+    reconstruction.intensity_image,
+    threshold_fraction=0.6,
+)
+print(render_quadrant_bitmap(thresholded))
+```
+
+Because the thresholded result is a `Bitmap`, `render_quadrant_bitmap()` can pack each 2-by-2 group of binary cells into one block-drawing character without changing the bitmap's logical frame. Thresholding changes this inspection view; it does not change the measurements or the fusion result.
 
 For dashboard work, the same lifecycle remains:
 
@@ -517,7 +558,7 @@ The sensor helper illustrates another practical point about working with message
 
 The next section rebuilds these relationships in a much smaller program and gives the messaging operations more precise names.
 
-### 13. Stop the local image application
+### 13. Stop the Local Image Application
 
 Return to the application terminal, which contains the background application jobs.
 
@@ -567,7 +608,7 @@ In this section, a source will publish submitted text, a word-count processor wi
 
 A messaging relationship describes what information participants exchange, not necessarily where they run. The first exchange in this section uses `DirectMessageBus` within one Python process. Later, separately started programs use a freestanding broker and local **IPC** (inter-process communication); IPC is the transport across that process boundary. Where the participants run is a **deployment** choice, while the messaging relationship describes their communication.
 
-### 2. Publish and receive one message
+### 2. Publish and Receive One Message
 
 Before adding application classes, walk through one message exchange with `ropemother` directly. The exchange shows both sides of publish/subscribe: what a subscription asks to receive, what an emitter publishes, and what a receiver returns after delivery.
 
@@ -665,7 +706,7 @@ The participant classes introduced next accept `MessageEndpointFactory` rather t
 
 The emitter did not call the receiver. Both sides described the same message contract, and the bus delivered the matching publication.
 
-### 3. Create a submitted-text source
+### 3. Create a Submitted-Text Source
 
 At the prompt, the temporary experiment published text by calling `emitter.emit(...)` directly. In the application, `TextSource` will own that publication responsibility. It creates the submitted-text emitter once and offers `emit_text(text)` as the source operation; code using the source does not need to repeat the topic, producer, and message-type setup each time it submits text. The message contract remains the same.
 
@@ -724,7 +765,7 @@ Import `TextSource`, create one with the existing bus, and submit another value:
 
 The important change is on the publishing side only. The first message came from the emitter used directly at the prompt; the second came from `TextSource`. The existing receiver needed no change because it depends on the submitted-text message agreement rather than on either publisher object. Code that has a `TextSource` can call `emit_text()` directly to ask that source to submit text, while the source publishes the resulting message without naming the consumers that will receive it.
 
-### 4. Add a word-count processor
+### 4. Add a Word-Count Processor
 
 `TextSource` introduced a participant that publishes one message contract. The next participant uses both directions of the message API: `WordCountProcessor` subscribes to submitted-text messages and publishes a different word-count message after processing each one. The word-count calculation itself is an ordinary Python function; the message-bus work to notice here is receiving one contract and publishing another.
 
@@ -792,7 +833,7 @@ At this point `WordCountProcessor` is defined in `processors.py`, but no process
 
 Exiting closes that temporary in-process bus and its endpoints. It does not stop a word-count processor, because none has been started yet. The next file will be the startup program that creates `WordCountProcessor` with a connection to the freestanding broker.
 
-### 5. Create the freestanding processor runner
+### 5. Create the Freestanding Processor Runner
 
 Create `ropemother_exercises/basic/run_processor.py` with:
 
@@ -830,7 +871,7 @@ After construction, the readiness message tells you that the processor has creat
 
 The participant code and the startup code have different responsibilities. `WordCountProcessor` defines which message contracts it receives and publishes and what it does between them. `run_processor.py` decides how this program obtains a bus connection and keeps that participant running. Moving from the temporary in-interpreter bus to the freestanding broker changes this startup arrangement without requiring a different `WordCountProcessor`.
 
-### 6. Create an independent display
+### 6. Create an Independent Display
 
 The word-count processor is already one consumer of submitted-text messages. Add a display as a second consumer of those same messages. The display will also subscribe to the word-count messages produced by the processor, allowing it to show the original text beside the derived result.
 
@@ -890,7 +931,7 @@ if __name__ == "__main__":
     display_word_counts()
 ```
 
-### 7. Create the source runner
+### 7. Create the Source Runner
 
 Create `ropemother_exercises/basic/run_source.py` with:
 
@@ -921,7 +962,7 @@ if __name__ == "__main__":
 
 The source publishes one event and exits. The processor and display can remain running while the source is invoked repeatedly.
 
-### 8. Run the participants independently
+### 8. Run the Participants Independently
 
 Open four terminal windows or tabs and keep them open for this part of the exercise.
 
@@ -1010,7 +1051,7 @@ Earlier, the temporary `DirectMessageBus`, emitter, receiver, and `TextSource` a
 
 What changed is where the messaging participants run. The submitted-text and word-count message contracts did not change: `TextSource` still publishes submitted text, `WordCountProcessor` still subscribes to submitted text and publishes counts, and the display subscribes to those same contracts. The same messaging relationships therefore work in the earlier in-process check and in this separately running arrangement.
 
-### 9. Query messages published earlier
+### 9. Query Messages Published Earlier
 
 Stop the display with Ctrl-C. Leave the broker and word-count processor running.
 
@@ -1100,7 +1141,7 @@ A live subscription and a history query therefore have different relationships t
 
 The two communication relationships now appear side by side. `TextSource` publishes submitted text without naming one receiver, and matching live subscribers can receive that publication. `inspect_history.py` instead asks the particular history service for retained messages and waits for that service's reply. The history query does not replace publish/subscribe; it provides later access to activity that publish/subscribe already carried through the application.
 
-### 10. Compare live delivery with retained history
+### 10. Compare Live Delivery with Retained History
 
 Restart the display in the live-display terminal:
 
@@ -1177,7 +1218,7 @@ Live subscriptions and history provide access to messages at different times. A 
 
 The history experiment also used request/reply for a different job. Submitted text and word counts were published for matching live subscribers, but `select_all()` asked one history service for retained entries and waited for that service's reply. Publish/subscribe distributed new activity without naming one receiver; request/reply let one client ask a particular service for an answer.
 
-### 12. Stop the basic application
+### 12. Stop the Basic Application
 
 Stop the display and processor with Ctrl-C, then stop the broker with Ctrl-C in its terminal.
 
@@ -1185,7 +1226,7 @@ Because this walkthrough started the broker with `--temporary`, its temporary wo
 
 ## III. TTY Processing
 
-### 1. Observe a terminal interaction
+### 1. Observe a Terminal Interaction
 
 From a user's point of view, a shell command can look like one action: type a line, press Enter, and see output. The terminal activity behind that action can be observed in smaller pieces. The exercise records raw input bytes, completed input lines, program output bytes, and the boundary where the recorded session ends.
 
@@ -1354,7 +1395,7 @@ Three fields help later processors relate this evidence. `session_id` identifies
 
 The history setup above must be able to retain these richer TTY payloads and interpret them again when a history query returns them. `TTY_PORTABLE_FORMATS` is prepared exercise support that supplies the portable representations for those event types to the hosted bus and history view. The activity uses those prepared formats; it does not require implementing new payload formats.
 
-### 2. Derive timing from raw input observations
+### 2. Derive Timing from Raw Input Observations
 
 The first derived interpretation uses only the raw-read observations. For each raw read after the first in a session, timing subtracts the previous raw-read timestamp from the current `observed_at_ns` value. The first raw read has no previous read, so its derived interval is `None`.
 
@@ -1523,7 +1564,7 @@ from ropemother_exercises.tty.timing import InputTimingProcessor
 
 The import now names the processor being added and the topic on which its results will be observed.
 
-Next, current lines 32–41 contain the source and the temporary receiver that was used to display selected source events:
+Next, current lines 27–36 contain the source and the temporary receiver that was used to display selected source events:
 
 ```python
     source = scripted_tty_source(bus)
@@ -1549,7 +1590,7 @@ Keep `source = scripted_tty_source(bus)`. Remove the `source_results` subscripti
 
 These two bus-facing objects have different jobs. `timing_processor` owns the subscription that receives the source messages needed for timing analysis. `timing_results` is the runner's receiver for the `InputTiming` and `InputTimingCompleted` messages published by that analysis.
 
-Current lines 43–47 then emit the source, display the old source sample, and close the host:
+Current lines 32–36 then emit the source, display the old source sample, and close the host:
 
 ```python
     try:
@@ -1592,7 +1633,7 @@ With that insertion, the complete `try`/`finally` region should read:
 
 The source publishes the prepared recording first. `process_available()` then handles the timing processor's currently waiting input; the loop repeats until a pass handles none. The result walkthrough below uses the actual first and second passes to explain why that stopping condition is valid in this run.
 
-One helper remains from the source-sample run. Current lines 50–57 select only four source observations before printing them:
+One helper remains from the source-sample run. Current lines 47–54 select only four source observations before printing them:
 
 ```python
 def _display_source_sample(receiver: Receiver) -> None:
@@ -1723,7 +1764,7 @@ A zero-work pass is a valid stopping condition here because the prepared source 
 
 The word-count service in the basic messaging section had the opposite execution arrangement: its source and processor kept running independently, so another message could arrive after the receiver had once been empty. There, an empty receiver meant only that nothing was waiting at that moment. Here, the prepared source has already finished publishing, so a zero-work processing pass establishes that the run is finished.
 
-### 3. Group timing intervals into cadence spans
+### 3. Group Timing Intervals into Cadence Spans
 
 Each `InputTiming` message describes the interval associated with one raw-read observation. A separate analysis can use a sequence of those intervals to identify stretches in which input arrives at a similar pace. `InputCadenceProcessor` subscribes to the `InputTiming` events published by the timing processor, groups neighboring intervals into cadence spans, and publishes each completed group as an `InputCadenceSpan`.
 
@@ -2254,7 +2295,7 @@ from ropemother_exercises.tty.events import (
 )
 ```
 
-Then, between current lines 10 and 11, add the cadence processor and the prepared maximum relative deviation used by its grouping rule:
+Then, between current lines 13 and 14, add the cadence processor and the prepared maximum relative deviation used by its grouping rule:
 
 ```python
 from ropemother_exercises.tty.cadence import (
@@ -2507,7 +2548,7 @@ The first processor receives `TTYReadObserved` messages and publishes `InputTimi
 
 The dependency between the two processors is therefore expressed through the timing-message contract. `InputCadenceProcessor` receives messages on the timing topic from the timing producer; it does not hold or call an `InputTimingProcessor` object. Adding cadence processing therefore required a new subscriber and its result messages, but no cadence branch in the TTY source and no cadence-specific method in the timing processor.
 
-### 4. Reconstruct commands from several source observations
+### 4. Reconstruct Commands from Several Source Observations
 
 When someone enters a command in a terminal, several pieces of activity may occur before the interaction can be described as one command. Input arrives while the command is being typed, the terminal eventually delivers a completed line to the program, and the program may then write output. For the first interaction in the prepared recording, those pieces ultimately describe the submitted command `echo hello` and the output `hello`.
 
@@ -3041,7 +3082,7 @@ The order of the `process_available()` calls in `run_local.py` does not define t
 
 `ReconstructedCommand` creates another command-level input that later processors can subscribe to without repeating the correlation of raw reads, canonical lines, and writes. The regex processor in the following section uses that relationship.
 
-### 5. Implement regex analysis from reconstructed commands
+### 5. Implement Regex Analysis from Reconstructed Commands
 
 The two reconstructed commands now give another processor a simpler starting point than the original TTY observations. Each `ReconstructedCommand` already contains the submitted `input_text` and the observed `output_text`. `RegexAnalysisProcessor` will receive those command messages, test the two text fields, and publish a separate `RegexAnalysis` describing which tests matched.
 
@@ -3187,7 +3228,7 @@ def _command_text(command: ReconstructedCommand, field: str) -> str:
     return text
 ```
 
-The three patterns described above appear near the beginning of `ropemother_exercises/tty/regex_analysis.py`, lines 30–46, in `PREPARED_PATTERNS`:
+The three patterns described above appear near the beginning of `ropemother_exercises/tty/regex_analysis.py`, lines 27–43, in `PREPARED_PATTERNS`:
 
 ```python
 PREPARED_PATTERNS = (
@@ -3211,7 +3252,7 @@ PREPARED_PATTERNS = (
 
 Each `RegexPattern` records both the regex and the `ReconstructedCommand` field to which it applies. The description gives the match a readable meaning when the configuration is inspected later.
 
-The matching itself is performed by `analyze_command()` at lines 98–115:
+The matching itself is performed by `analyze_command()` at lines 95–112:
 
 ```python
 def analyze_command(
@@ -3240,7 +3281,7 @@ Those positions explain the numeric results used by `RegexAnalysis`. `^echo\b` i
 
 `RegexAnalysis` also copies the command's `session_id` and `command_index`, so the analysis can be associated with the `ReconstructedCommand` it describes.
 
-The processor method at lines 93–95 is correspondingly small:
+The processor method at lines 90–92 is correspondingly small:
 
 ```python
     def _process(self, command: ReconstructedCommand) -> None:
@@ -3250,7 +3291,7 @@ The processor method at lines 93–95 is correspondingly small:
 
 `_process()` passes each received command to the matching function and publishes the returned `RegexAnalysis`. The constructor's command subscription supplies those `ReconstructedCommand` values, while `_analysis_emitter` publishes the derived result.
 
-`publish_configuration()`, at lines 79–81, publishes `RegexPatternsConfigured` containing the same `PREPARED_PATTERNS` tuple:
+`publish_configuration()`, at lines 76–78, publishes `RegexPatternsConfigured` containing the same `PREPARED_PATTERNS` tuple:
 
 ```python
     def publish_configuration(self) -> None:
@@ -3283,7 +3324,7 @@ from ropemother_exercises.tty.events import (
 )
 ```
 
-Current line 22 imports `InputTimingProcessor`. Immediately before that line, add the prepared regex patterns and the processor that applies them:
+Current line 23 imports `InputTimingProcessor`. Immediately before that line, add the prepared regex patterns and the processor that applies them:
 
 ```python
 from ropemother_exercises.tty.regex_analysis import (
@@ -3562,7 +3603,7 @@ Notice what the regex processor starts from. It does not recover `input_text` or
 
 The lower-level observations remain available to processors that need terminal evidence, while the reconstructed commands are available to processors that need command-level information. Another command-level analysis can therefore subscribe to the same `ReconstructedCommand` messages without adding a new branch or direct call to `CommandReconstructionProcessor`.
 
-### 6. Compare raw input with the canonical line
+### 6. Compare Raw Input with the Canonical Line
 
 The prepared source records the first command at two points in terminal input handling. Raw-read observations `0` through `7` preserve the bytes seen on the input stream as they arrive. Canonical-line observation `8` records the completed line the terminal delivers after it has processed that input.
 
@@ -4055,7 +4096,7 @@ InputReconciliation(session_id='session-1', line_index=1, read_observation_indic
 
 Unlike the first input, this one contains no character that was entered and then erased before the line was completed. The raw input and the canonical line therefore agree. `raw_difference_positions=()` records no differences on the raw-input side, and `canonical_difference_offsets=()` records none on the canonical-line side.
 
-### 7. Combine a new canonical line with earlier raw input
+### 7. Combine a New Canonical Line with Earlier Raw Input
 
 `InputReconciliationProcessor` does not consume `ReconstructedCommand`. It compares two forms of input evidence: the completed line carried by a new `CanonicalLineObserved`, and the raw-read observations that led up to that line.
 
@@ -4081,7 +4122,7 @@ The first line makes the timing difference concrete. When canonical-line observa
 
 The reconciliation processor therefore receives observation `8` live and queries history for the preceding raw reads, observations `0` through `7`. `reconcile_input()` compares those two inputs immediately, without waiting for the larger command record to be completed.
 
-### 8. Decode characters that span raw input observations
+### 8. Decode Characters That Span Raw Input Observations
 
 The prepared recording contains a character whose bytes cross a message boundary. `TTYReadObserved` observation 13 carries `b'\xc3'`, and observation 14 carries `b'\xa9'`. Together those two bytes are the UTF-8 encoding of `é`; neither observation contains the complete encoded character by itself.
 
@@ -4739,7 +4780,7 @@ Together, these relationships extend the publish/subscribe, fan-out, history, an
 
 ## IV. Graph Reachability
 
-### 1. Build reachability from graph facts
+### 1. Build Reachability from Graph Facts
 
 Consider four nodes connected in one direction:
 
@@ -4851,7 +4892,7 @@ The repeated pattern is called **forward chaining**: begin with facts already es
 
 The next part examines the existing check that answers a question this style of calculation immediately creates: when a rule proposes a `PathFound`, is that reachability fact already part of the result?
 
-### 2. Keep each reachability fact once
+### 2. Keep Each Reachability Fact Once
 
 The complete result for `A`→`B`→`C`→`D` contains exactly six reachability facts. During the calculation, however, more than one deduction may arrive at the same one. If `A`…`C` has already been recorded and a later deduction also produces `A`…`C`, the result is still the same six-fact description of the graph; a second copy would not add another reachable source-and-target pair.
 
@@ -4922,7 +4963,7 @@ Return briefly to `derive_direct_path()`. Its `work_count` describes whether thi
 
 A candidate that is absent from `GraphFacts` enlarges the recorded result when it is published. A candidate already present leaves that result unchanged. The same `emit_path_if_new()` check can therefore be used after the longer-path deductions added next: if two deductions both arrive at `A`…`C`, only the first one that finds it absent publishes the new fact.
 
-### 3. Use discovered paths to derive more paths
+### 3. Use Discovered Paths to Derive More Paths
 
 Three reachability facts are still missing from the starter result: `A`…`C`, `B`…`D`, and `A`…`D`. All three can be established with the same extension rule. If a known path ends where a declared arc begins, following that arc extends the path by one hop:
 
@@ -5401,7 +5442,7 @@ There is no `msg_producer` filter. A direct path such as `A`…`B` and an extend
 
 The two emitters both publish `PathFound`, so they both use `PATH_FOUND_FORMAT`. Their producer names distinguish which graph operation established the fact; their payload representation is the same because the value being carried is the same application record.
 
-After replacing the endpoint-creation region, the `GraphRuntime` construction is at lines 86–95:
+After replacing the endpoint-creation region, the `GraphRuntime` construction is at lines 86–92:
 
 ```python
     runtime = GraphRuntime(
@@ -5524,7 +5565,7 @@ The broader subscription is useful here because the calculation treats a `PathFo
 
 All three one-message graph operations are now present. `run_fixed_order_until_quiet()` still calls only `derive_direct_path()`, so the next change is to give each operation repeated opportunities to process its receiver.
 
-### 4. How repeated processing completes the reachability result
+### 4. How Repeated Processing Completes the Reachability Result
 
 Each graph operation processes at most one message and then returns. `extend_paths_by_path()` can therefore receive `A`…`B` and establish `A`…`C`, but processing that newly published `A`…`C` requires a later call. The runner must keep returning to the graph operations while messages remain for them to process.
 
@@ -5621,7 +5662,7 @@ This is why the code adds the operations' receive results rather than counting n
 
 `max_rounds` is the supplied guard on this loop. If the expected empty-receiver state is not reached within that many trips through the loop, `GraphRunError` makes the unexpected condition visible instead of allowing the runner to continue indefinitely.
 
-#### a. Check the complete reachability result
+**Check the complete reachability result**
 
 The runner can now revisit all three operations until their current messages have been processed. The next run shows whether those repeated applications of the direct and extension rules establish the six reachability facts identified at the beginning of this section.
 
@@ -5651,7 +5692,7 @@ The hop counts also show how many arcs connect each pair. For example, `A`…`C`
 
 The display is a report of the completed reachability result. It tells which paths were established and their hop counts; the operation-by-operation processing sequence is not part of this report.
 
-##### i. Why the feedback stops adding new reachability facts
+#### a. Why the Feedback Stops Adding New Reachability Facts
 
 The calculation allows a newly established `PathFound` to become input to another extension. That feedback is useful because `A`…`B` can lead to `A`…`C`, and `A`…`C` can then lead to `A`…`D`. It also raises a practical question: what prevents those feedback messages from producing new messages forever?
 
@@ -5661,7 +5702,7 @@ Some of the same conclusions can still be derived more than once. For example, t
 
 The feedback can therefore extend a partial result until another reachable pair is discovered, but rediscovering a pair that is already known does not enlarge the result or generate another copy to feed back into processing. In this finite graph, the calculation eventually runs out of new reachability facts to add.
 
-##### ii. Why an empty pass means this runner is finished
+#### b. Why an Empty Pass Means This Runner Is Finished
 
 An empty receiver does not generally mean that no future message can ever arrive. A long-running service might find no message now and receive another one a moment later. The fixed graph runner can make a stronger conclusion only because its source behaves differently: `emit_graph()` publishes the complete graph before the processing loop starts.
 
@@ -5669,7 +5710,7 @@ Once source publication has finished, the only later messages in this calculatio
 
 A service with an open-ended source could not use the same observation as proof that future work is impossible. It would either remain available for later messages or need some separate indication that its input had ended. The `work_count == 0` test belongs to the setup of this closed-source runner; it is not part of the definition of graph reachability.
 
-### 5. Does reachability depend on processing order?
+### 5. Does Reachability Depend on Processing Order?
 
 The fixed runner calls the graph operations in the same order on every trip through its loop: `derive_direct_path()`, then `extend_paths_by_arc()`, then `extend_paths_by_path()`. That order made the preceding run easy to follow, but it also gave the operations the same relative progress every time.
 
@@ -5776,7 +5817,7 @@ then runs whichever graph operation was selected for that turn.
 
 The completed-path report already shows whether the calculation reaches all six facts. To compare operation schedules as well, the alternate runner also needs a record of which operation was selected on each turn. The next step adds that trace before the selection loop itself.
 
-#### a. An execution trace of the selected turns
+**An execution trace of the selected turns**
 
 The completed reachability result records which paths were established. The operation schedule is different information: once the runner begins choosing operations independently, that sequence is determined by the choices made while the program runs. Preserving those choices makes it possible to compare two schedules as well as their final reachability results.
 
@@ -6073,7 +6114,7 @@ The complete graph was published before the loop began, so no additional source 
 
 The loop still has the `max_turns` bound at current line 215. Random selection can postpone one operation for many turns, so the code cannot assume that every operation will be selected within a small fixed number of turns. If the stopping rule has not been reached before the loop exhausts `max_turns`, current line 236 raises `GraphRunError`.
 
-### 6. Compare two schedules
+### 6. Compare Two Schedules
 
 The next run will produce two execution traces. Printing one trace and then the other would make it difficult to follow corresponding turns between them. Instead, `run_paths.py` will prepare each trace as a column of text and print the two columns side by side.
 
@@ -6411,7 +6452,7 @@ The important distinction is between the **algorithm** and one particular sequen
 
 ## V. Image Reconstruction
 
-### 1. From sensor measurements to an image
+### 1. From Sensor Measurements to an Image
 
 The concealed target is a small bitmap: a grid in which each cell is either filled or empty. A simulated sensor learns about that image by taking many random samples. For each sample, it selects one cell and measures whether that part of the target appears filled. The measurement is probabilistic: a filled cell will usually produce a strong response and an empty cell will usually produce a weak one, but individual samples can be noisy or mistaken.
 
@@ -6458,111 +6499,125 @@ Known example target (32×32, packed)
                 
 
 0° projection
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-               ↓                
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       └──────────────────────────────┘
+                      ↓                       
 0° back-projection
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-░  ░▒▒█▓▓▓▒▓▒█▓▒▒▓▓▓▓▓▓▓▓▓▓▒░   
-               ↓                
-Orthogonal reconstruction          90° back-projection                90°
-    ░░░░░░░░░░░░░░░░░░░░░░░░       ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   ░
-    ░░░░░░░░░░░░░░░░░░░░░░░░
-    ░░░░░░░░░░░░ ░░░░░░░░░░░
-    ░░░░░░░░░░░░░░░░░░░░░░░░
-░░ ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░   ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒   ▒
-░░░░▒▒▓▒▓▓▒▓▒▓▓▒▒▓▓▓▓▓▒▓▓▓▒▒░░░░   ████████████████████████████████   █
-░░░░▒▒▓▒▓▒▒▒▒▓▒▒▒▒▒▒▓▒▒▒▒▒▒▒░░░░   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓
-░░░░▒▒▓▒▓▓▒▓▒▓▒▒▒▓▓▓▓▓▒▓▒▒▒▒░░░░   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓
-░░░░▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓
-░░░░▒▒▓▒▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▒▒░░░░   ████████████████████████████████   █
-░░░░▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓
-░░ ░▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓
-░░░░▒▒▓▒▓▓▒▓▒▓▒▒▒▓▓▓▓▓▒▓▒▒▒▒░░░░   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓
-░░░░▒▒▓▒▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▒▒░░░░   ████████████████████████████████   █
-░░░░▒▒▓▒▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▒▒░░░░   ████████████████████████████████   █
-░░░░▒▒▓▒▓▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓
-░░ ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░ ← ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ ← ▒
-░░░░▒▒▓▒▓▒▒▒▒▓▒▒▒▒▒▓▓▒▒▒▒▒▒▒░░░░   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓
-░░░░▒▒▓▒▓▓▒▓▒▓▒▒▒▓▓▓▓▓▒▓▒▒▒▒░░░░   ████████████████████████████████   █
-░░ ░▒▒▒▒▒▒▒▒▒▒▒▒░▒▒▒▒▒▒▒▒▒▒▒░░░░   ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒   ▒
-░░░░▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓
-░░░░▒▒▓▒▓▒▒▒▒▓▒▒▒▒▓▓▓▒▒▒▒▒▒▒░░░░   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓
-░░░░▒▒▓▒▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▒▒░░░░   ████████████████████████████████   █
-░░░░▒▒▓▒▓▓▒▓▒▓▒▒▒▓▓▓▓▓▒▓▒▒▒▒░░░░   ████████████████████████████████   █
-░░░░▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓
-░░░░▒▒▓▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓
-░░ ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓
-░░ ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░░░░   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓
-     ░░░░░ ░ ░░  ░░░░░░░░░░
-    ░░░░░░░░░░░░░░░░░░░░░░░░       ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   ░
-      ░ ░░ ░ ░░  ░░░░░ ░░░
-    ░░░░░░░░░░░░░░░░░░░░░░░░
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+       ░   ▒▒█▓▓▓▒▓▒▓▓▒▒▓▓▓▓▓▓▓▓▓▓▓░          
+                      ↓                       
+Orthogonal reconstruction          90° back-projection                90° projection
+
+
+
+
+
+
+
+      ░      ░                     ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   ░ ┌
+      ░                                                                 │
+      ░                                                                 │
+      ░                                                                 │
+    ░░░░░░░░░░░░░░░░░░░░░░░░       ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒   ▒ │
+░   ░░░░░░░░░░░░░░░░░░░░░░░░       ████████████████████████████████   █ │
+    ░░░░░░░░░░░░░░░░░░░░░░░░       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓ │
+    ░░░░░░░░░░░░░░░░░░░░░░░░       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓ │
+    ░░░░░░░░░░░░░░░░░░░░░░░░       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓ │
+░░ ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   ████████████████████████████████   █ │
+    ░░░░░░░░░░░░░░░░░░░░░░░░       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓ │
+    ░░░░░░░░░░░░░░░░░░░░░░░░       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓ │
+    ░░░░░░░░░░░░░░░░░░░░░░░░       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓ │
+░░ ░░░░░░░░░░░░░░░░░░░░░░░░░░ ░    ████████████████████████████████   █ │
+░░ ░░░░░░░░░░░░░░░░░░░░░░░░░░      ████████████████████████████████   █ │
+    ░░░░░░░░░░░░░░░░░░░░░░░░       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓ │
+    ░░░░░░░░░░░░░░░░░░░░░░░░     ← ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ ← ▒ │
+    ░░░░░░░░░░░░░░░░░░░░░░░░       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓ │
+░   ░░░░░░░░░░░░░░░░░░░░░░░░       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓ │
+    ░░░░░░ ░ ░░░ ░░░░░░░░░░░       ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒   ▒ │
+    ░░░░░░░░░░░░░░░░░░░░░░░░       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓ │
+    ░░░░░░░░░░░░░░░░░░░░░░░░       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓ │
+░░ ░░░░░░░░░░░░░░░░░░░░░░░░░░      ████████████████████████████████   █ │
+░   ░░░░░░░░░░░░░░░░░░░░░░░░       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓ │
+    ░░░░░░░░░░░░░░░░░░░░░░░░       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓ │
+    ░░░░░░░░░░░░░░░░░░░░░░░░       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓ │
+    ░░░░░░░░░░░░░░░░░░░░░░░░       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   ▓ │
+    ░░░░░░░░░░░░░░░░░░░░░░░░       ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒   ▒ │
+      ░                                                                 │
+      ░                                                                 │
+      ░                                                                 │
+      ░                                                                 └
+
+
+
+
+
+
 
 Add 45° and 135° views
-               ↓                
+                      ↓                       
 Four-angle reconstruction
-░░  ░░░░░░░░░░░░░░░░░░░░░░░░░ ░░
-░░░ ░░░░░░░░░░░░░░░░░░░░░░░░ ░░░
- ░ ░  ░░░░░░░░░░░░░░░░░░░░  ░ ░ 
-   ░░░░░░░░░░░░░░░░░░░░░░░░░░░  
-░  ░▓▓▒▒▒▒░▒░░░░░▒░░░░░▒░░▓▓░   
-░░ ░▓▓▓▒▒▒▒▒░░░░░▒▒▒▒▒▒▒▒▓▓▓░░░░
-░░░░▒▓▓▓▒▒░▒░░░░░▒▒▒▒▒░▒▓▓▓▒░░░░
-░░░░▒▒▓▓▓▒▒▒░░░░░▒▒▒▒░░▓▓▓▒▒░░░░
-░░░░▒▒▒▓▓▓░▒░░░░░░▒▒▒▒▒▓▓░░▒░░░░
-░░░░▒▒▒▒▓▓▒▒░▒░░░░░▒▒▓▓▓▒▒▒▒░░░░
-░░░░▒▒▒░░▓▒▒░▒░░░░░░▓▓▓▒░░░▒░░░░
-░░░░▒▒▒░░░▒▒▒▒░░░░░▒▒▓░▒▒░░▒░░░░
-░░░░▒▒▒▒▒░░▓▒▓▒░░░▓▓▒░░▒▒▒▒░░░░░
-░░░░▒▒▒▒▒▒░░▒▓▓░░▓▓▓░░░▒▒▒▒▒░░░░
-░░░░▒▒▒▒▒▒░░░▓▒▒▓▓▓░░▒░░▒▒▒▒░░░░
-░░░░▒▒▒▒▒▒░▒░░▒██▓░░░░░░░▒▒▒░░░░
-░░░░░░▒░▒▒░░░░▒██▒░░░░░░░░▒░░░░░
-░░░░░▒▒▒▒▒░▒░▓▒▒▒▒▓▒▒▒░░▒░░░░░░░
-░░░░▒▒▒▒▒▒░▒▓▓▓░░▓▓▓▒▒░▒▒░░░░░░░
-░░░░░░▒░▒░░▓▒▓░░░░▒▒▒░▒░░░░░░░░░
-░░░░▒▒▒▒▒▒▓▓▒▒░░░░░▓▓▓▒░░░░▒░░░░
-░░░░▒▒▒▒▒▓▓▓░▒▒▒░▒░░▓▓▒░▒▒▒▒░░░░
-░░░░▒▒▒▒▓▓▓▒▒▒▒▒▒▒▒▒▒▓▒▓▒▒▒▒░░░░
-░░░░▒▒▒▓▓▓░▒▒▒▒▒▒▒▒▒░░▓▓▓▒▒▒░░░░
-░░░░▒░▓▓▓▒░▒░▒▒▒░▒▒░░░░▓▓▓▒▒░░░ 
-░░░░▒▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▓▓▒░░░ 
-░  ░▓▓▓░▒▒░▒▒▒▒▒▒░░▒▒▒▒▒▒▓▒▓░░░░
-░░ ░▓▒▒▒▒▒▒▒░▒▒▒░▒▒▒▒▒▒▒░░▓▓░░░░
-    ░░░░░░░░░░░░░░░░░░░░░░░░░░  
- ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 
-░░  ░  ░░░░░░░░░░░░░░░░░░  ░ ░░ 
-░░  ░░░░░░░░░░░░░░░░░░░░░░░░  ░░
+░░                            ░░
+░▒░          ░               ░▒░
+ ░░░                        ░░░ 
+  ░░▒                      ▒░░  
+   ▒▒▒░ ░  ░              ▓▒▒   
+    ▓▒▒░░░░░ ░   ░░░░░░░░▓▓▓    
+    ░▒▓▒░░░░ ░   ░░░░ ░░▒▓▒░    
+    ░░▓▒▒░ ░ ░   ░░░░░ ▓▒▒░░    
+    ░░░▒▒▒ ░      ░░░░▒▒▒░      
+░   ░░░░▓▒▒░ ░░  ░░░░▓▒▒░░░     
+    ░ ░ ░▒▒▒ ░      ▒▒▒░        
+    ░░░ ░ ▒▒▒░     ▒▒▒░░   ░    
+░   ░░░ ░░ ▒▒▒░  ░▒▒▒░ ░░░░     
+░░  ░░░░░░░░▒▒▒░░▓▒▒░░ ░░░░     
+░   ░░░░░░ ░ ▒▒▒▒▓▒░░░ ░░░░░    
+      ░ ░░ ░ ░▒██▒░░   ░  ░░    
+      ░      ░▒██▒              
+      ░░░░ ░ ▒▒▒▒▒▒░░░  ░░      
+     ░░░░░ ░▒▒▒░ ▒▒▒░░ ░░     ░ 
+           ▒▒▒    ▒▒▒           
+      ░ ░░▒▒▒░   ░░▒▒▒░    ░    
+     ░░ ░▓▒▒░░░  ░░░▓▒▒░ ░░░    
+    ░░░░▓▓▒░░░ ░░░░░░▒▒▒░░░░    
+    ░░░▓▓▒░░ ░░░░░░░░░▒▒▒░░░    
+    ░░▓▒▒░ ░ ░░  ░░    ▓▒▒░     
+    ░▓▓▒░░   ░░ ░░░░ ░░░▓▒▒░    
+    ▒▒▓░░  ░ ░ ░ ░  ░░░░░▒▒▒    
+   ▒▒▒░░░  ░  ░░   ░░░░░░░▒▒▒   
+  ░░▒                      ▒░░  
+ ░░░              ░         ░░░ 
+░░░                          ░░░
+░░         ░                  ░░
 ```
 
 Start at the top of the display. The packed block is the known 32×32 target. Below it, the 0° projection is only one row of 32 intensity values. Its back-projection spreads each of those values through the corresponding vertical strip, which is why the same row of shades repeats down the image.
@@ -6571,7 +6626,7 @@ The 90° projection is shown vertically at the far right. Its back-projection pr
 
 Open `ropemother_exercises/image/examples/reconstruction.py`. `run_reconstruction_explanation()` carries out the same sequence shown in the display.
 
-At current lines 35–43, `measure_angular_projection()` produces the 0° projection:
+At current lines 40–48, `measure_angular_projection()` produces the 0° projection:
 
 ```python
     projection_0 = measure_angular_projection(
@@ -6585,7 +6640,7 @@ At current lines 35–43, `measure_angular_projection()` produces the 0° projec
     )
 ```
 
-At current lines 72–78, each one-dimensional projection is back-projected into an image observation:
+At current lines 77–83, each one-dimensional projection is converted into an image observation:
 
 ```python
     observation_0 = image_observation_from_angular_projection(projection_0)
@@ -6597,26 +6652,34 @@ At current lines 72–78, each one-dimensional projection is back-projected into
     orthogonals_and_diagonals = (*orthogonals, observation_45, observation_135)
 ```
 
-At current lines 80–85, `geometric_covered_intensity()` fuses those image observations into the two reconstructions shown in the output:
+At current lines 85–88, `algebraic_reconstruction()` combines those image observations into the two reconstructions shown in the output:
 
 ```python
-    orthogonal_reconstruction = geometric_covered_intensity(
-        frame, *orthogonals
-    )
-    four_angle_reconstruction = geometric_covered_intensity(
+    orthogonal_reconstruction = algebraic_reconstruction(frame, *orthogonals)
+    four_angle_reconstruction = algebraic_reconstruction(
         frame, *orthogonals_and_diagonals
     )
 ```
 
-In this example, each stage hands its result directly to the next stage: measurement returns a projection, back-projection returns an image observation, and fusion receives several image observations.
+In this example, each stage hands its result directly to the next stage: measurement returns a projection, the projection is converted into an image observation, and reconstruction receives several observations.
 
 Those handoffs do not have to be direct function calls. The same kind of domain calculation can be divided between independently operating participants: one participant produces a value and publishes it, while another receives that value and supplies it to its own calculation. Other subscribers can receive the same published value without either calculation knowing about them. The computational functions can retain ordinary inputs and return values while messaging supplies the relationships among the parts that invoke them.
 
-### 2. Fusion as a message participant
+### 2. Fusion as a Message Participant
 
-The reconstruction example had one caller control the whole sequence: it obtained projections, converted them to image observations, and passed those observations directly into the fusion calculation. In the running application, a sensor source does not call fusion. It publishes an `ImageObservation`, and the fusion service receives that value through the bus when it becomes available.
+The reconstruction example had one caller control the whole sequence: it obtained projections, converted them to image observations, and passed those observations directly into the reconstruction calculation. In the running application, a sensor source does not call reconstruction. It publishes an `ImageObservation`, and the reconstruction processor receives that value through the bus when it becomes available.
 
-Open `ropemother_exercises/image/service/fusion.py`. The change from a direct handoff to a message handoff is easiest to see in `process_one()` and `_process_observation()`.
+Open `ropemother_exercises/image/service/algebraic.py`. At current lines 21–25, the prepared reconstruction service creates an `ImageFusionProcessor` and supplies the same `algebraic_reconstruction()` function used by the direct example:
+
+```python
+        processor = ImageFusionProcessor(
+            bus,
+            processor_name=ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER,
+            fusion_method=algebraic_reconstruction,
+        )
+```
+
+Now open `ropemother_exercises/image/service/fusion.py`. The change from a direct handoff to a message handoff is easiest to see in `process_one()` and `_process_observation()`.
 
 At current lines 77–83, `process_one()` waits for one message and examines its payload:
 
@@ -6668,7 +6731,7 @@ The next stage is visible in `_process_observation()`, at current lines 85–113
 
 The processor keeps the observations already received for each run. A newly arrived observation is added to that collection, and the fusion calculation receives the complete collection accumulated so far. The result is packaged as another `ImageObservation` and emitted through the bus. One incoming message can therefore advance the reconstruction without requiring the sensor that produced it to know how many other observations already exist or what will consume the result.
 
-`self._fusion_method(...)` at current line 99 is still an ordinary Python function call. Python functions can themselves be passed and stored as values; when the prepared service creates this processor, it supplies `geometric_covered_intensity` as that function. The processor can therefore receive a message, extract ordinary Python values from it, and invoke the same fusion calculation used in the direct example.
+`self._fusion_method(...)` at current line 99 is still an ordinary Python function call. Python functions can themselves be passed and stored as values; the prepared service supplies `algebraic_reconstruction` as that function. The processor can therefore receive a message, extract ordinary Python values from it, and invoke the same reconstruction calculation used in the direct example.
 
 There is a second kind of message in `process_one()`. After the first observation arrives, fusion can already publish a reconstruction. A second observation may improve it, and a third may improve it again. Nothing about any one `ImageObservation` says that it is the last observation for the run.
 
@@ -6697,9 +6760,9 @@ There is a second kind of message in `process_one()`. After the first observatio
 
 The completion message does not create another reconstruction. It preserves the target identity supplied when the run input closed and tells later participants which reconstruction belongs to a run whose inputs are now finished. A pause between sensor messages cannot communicate that fact: another observation could still arrive later. Completion therefore has to be represented explicitly rather than inferred from silence.
 
-`run_fusion_processor()` keeps calling `process_one()`, so after one message has been handled the service waits for another. The repeating sequence is now concrete: receive an observation, add it to the run's accumulated evidence, call the ordinary fusion function, publish the updated reconstruction, and wait for more input. Messaging determines how those values move between independently operating participants; the reconstruction calculation itself remains an ordinary computation over the values it receives.
+`run_algebraic_reconstruction_service()` keeps calling `process_one()`, so after one message has been handled the service waits for another. The repeating sequence is now concrete: receive an observation, add it to the run's accumulated evidence, call the ordinary reconstruction function, publish the updated reconstruction, and wait for more input. Messaging determines how those values move between independently operating participants; the reconstruction calculation itself remains an ordinary computation over the values it receives.
 
-### 3. Start a fresh image application
+### 3. Start a Fresh Image Application
 
 The examples below assume a fresh image application so the run identifiers begin from a predictable starting point such as `trial-1`. If another image application host is still running, finish or stop that host before continuing. The application will discover and name reusable sensor arrangements later, when there is a reason to work with that identity directly.
 
@@ -6713,7 +6776,7 @@ Image application host is ready. Make sure to run the independent services separ
 export ROPEMOTHER_CONNECTION_DESCRIPTOR=ropemother+unix:///...
 ```
 
-The unparameterized host command selects one supported target for the new session. To start a fresh application with a target whose key was shared earlier, use the key explicitly instead:
+The unparameterized host command selects one supported target for the new session. To start a fresh application with a target key you already have, use the key explicitly instead:
 
 ```sh
 python -m ropemother_exercises.image.application.host --target TARGET_KEY &
@@ -6746,7 +6809,7 @@ The repository also provides `./image` as a short terminal client for finite int
 
 Later steps use this client to inspect saved configurations, repeat runs, request the application report or its individual parts, and stop the independently running reporting services.
 
-### 4. One resolution across every viewing angle
+### 4. One Resolution Across Every Viewing Angle
 
 Start the prepared workspace:
 
@@ -6787,7 +6850,7 @@ For the 0° sensor, cells in the same vertical strip contribute to the same proj
 
 The fact that `sensor_0.show_bins(frame)` can describe this geometry without making a measurement is useful here. `sensor_0` and `sensor_90` are sensor definitions: they hold settings such as viewing angle, edge resolution, and sample count. The corresponding `sensor_0_source` and `sensor_90_source` were created by attaching those definitions to `bus`; those sources are the objects that participate in the running application and make measurements.
 
-### 5. Add the diagonal views
+### 5. Add the Diagonal Views
 
 At the same `>>>` prompt where the prepared sensors were inspected, create a 45° sensor. Keep the same edge resolution and sample count, changing only its viewing direction, and attach it to the same `bus`:
 
@@ -6801,7 +6864,7 @@ sensor_45 = AngularSensor(
 sensor_45_source = sensor_45.attach(bus)
 ```
 
-Now ask the attached source to make one measurement. In message-bus terms, the source emits the resulting observation as a message. The already-running fusion processor receives that kind of observation and emits an updated reconstruction; `run_receiver.receive()` waits for that result.
+Now ask the attached source to make one measurement. In message-bus terms, the source emits the resulting observation as a message. The already-running reconstruction processor receives that sensor evidence and emits an updated reconstruction; `run_receiver.receive()` waits for that result.
 
 ```python
 sensor_45_source.measure(
@@ -6837,7 +6900,7 @@ reconstruction = message.payload
 print(render_intensity_image(reconstruction.intensity_image, frame))
 ```
 
-The current run now contains observations from 0°, 45°, 90°, and 135°. Each new source sent an observation through the bus, and the same fusion processor produced the next reconstruction. Notice that none of the commands above passes the fusion processor to a sensor source or passes a sensor source to the fusion processor. Their shared relationship is the observation message: a newly attached source can contribute another view without requiring the reconstruction processor to be changed or restarted.
+The current run now contains observations from 0°, 45°, 90°, and 135°. Each new source sent another observation through the bus, and the same reconstruction processor produced the next reconstruction. Notice that none of the commands above passes the reconstruction processor to a sensor source or passes a sensor source to the reconstruction processor. A newly attached source can contribute another view through the same messaging relationship without requiring the reconstruction processor to be changed or restarted.
 
 The four observations above belong to one **run**: one reconstruction attempt made from a group of sensor contributions with an explicit end.
 
@@ -6862,7 +6925,7 @@ report = report_client.call(completion).payload
 print(report.rendering)
 ```
 
-### 6. Scale the angular arrangement from data
+### 6. Scale the Angular Arrangement from Data
 
 The four-angle run was manageable to build by writing the 45° and 135° sensor definitions individually. Filling the remaining gaps halfway between those four viewing directions would mean writing four more `AngularSensor(...)` definitions that differ mainly in their names and angles. Instead of copying the same constructor repeatedly, the differing angles can be represented as data while the settings shared by every sensor are stated once.
 
@@ -6951,7 +7014,7 @@ print(report.rendering)
 
 The loop did not need to know that there would be exactly eight reconstruction messages. It used the message type that marks the run boundary to decide when the run was finished. If the arrangement later contained a different number of sensors, the same receiving pattern could still find the completion without changing a hard-coded message count.
 
-### 7. Change the sensor, keep the reconstruction path
+### 7. Change the Sensor, Keep the Reconstruction Path
 
 So far every measurement in the running application has come from an `AngularSensor`. Earlier, however, the fusion processor received `ImageObservation` values through the bus; it was not given the angular sensor itself. That raises a concrete question: can a sensor measure the image in a substantially different way, turn its evidence into an `ImageObservation`, and contribute to reconstruction without changing the fusion processor?
 
@@ -7049,7 +7112,7 @@ Compare the two rendered reconstructions. They were made from different kinds of
 
 That works because each sensor source is responsible for turning its own measurement into an `ImageObservation` before sending it through the bus. An angular source and a perspective source disagree about how to measure the target, but they agree about what kind of evidence they provide afterward. The fusion processor works with that shared image observation rather than with either concrete sensor class.
 
-### 8. Change how much evidence one sensor gathers
+### 8. Change How Much Evidence One Sensor Gathers
 
 Until now, changing a sensor has meant changing where or how it looks at the image. `sample_count` controls something different: how many randomly selected target cells contribute evidence to one measurement. The comparison below makes that distinction visible without changing the sensor's viewing direction or its projection bins.
 
@@ -7131,7 +7194,7 @@ The two measurements use the same target, 0° viewing direction, projection reso
 
 The earlier angle experiments changed which directions supplied evidence, and the earlier `edge_bin_count` discussion showed how an angular projection's bin width is chosen. Neither of those changes is part of this comparison. Here the projection geometry stays fixed while the amount of evidence gathered for it changes. That gives `sample_count` a practical meaning when choosing a sensor configuration: increasing it spends more sampling work on the same view rather than adding another view or dividing that view differently.
 
-### 9. Return to the interaction terminal
+### 9. Return to the Interaction Terminal
 
 The sensor experiments in this Python workspace are finished. Exit the interpreter:
 
@@ -7141,7 +7204,7 @@ The sensor experiments in this Python workspace are finished. Exit the interpret
 
 Only this interactive client closes. The image application is still running in the other terminals, so the completed runs created here are still available when another client asks about them.
 
-### 10. Reuse a sensor arrangement from another client
+### 10. Reuse a Sensor Arrangement from Another Client
 
 The Python workspace that assembled the earlier sensor arrangements is closed. From the interaction terminal, ask the still-running application which arrangements it knows about:
 
@@ -7179,9 +7242,17 @@ Ask the terminal to use `instrument-1` again:
 
 Watch the output for a new `trial-N` run identifier. The command makes fresh measurements with the four sensors described by `instrument-1`, waits for that new run to finish, and then displays its reconstruction report and the updated dashboard. The Instrument identity remains `instrument-1`; the run identity is new because this is another reconstruction attempt.
 
+A target key you already have can also be used for a new run with the same Instrument:
+
+```sh
+./image run instrument-1 TARGET_KEY
+```
+
+The application session keeps its own assigned target; the explicit key applies only to this run.
+
 The important reuse is the **arrangement**, not an old reconstruction or an old set of random measurements. The terminal did not recreate `sensor_0_source`, `sensor_45_source`, and the other Python objects by hand. It named the recorded Instrument, and the running application was able to perform that arrangement again. A sensor setup found useful in one exploratory client can therefore become something another client can inspect and repeat without reproducing the original setup sequence.
 
-### 11. View the completed work through a report
+### 11. View the Completed Work Through a Report
 
 The sensor experiments produced measurements and reconstructions, but producing those results is not the same job as presenting them to someone who wants to use them. In this demonstration, the recorded reconstruction activity stands in for work an application has already performed, while the report is a view of that work prepared when someone asks to see the results.
 
@@ -7193,13 +7264,13 @@ Ask the running application for its current report:
 
 The output includes the completed reconstruction renderings followed by the dashboard that summarizes the completed runs. Nothing in this command measures the target again. The reporting services read the reconstruction evidence already recorded in the application's message history and produce a view of it now.
 
-The command also gives another concrete example of **request/reply**. The terminal asks the reporting service for information and waits for the reply to that request. That differs from the sensor observations used earlier: a sensor source emits an observation through publish/subscribe without making a request of the fusion processor or waiting for that processor to answer it. Here the terminal needs an answer to a particular request, so request/reply matches the interaction.
+The command also gives another concrete example of **request/reply**. The terminal asks the reporting service for information and waits for the reply to that request. That differs from the sensor observations used earlier: a sensor source emits an observation through publish/subscribe without making a request of the reconstruction processor or waiting for that processor to answer it. Here the terminal needs an answer to a particular request, so request/reply matches the interaction.
 
-The reporting services obtain their answers from recorded history rather than from private copies of results saved when the measurements happened. This is another use of the **event store** role introduced earlier: reconstruction evidence remains available after the sensing and fusion work has finished, and a reporting service can query it when a later request arrives. In this application, the event store acts as a **shared source of truth for recorded activity**: a common collection of events and established facts that independently running components can query and interpret. Here the retained events are not only a record of what happened; they are the input from which later reporting is produced.
+The reporting services obtain their answers from recorded history rather than from private copies of results saved when the measurements happened. This is another use of the **event store** role introduced earlier: reconstruction evidence remains available after the sensing and reconstruction work has finished, and a reporting service can query it when a later request arrives. In this application, the event store acts as a **shared source of truth for recorded activity**: a common collection of events and established facts that independently running components can query and interpret. Here the retained events are not only a record of what happened; they are the input from which later reporting is produced.
 
 This separates two moments that often change for different reasons: producing and retaining evidence, and deciding how to present that evidence later. The runs in the report are therefore useful for more than the presentation currently on screen. The underlying reconstruction work can remain the same while a later reporting requirement asks for a different selection, summary, or presentation of it.
 
-### 12. Change the dashboard without repeating the experiment
+### 12. Change the Dashboard Without Repeating the Experiment
 
 The report just requested was built from reconstruction evidence that already exists. That suggests a useful kind of change to try: alter how those completed runs are presented without making another sensor measurement or reconstruction.
 
@@ -7209,17 +7280,17 @@ First ask for just the dashboard so its current form is easy to compare with the
 ./image dashboard
 ```
 
-The dashboard is produced by its own long-running service. Changing the Python file will not change code that is already running; after the edit, that one service can be stopped and started again to load the new behavior while the broker, fusion service, and the other reporting service continue running.
+The dashboard is produced by its own long-running service. Changing the Python file will not change code that is already running; after the edit, that one service can be stopped and started again to load the new behavior while the broker, reconstruction service, and the other reporting service continue running.
 
 Change the code responsible for that dashboard presentation first, then restart the dashboard service so the running application begins using the edited code. Open `ropemother_exercises/image/dashboard.py`.
 
-#### a. Give the dashboard a heading
+#### a. Give the Dashboard a Heading
 
 Find `render_dashboard()`. Before changing it, read through the function once from top to bottom.
 
-In the starter file, `render_dashboard()` first asks `dashboard_entries()` for the completed reconstruction entries. If there are none, it returns the `No reconstructions are available.` message immediately. Otherwise, the last line passes those entries to `render_dashboard_index()`, which produces the table currently printed by `./image dashboard`.
+If you completed the opening image activity in this workspace, the function still contains the ordering change made there: its final call passes `reversed(entries)` to `render_dashboard_index()`. The reconstruction producer is also the prepared algebraic reconstruction service.
 
-`ropemother_exercises/image/dashboard.py`, lines 39–54:
+At this point, the relevant portion of `ropemother_exercises/image/dashboard.py`, lines 40–55, should read:
 
 ```python
 def dashboard_report(history: HistoryClient) -> DashboardReport:
@@ -7228,19 +7299,19 @@ def dashboard_report(history: HistoryClient) -> DashboardReport:
 
 def render_dashboard(history: HistoryClient) -> str:
     entries = dashboard_entries(
-        history, reconstruction_producer="geometric-fusion"
+        history, reconstruction_producer=ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER
     )
 
     if not entries:
         return "No reconstructions are available."
 
-    return render_dashboard_index(*entries)
+    return render_dashboard_index(*reversed(entries))
 
 
 def render_dashboard_index(*entries: DashboardEntry) -> str:
 ```
 
-The important line for this change is the final `return`. `render_dashboard_index(*entries)` already turns the dashboard rows into a string. Nothing more elaborate than text is being returned from `render_dashboard()`: `dashboard_report()` wraps that text in a `DashboardReport` for the reporting service.
+The important line for this change is the final `return`. `render_dashboard_index(*reversed(entries))` already turns the dashboard rows into a string in the ordering established earlier. Nothing more elaborate than text is being returned from `render_dashboard()`: `dashboard_report()` wraps that text in a `DashboardReport` for the reporting service.
 
 Instead of returning the table string immediately, keep it in a local variable. Then build the final dashboard text by placing a heading, a blank line, and the existing table underneath it.
 
@@ -7253,13 +7324,13 @@ def dashboard_report(history: HistoryClient) -> DashboardReport:
 
 def render_dashboard(history: HistoryClient) -> str:
     entries = dashboard_entries(
-        history, reconstruction_producer="geometric-fusion"
+        history, reconstruction_producer=ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER
     )
 
     if not entries:
         return "No reconstructions are available."
 
-    index = render_dashboard_index(*entries)
+    index = render_dashboard_index(*reversed(entries))
     return f"Completed reconstructions\n\n{index}"
 
 
@@ -7286,7 +7357,7 @@ Wait for its readiness message, then request the dashboard again:
 
 The same completed runs should now appear beneath the new `Completed reconstructions` heading. The measurements and reconstructions did not have to be repeated; only the service responsible for presenting the dashboard was restarted.
 
-#### b. Derive a new value from each reconstruction
+#### b. Derive a New Value from Each Reconstruction
 
 Adding the heading changed how existing dashboard information was presented. The next change goes a little further: the dashboard will calculate a new value from each completed reconstruction and add that value to its table.
 
@@ -7332,60 +7403,58 @@ def contrast_for(entry: DashboardEntry) -> float:
     return reconstruction_contrast(entry.reconstruction)
 ```
 
-Now find `render_dashboard_index()`. In the unmodified starter source, this function is at `ropemother_exercises/image/dashboard.py`, lines 54–71:
+Now find `render_dashboard_index()`. This function builds the two-line table entry for each completed reconstruction:
 
 ```python
 def render_dashboard_index(*entries: DashboardEntry) -> str:
-    headings = (
-        ("run", "reconstruction", "sensors", "measurements"),
-        ("  target",),
-    )
-    table_entries = tuple(
-        (
-            (
-                render_run_id(entry.run_id),
-                entry.reconstruction_id,
-                str(entry.sensor_count),
-                str(entry.measurement_count),
-            ),
-            (f"  {entry.target_key}",),
+    first_line_headings = ("run", "reconstruction", "sensors", "measurements")
+    second_line_headings = ("  target",)
+    headings = (first_line_headings, second_line_headings)
+
+    table_entries = []
+    for entry in entries:
+        first_line = (
+            render_run_id(entry.run_id),
+            entry.reconstruction_id,
+            str(entry.sensor_count),
+            str(entry.measurement_count),
         )
-        for entry in entries
-    )
+        second_line = (f"  {entry.target_key}",)
+        table_entry = (first_line, second_line)
+        table_entries.append(table_entry)
     return render_text_table(headings, table_entries)
 ```
 
-The tuples inside `headings` describe the lines printed above the dashboard entries, and the tuples inside each table entry describe the corresponding lines printed for one completed run. The first line contains the values compared across runs. The indented second line identifies the target used for that run.
+Each completed run becomes one logical dashboard entry displayed across two lines. `table_entry = (first_line, second_line)` preserves those two lines as one entry, and `headings` uses the same two-line shape for the labels at the top of the table. `render_text_table()` lays the values out into aligned columns, padding the column contents as needed, then preserves the newline between the two lines of each heading or entry when it produces the final text table.
 
-The new column changes the first line in both places. Add `"contrast"` as the fifth cell in the first heading line, then add `f"{contrast_for(entry):.3f}"` as the fifth cell in the first line of each table entry. Leave the target line unchanged. Keeping those changes together preserves the correspondence between the comparison headings and the values beneath them. The `:.3f` formatting limits the displayed contrast to three digits after the decimal point; `contrast_for()` still returns the full floating-point value.
+The new column changes only the first line. Add `"contrast"` as the fifth value in `first_line_headings`, then add `f"{contrast_for(entry):.3f}"` as the fifth value in `first_line`. Leave the second line unchanged. The `:.3f` formatting limits the displayed contrast to three digits after the decimal point; `contrast_for()` still returns the full floating-point value.
 
 After the change, the complete function should read:
 
 ```python
 def render_dashboard_index(*entries: DashboardEntry) -> str:
-    headings = (
-        (
-            "run",
-            "reconstruction",
-            "sensors",
-            "measurements",
-            "contrast",
-        ),
-        ("  target",),
+    first_line_headings = (
+        "run",
+        "reconstruction",
+        "sensors",
+        "measurements",
+        "contrast",
     )
-    table_entries = tuple(
-        (
-            (
-                render_run_id(entry.run_id),
-                entry.reconstruction_id,
-                str(entry.sensor_count),
-                str(entry.measurement_count),
-                f"{contrast_for(entry):.3f}",
-            ),
-            (f"  {entry.target_key}",),
+    second_line_headings = ("  target",)
+    headings = (first_line_headings, second_line_headings)
+
+    table_entries = []
+    for entry in entries:
+        first_line = (
+            render_run_id(entry.run_id),
+            entry.reconstruction_id,
+            str(entry.sensor_count),
+            str(entry.measurement_count),
+            f"{contrast_for(entry):.3f}",
         )
-        for entry in entries
-    )
+        second_line = (f"  {entry.target_key}",)
+        table_entry = (first_line, second_line)
+        table_entries.append(table_entry)
     return render_text_table(headings, table_entries)
 ```
 
@@ -7409,6 +7478,7 @@ from ropemother_exercises.image.application.render import (
     render_text_table,
 )
 from ropemother_exercises.image.events import (
+    ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER,
     IMAGE_RECONSTRUCTED_MSG_TYPE,
     PROJECTION_MSG_TOPIC,
     RECONSTRUCTION_COMPLETED_MSG_TYPE,
@@ -7439,13 +7509,13 @@ def dashboard_report(history: HistoryClient) -> DashboardReport:
 
 def render_dashboard(history: HistoryClient) -> str:
     entries = dashboard_entries(
-        history, reconstruction_producer="geometric-fusion"
+        history, reconstruction_producer=ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER
     )
 
     if not entries:
         return "No reconstructions are available."
 
-    index = render_dashboard_index(*entries)
+    index = render_dashboard_index(*reversed(entries))
     return f"Completed reconstructions\n\n{index}"
 
 
@@ -7454,29 +7524,28 @@ def contrast_for(entry: DashboardEntry) -> float:
 
 
 def render_dashboard_index(*entries: DashboardEntry) -> str:
-    headings = (
-        (
-            "run",
-            "reconstruction",
-            "sensors",
-            "measurements",
-            "contrast",
-        ),
-        ("  target",),
+    first_line_headings = (
+        "run",
+        "reconstruction",
+        "sensors",
+        "measurements",
+        "contrast",
     )
-    table_entries = tuple(
-        (
-            (
-                render_run_id(entry.run_id),
-                entry.reconstruction_id,
-                str(entry.sensor_count),
-                str(entry.measurement_count),
-                f"{contrast_for(entry):.3f}",
-            ),
-            (f"  {entry.target_key}",),
+    second_line_headings = ("  target",)
+    headings = (first_line_headings, second_line_headings)
+
+    table_entries = []
+    for entry in entries:
+        first_line = (
+            render_run_id(entry.run_id),
+            entry.reconstruction_id,
+            str(entry.sensor_count),
+            str(entry.measurement_count),
+            f"{contrast_for(entry):.3f}",
         )
-        for entry in entries
-    )
+        second_line = (f"  {entry.target_key}",)
+        table_entry = (first_line, second_line)
+        table_entries.append(table_entry)
     return render_text_table(headings, table_entries)
 
 
@@ -7569,9 +7638,9 @@ A `contrast` column should now appear beside the measurement count for every com
 
 The value describes the reconstruction that the dashboard already recovered for that row. It is not another measurement and does not require access to information hidden from the reconstruction process.
 
-Notice which runs received the new column: the earlier runs did too, including runs completed before `contrast_for()` existed. Their reconstructions were already retained in message history. When the dashboard is requested now, it can recover those reconstructions and calculate contrast from them, so adding this reporting requirement did not require repeating the original sensing or fusion work.
+Notice which runs received the new column: the earlier runs did too, including runs completed before `contrast_for()` existed. Their reconstructions were already retained in message history. When the dashboard is requested now, it can recover those reconstructions and calculate contrast from them, so adding this reporting requirement did not require repeating the original sensing or reconstruction work.
 
-#### c. Use contrast to change the dashboard order
+#### c. Use Contrast to Change the Dashboard Order
 
 The new `contrast` column describes each completed reconstruction, but the dashboard still lists the runs in the order returned by `dashboard_entries()`. A report can also use a value like this to decide how its results are arranged. Here, order the rows from larger contrast values to smaller ones.
 
@@ -7582,13 +7651,13 @@ Find `render_dashboard()` again. After the previous edits, it should currently h
 ```python
 def render_dashboard(history: HistoryClient) -> str:
     entries = dashboard_entries(
-        history, reconstruction_producer="geometric-fusion"
+        history, reconstruction_producer=ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER
     )
 
     if not entries:
         return "No reconstructions are available."
 
-    index = render_dashboard_index(*entries)
+    index = render_dashboard_index(*reversed(entries))
     return f"Completed reconstructions\n\n{index}"
 ```
 
@@ -7599,7 +7668,7 @@ Change the end of the function so it reads:
 ```python
 def render_dashboard(history: HistoryClient) -> str:
     entries = dashboard_entries(
-        history, reconstruction_producer="geometric-fusion"
+        history, reconstruction_producer=ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER
     )
 
     if not entries:
@@ -7632,7 +7701,7 @@ Then request the dashboard:
 
 Read down the `contrast` column. The values should now descend from larger to smaller. The reconstructions in message history have not changed; the reporting code is using information derived from them to present the same completed work in a different order.
 
-### 13. Change the report for one completed run
+### 13. Change the Report for One Completed Run
 
 The dashboard summarizes the collection of completed runs. Each run also has its own reconstruction report: the full-size rendering shown when a command such as `./image report trial-1` asks for one particular result. The next change affects that detailed report while leaving the dashboard alone.
 
@@ -7648,7 +7717,7 @@ Open `ropemother_exercises/image/report.py`.
 
 Start with the two functions that connect a recovered reconstruction to the text displayed in the terminal.
 
-`ropemother_exercises/image/report.py`, current lines 20–44:
+`ropemother_exercises/image/report.py`, lines 22–58:
 
 ```python
 def reconstruction_report(
@@ -7664,7 +7733,9 @@ def reconstruction_report(
     if reconstruction is None:
         return None
 
-    rendering = render_reconstruction_report(reconstruction)
+    rendering = render_reconstruction_report(
+        reconstruction, completion.target_key
+    )
     report = ReconstructionReport(
         run_id=reconstruction.run_id,
         target_key=completion.target_key,
@@ -7674,21 +7745,33 @@ def reconstruction_report(
     return report
 
 
-def render_reconstruction_report(reconstruction: ImageObservation) -> str:
-    return render_reconstructions(reconstruction)
+def render_reconstruction_report(
+    reconstruction: ImageObservation, target_key: TargetKey
+) -> str:
+    run_label = render_run_id(reconstruction.run_id)
+    identity = (
+        f"{run_label}  -  target key: {target_key}  "
+        f"reconstruction: {reconstruction.observation_id}"
+    )
+    image = render_intensity_image(
+        reconstruction.intensity_image, reconstruction.frame
+    )
+    return f"{identity}\n\n{image}"
 ```
 
-`reconstruction_report()` first uses the completion to recover the corresponding reconstruction from history. Once it has that `ImageObservation`, this line calls another function to decide how that reconstruction should look in the report:
+`reconstruction_report()` first uses the completion to recover the corresponding reconstruction from history. Once it has that `ImageObservation`, this call delegates the narrower job of producing the report text to `render_reconstruction_report()`:
 
 ```python
-    rendering = render_reconstruction_report(reconstruction)
+    rendering = render_reconstruction_report(
+        reconstruction, completion.target_key
+    )
 ```
 
-That call is the **delegation** in this relationship: `reconstruction_report()` is responsible for finding the result and constructing the `ReconstructionReport`, but it hands the narrower job of producing the report text to `render_reconstruction_report()`. The report record also keeps the target key from the completion so the result remains associated with the target that produced it; the target key is structured report information rather than part of the reconstruction rendering.
+`reconstruction_report()` remains responsible for finding the result and constructing the `ReconstructionReport`. `render_reconstruction_report()` decides how the human-readable report looks. The target key is preserved in the report record and is also passed into the rendering function so the visible identity line can associate the reconstruction with its concealed target without revealing that target.
 
 The process that receives the report request is in a different file. There is no need to change it, but a short excerpt makes the division of work visible.
 
-`ropemother_exercises/image/service/report.py`, current lines 66–83:
+`ropemother_exercises/image/service/report.py`, lines 67–84:
 
 ```python
         while True:
@@ -7717,48 +7800,42 @@ That separation gives this edit a narrow place to live. Changing what appears in
 
 The dashboard already introduced intensity as the numeric value represented by each reconstructed cell. For the detailed report, add another summary called **smoothness**. `reconstruction_smoothness()` compares neighboring reconstructed cells and summarizes how similar their intensities are on average; more similar neighboring values produce a larger smoothness value.
 
-First add the calculation to the imports. Near the top of `ropemother_exercises/image/report.py`, the current source at lines 6–10 reads:
+Now return to `render_reconstruction_report()`. Its current implementation renders the report identity and the reconstruction image:
 
 ```python
-from ropemother.capture import HistoryClient
-
-from ropemother_exercises.image.application.render import (
-    render_reconstructions,
-)
+def render_reconstruction_report(
+    reconstruction: ImageObservation, target_key: TargetKey
+) -> str:
+    run_label = render_run_id(reconstruction.run_id)
+    identity = (
+        f"{run_label}  -  target key: {target_key}  "
+        f"reconstruction: {reconstruction.observation_id}"
+    )
+    image = render_intensity_image(
+        reconstruction.intensity_image, reconstruction.frame
+    )
+    return f"{identity}\n\n{image}"
 ```
 
-Insert the ranking import between them:
+Keep that existing identity and image rendering. Calculate the smoothness for the same reconstruction, then append it beneath the image:
 
 ```python
-from ropemother.capture import HistoryClient
-
-from ropemother_exercises.image.application.ranking import (
-    reconstruction_smoothness,
-)
-from ropemother_exercises.image.application.render import (
-    render_reconstructions,
-)
-```
-
-Now return to `render_reconstruction_report()`. Its current implementation has only one job: render the reconstruction image as text.
-
-`ropemother_exercises/image/report.py`, current lines 43–44:
-
-```python
-def render_reconstruction_report(reconstruction: ImageObservation) -> str:
-    return render_reconstructions(reconstruction)
-```
-
-Keep that existing rendering, but store it in `image` rather than returning it immediately. Then calculate the smoothness for the same reconstruction and compose both pieces into the report text:
-
-```python
-def render_reconstruction_report(reconstruction: ImageObservation) -> str:
-    image = render_reconstructions(reconstruction)
+def render_reconstruction_report(
+    reconstruction: ImageObservation, target_key: TargetKey
+) -> str:
+    run_label = render_run_id(reconstruction.run_id)
+    identity = (
+        f"{run_label}  -  target key: {target_key}  "
+        f"reconstruction: {reconstruction.observation_id}"
+    )
+    image = render_intensity_image(
+        reconstruction.intensity_image, reconstruction.frame
+    )
     smoothness = reconstruction_smoothness(reconstruction)
-    return f"{image}\nsmoothness: {smoothness:.3f}"
+    return f"{identity}\n\n{image}\nsmoothness: {smoothness:.3f}"
 ```
 
-The image rendering still comes from `render_reconstructions()`. The new final line places a three-decimal smoothness value directly underneath that existing text.
+The run, target key, reconstruction identifier, and reconstruction image remain unchanged. The new final line adds the three-decimal smoothness value underneath that existing report.
 
 Before restarting the service, the complete `ropemother_exercises/image/report.py` should read:
 
@@ -7774,7 +7851,8 @@ from ropemother_exercises.image.application.ranking import (
     reconstruction_smoothness,
 )
 from ropemother_exercises.image.application.render import (
-    render_reconstructions,
+    render_intensity_image,
+    render_run_id,
 )
 from ropemother_exercises.image.events import (
     IMAGE_RECONSTRUCTED_MSG_TYPE,
@@ -7782,6 +7860,7 @@ from ropemother_exercises.image.events import (
     ImageObservation,
     ReconstructionCompletion,
     ReconstructionReport,
+    TargetKey,
 )
 
 
@@ -7798,7 +7877,9 @@ def reconstruction_report(
     if reconstruction is None:
         return None
 
-    rendering = render_reconstruction_report(reconstruction)
+    rendering = render_reconstruction_report(
+        reconstruction, completion.target_key
+    )
     report = ReconstructionReport(
         run_id=reconstruction.run_id,
         target_key=completion.target_key,
@@ -7808,10 +7889,19 @@ def reconstruction_report(
     return report
 
 
-def render_reconstruction_report(reconstruction: ImageObservation) -> str:
-    image = render_reconstructions(reconstruction)
+def render_reconstruction_report(
+    reconstruction: ImageObservation, target_key: TargetKey
+) -> str:
+    run_label = render_run_id(reconstruction.run_id)
+    identity = (
+        f"{run_label}  -  target key: {target_key}  "
+        f"reconstruction: {reconstruction.observation_id}"
+    )
+    image = render_intensity_image(
+        reconstruction.intensity_image, reconstruction.frame
+    )
     smoothness = reconstruction_smoothness(reconstruction)
-    return f"{image}\nsmoothness: {smoothness:.3f}"
+    return f"{identity}\n\n{image}\nsmoothness: {smoothness:.3f}"
 
 
 def _reconstruction_for(
@@ -7840,8 +7930,6 @@ def _reconstruction_for(
     return None
 ```
 
-The same completed implementation can also be found at `_targets/image/report.py`.
-
 The file on disk is now ready, while the running reconstruction-report service still has the earlier code loaded. Stop that service:
 
 ```sh
@@ -7869,13 +7957,13 @@ Finally, request the complete application report again:
 ./image report
 ```
 
-The dashboard should still have its heading, contrast column, and contrast ordering, while each detailed reconstruction now includes smoothness. During the dashboard edits, only the dashboard service was restarted; during this edit, only the reconstruction-report service was restarted. The sensor measurements and fusion results did not have to be recreated for either kind of reporting change. At this point the separation is visible in the work itself: the application can change how the collection is summarized and how an individual result is presented without making those changes part of the sensing and reconstruction path.
+The dashboard should still have its heading, contrast column, and contrast ordering, while each detailed reconstruction now includes smoothness. During the dashboard edits, only the dashboard service was restarted; during this edit, only the reconstruction-report service was restarted. The sensor measurements and reconstruction results did not have to be recreated for either kind of reporting change. At this point the separation is visible in the work itself: the application can change how the collection is summarized and how an individual result is presented without making those changes part of the sensing and reconstruction path.
 
-### 14. Open exploration
+### 14. Open Exploration
 
 The guided sequence is finished. The application can stay running while the remaining time is used to follow whichever reconstruction or reporting questions are interesting. There is no expected final configuration and no need to stop after one experiment. A useful comparison may suggest another one: more viewing directions may lead to a measurement-budget comparison; a perspective sensor may suggest a mixed arrangement; an interesting set of completed runs may suggest another dashboard view. Continue as long as the results raise questions worth pursuing.
 
-#### a. Re-enter the running application
+#### a. Re-enter the Running Application
 
 The earlier interactive Python process has ended, but the broker and application services are still running. Start another Python client without asking the workspace to perform its prepared opening run:
 
@@ -7889,7 +7977,20 @@ These two clients offer different ways into the same running application. The Py
 
 The new Python process recreates the standard workspace names, including `frame`, `target`, `samples_per_sensor`, `sensor_0`, `sensor_90`, `sensor_0_source`, and `sensor_90_source`. Names created during the earlier interpreter session, such as the particular `sensor_45_source` or perspective-source variables, belonged to that Python process and are no longer present. The runs and Instruments created through them belonged to the application, so they remain visible from the terminal.
 
-#### b. Reconstruct the experiment cycle
+The recreated workspace also exposes `threshold_intensity_image_by_fraction()` and `render_quadrant_bitmap()` for optional reconstruction inspection. The threshold fraction is relative to the reconstruction's maximum intensity, so a lower value keeps more cells and a higher value keeps only stronger cells:
+
+```python
+thresholded = threshold_intensity_image_by_fraction(
+    frame,
+    reconstruction.intensity_image,
+    threshold_fraction=0.6,
+)
+print(render_quadrant_bitmap(thresholded))
+```
+
+The thresholded result is a `Bitmap`, so it can also be passed to other bitmap-rendering helpers. Changing the cutoff does not repeat the measurements or change the fusion processor; it only changes this binary inspection of the reconstruction.
+
+#### b. Reconstruct the Experiment Cycle
 
 Before branching into a new experiment, it may help to reconnect the pieces used throughout this section.
 
@@ -7909,7 +8010,7 @@ sensor_source.measure(
 )
 ```
 
-The source turns its measurement into an image observation and sends it through the bus. The fusion processor can use observations from any of the sensor families exercised here because those sources provide the same kind of image evidence after performing their different measurements.
+The source turns its measurement into an image observation and sends it through the bus. The fusion processor can use observations from any of the sensor families exercised here because those sources publish the same `ImageObservation` contract after performing their different measurements.
 
 A run may contain one source or many. Once every intended measurement for that attempt has been sent, close its input:
 
@@ -7923,7 +8024,7 @@ When a completed run establishes a sensor arrangement that the application has n
 
 With those relationships back in view, the experiments below can be combined freely rather than treated as separate exercises.
 
-#### c. Add viewing directions
+#### c. Add Viewing Directions
 
 One way to spend more sensing effort is to observe the image from more directions.
 
@@ -7940,7 +8041,7 @@ Leaving those values unchanged while adding directions makes the new coverage th
 
 There is no requirement to stop at sixteen views. The useful stopping point is where another refinement ceases to be interesting or another question becomes more interesting.
 
-#### d. Spend more evidence on the same views
+#### d. Spend More Evidence on the Same Views
 
 Another experiment leaves the sensor arrangement unchanged and changes `sample_count`.
 
@@ -7950,7 +8051,7 @@ These runs answer a different question from adding angles. The sensors look from
 
 Several depths can be worth trying rather than only two. Seeing a sequence of results makes it easier to notice where another increase produces an obvious change and where it begins to make little visible difference.
 
-#### e. Hold the total measurement budget steady
+#### e. Hold the Total Measurement Budget Steady
 
 More sensors and more samples per sensor both increase the total amount of sampling work. They can therefore be traded against one another.
 
@@ -7966,7 +8067,7 @@ This comparison is useful after trying sensor count and measurement depth separa
 
 The dashboard's measurement count provides a convenient check that the compared runs really used the intended total.
 
-#### f. Change angular projection resolution
+#### f. Change Angular Projection Resolution
 
 `edge_bin_count` changes a different part of an angular sensor. It determines the bin width used to divide the projection; the sensor derives however many detector bins are needed to preserve that resolution across its viewing angles.
 
@@ -7982,7 +8083,7 @@ uses approximately one bin-width per image cell along an edge. Trying values suc
 
 Resolution can also be varied together with sensor count after each effect has been explored separately. There is no requirement that every comparison isolate exactly one variable once the basic relationships are understood.
 
-#### g. Explore perspective sensors further
+#### g. Explore Perspective Sensors Further
 
 The two perspective sensors earlier in the section were only one possible arrangement. A perspective sensor has choices that an angular sensor does not:
 
@@ -7998,7 +8099,7 @@ The earlier `perspective_sensors_for_bearings()` helper is useful when several s
 
 `show_bins(frame)` can be used on any perspective sensor definition before it is attached. This is a particularly useful check when experimenting with viewpoint, heading, or field of view because it makes the resulting fan-shaped partition visible before a run is committed to it.
 
-#### h. Mix sensor families
+#### h. Mix Sensor Families
 
 An Instrument does not have to contain only one sensor family.
 
@@ -8037,7 +8138,7 @@ Comparing repeated runs makes the difference between an Instrument and a run vis
 
 It can also be useful to repeat a configuration before and after changing reporting code. The sensing arrangement then remains familiar while the way its results are presented evolves.
 
-#### j. Keep changing the reports
+#### j. Keep Changing the Reports
 
 The reporting work does not have to stop with the heading, contrast ordering, and smoothness value already added.
 
@@ -8054,7 +8155,7 @@ Possible continuations include:
 
 After a change to `dashboard.py`, restart only the dashboard service and request the dashboard again. After a change to `report.py`, restart only the reconstruction-report service and request an earlier run again. Several reporting ideas can be tried in succession against the same retained runs.
 
-#### k. Find the code for the direction that interests you
+#### k. Find the Code for the Direction That Interests You
 
 There is no need to read the rest of the image package before continuing. The useful file depends on what is being changed:
 
@@ -8076,9 +8177,9 @@ That is the **partial observability** problem introduced at the beginning of the
 
 - **Projection:** sensor evidence grouped into a one-dimensional view from one direction.
 - **Back-projection:** image-shaped evidence recovered from a projection by spreading each bin across the cells that could have contributed to it.
-- **Fusion:** combining several image-shaped observations into one reconstruction.
+- **Fusion:** combining several observations into one reconstruction.
 - **Partial observability:** a condition in which no one observation contains all the state needed to describe the hidden image.
-- **Image observation:** image-shaped evidence published to fusion through the shared `ImageObservation` message contract.
+- **Image observation:** sensor evidence published through the shared `ImageObservation` message contract.
 - **Instrument:** a reusable sensor arrangement.
 - **Run:** one use of an arrangement, with its own measurements and reconstruction.
 
@@ -8088,13 +8189,13 @@ The experiments changed other aspects of sensing without changing that relations
 
 A sensor arrangement also proved to be different from one use of that arrangement. The interactive Python client that created the early sources eventually exited, but the terminal could still inspect the resulting Instrument and perform it again. Each repeated use produced a new run and fresh measurements while the recorded sensor arrangement stayed reusable. The useful result of exploration was therefore not confined to the lifetime of the Python objects that happened to construct it.
 
-Reporting exposed another kind of change. The contrast column appeared for runs that had been completed before the contrast code existed. The later smoothness edit could likewise add information to an earlier reconstruction. Those values were calculated from reconstructions retained in history, so the original sensor measurements and fusion work did not have to be performed again.
+Reporting exposed another kind of change. The contrast column appeared for runs that had been completed before the contrast code existed. The later smoothness edit could likewise add information to an earlier reconstruction. Those values were calculated from reconstructions retained in history, so the original sensor measurements and reconstruction work did not have to be performed again.
 
 That distinction matters when software continues to evolve after its original data has been collected. A research experiment, classroom activity, simulation, or other data-producing application may acquire evidence under one set of requirements and later be asked for a comparison, summary, ranking, or presentation that nobody anticipated when the evidence was produced. If the underlying evidence remains available, a later reporting change can reinterpret that work instead of forcing the acquisition process to be redesigned or repeated.
 
 The process boundaries made the same separation visible while the application was running. Changing the dashboard required restarting the dashboard service, not the reconstruction-report service or fusion processor. Changing the detailed reconstruction report required restarting its reporting service, not the dashboard or the sensing path. Earlier, adding perspective sensors changed the producers of evidence without requiring a corresponding change to fusion. Different parts of the application were therefore able to change at different times while continuing to meet through the same message relationships.
 
-### 16. Stop the image application when finished
+### 16. Stop the Image Application When Finished
 
 When the exploration is finished, return to the terminal that has been running the application processes.
 
@@ -8125,7 +8226,7 @@ The host handles that interrupt by stopping the reconstruction, Instrument, and 
 
 The exercises changed several applications in different ways. A new TTY interpretation was added. Graph facts were derived in different processing orders. Perspective sensors supplied evidence through a geometry the fusion processor had not seen before. Reports acquired information that did not exist when the underlying measurements were taken. The useful comparison is not simply that all of these examples used messages. It is what each change required—and what it did not require changing with it.
 
-### 1. What changed, and what stayed local?
+### 1. What Changed, and What Stayed Local?
 
 Several representative changes can be compared directly:
 
@@ -8143,7 +8244,7 @@ Consider the perspective-sensor change. The perspective source did not resemble 
 
 The reporting changes provide another example from a different direction. The dashboard gained contrast and a new ordering rule, and the detailed reconstruction report gained smoothness. Those requirements arrived after many of the displayed runs had already been completed. The recorded reconstruction evidence was still sufficient, so those changes could remain in reporting instead of propagating backward into sensing and fusion.
 
-### 2. Put boundaries where independent change is useful
+### 2. Put Boundaries Where Independent Change Is Useful
 
 Messaging was not used for every operation in these exercises. Inside a participant, ordinary Python calls remained the straightforward way to calculate a value, manipulate a record, render text, or call a helper. A message boundary introduced additional work: the communicating parts needed an agreed message, endpoints, and sometimes another process or service.
 
@@ -8161,7 +8262,7 @@ A useful question when considering a message boundary is therefore:
 
 If there is no useful independence to preserve, a direct function call may be the clearer design. Message-based design is selective rather than an instruction to put a bus between every pair of functions.
 
-### 3. Messages do not imply one pipeline
+### 3. Messages Do Not Imply One Pipeline
 
 The exercises also moved away from the idea that processing must form one fixed sequence from source to final result.
 
@@ -8173,7 +8274,7 @@ The graph exercise went further still. A derived path fact could become evidence
 
 Taken together, these cases are better described as relationships among participants and evidence than as a single conveyor belt. Evidence may fan out to several consumers, be retained for later use, or become input to more derived work. The application does not need one Python call sequence to prescribe every permitted interaction.
 
-### 4. Communication relationships and deployment are different choices
+### 4. Communication Relationships and Deployment Are Different Choices
 
 The basic messaging exercises first placed communicating participants around `DirectMessageBus` in one Python process. Later, the freestanding broker moved communication across local process boundaries.
 
@@ -8186,7 +8287,7 @@ This separates two design questions:
 
 The exercises demonstrated one-process and local-IPC deployments. The important observation is limited but useful: choosing a message relationship did not require the participant code to encode one particular process arrangement.
 
-### 5. Transfer the pattern to another system
+### 5. Transfer the Pattern to Another System
 
 The same reasoning can be applied without copying any of the exercise applications.
 

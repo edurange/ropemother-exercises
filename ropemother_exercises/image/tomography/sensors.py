@@ -55,7 +55,7 @@ from ropemother_exercises.image.tomography.measurements import (
     perspective_sectors,
     projection_strips,
 )
-from ropemother_exercises.image.tomography.reconstruction import (
+from ropemother_exercises.image.tomography.back_projection import (
     image_observation_from_angular_projection,
     image_observation_from_perspective_projection,
 )

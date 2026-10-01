@@ -9,7 +9,8 @@ from ropemother_exercises.image.application.ranking import (
     reconstruction_smoothness,
 )
 from ropemother_exercises.image.application.render import (
-    render_reconstructions,
+    render_intensity_image,
+    render_run_id,
 )
 from ropemother_exercises.image.events import (
     IMAGE_RECONSTRUCTED_MSG_TYPE,
@@ -17,6 +18,7 @@ from ropemother_exercises.image.events import (
     ImageObservation,
     ReconstructionCompletion,
     ReconstructionReport,
+    TargetKey,
 )
 
 
@@ -33,7 +35,9 @@ def reconstruction_report(
     if reconstruction is None:
         return None
 
-    rendering = render_reconstruction_report(reconstruction)
+    rendering = render_reconstruction_report(
+        reconstruction, completion.target_key
+    )
     report = ReconstructionReport(
         run_id=reconstruction.run_id,
         target_key=completion.target_key,
@@ -43,10 +47,19 @@ def reconstruction_report(
     return report
 
 
-def render_reconstruction_report(reconstruction: ImageObservation) -> str:
-    image = render_reconstructions(reconstruction)
+def render_reconstruction_report(
+    reconstruction: ImageObservation, target_key: TargetKey
+) -> str:
+    run_label = render_run_id(reconstruction.run_id)
+    identity = (
+        f"{run_label}  -  target key: {target_key}  "
+        f"reconstruction: {reconstruction.observation_id}"
+    )
+    image = render_intensity_image(
+        reconstruction.intensity_image, reconstruction.frame
+    )
     smoothness = reconstruction_smoothness(reconstruction)
-    return f"{image}\nsmoothness: {smoothness:.3f}"
+    return f"{identity}\n\n{image}\nsmoothness: {smoothness:.3f}"
 
 
 def _reconstruction_for(
