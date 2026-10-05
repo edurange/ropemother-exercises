@@ -5,10 +5,12 @@
 
 import argparse
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
 import tempfile
+import textwrap
 import time
 
 from ropemother.broker import Receiver
@@ -21,6 +23,9 @@ from ropemother.service import (
 from ropemother_exercises.image.events import (
     ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER,
     IDENTITY_SERVICE_MSG_PRODUCER,
+    APPLICATION_SHUTDOWN_TARGET,
+    SERVICE_CONTROL_MSG_TOPIC,
+    SERVICE_SHUTDOWN_MSG_TYPE,
     TRIAL_SERVICE_MSG_PRODUCER,
     TargetKey,
 )
@@ -45,6 +50,11 @@ _LONG_LIVED_SERVICES = {
         "ropemother_exercises.image.service.algebraic"
     ),
 }
+_INDEPENDENT_SERVICE_PRODUCERS = (
+    "dashboard-report",
+    "reconstruction-report",
+)
+_INDEPENDENT_SERVICE_STOP_TIMEOUT_SECONDS = 2.0
 _PROCESS_STOP_TIMEOUT_SECONDS = 2.0
 _SERVICE_START_TIMEOUT_SECONDS = 5.0
 
@@ -67,6 +77,15 @@ def run_application_host(target_key: TargetKey | None = None) -> None:
             _run_application_services(host)
 
 
+def _print_wrapped(message: str) -> None:
+    terminal_width = shutil.get_terminal_size(fallback=(80, 24)).columns
+    width = max(20, terminal_width)
+    rendering = textwrap.fill(
+        message, width=width, break_long_words=False, break_on_hyphens=False
+    )
+    print(rendering, flush=True)
+
+
 def _run_application_services(host: MessageBusHost) -> None:
     bus = host.client()
     environment = host.bus_contact_variables()
@@ -78,21 +97,38 @@ def _run_application_services(host: MessageBusHost) -> None:
             msg_producer=tuple(_LONG_LIVED_SERVICES),
             msg_type="ready",
         )
+        shutdown_receiver = bus.subscribe(
+            msg_topic=SERVICE_CONTROL_MSG_TOPIC,
+            msg_producer="experiment-terminal",
+            msg_type=SERVICE_SHUTDOWN_MSG_TYPE,
+        )
+        independent_stopped_receiver = bus.subscribe(
+            msg_topic="lifecycle",
+            msg_producer=_INDEPENDENT_SERVICE_PRODUCERS,
+            msg_type="stopped",
+        )
         for module in _LONG_LIVED_SERVICES.values():
             process = _start_process(module, environment)
             processes.append((module, process))
         _wait_for_services(ready_receiver, processes)
         descriptor = host.connection_descriptor().to_uri()
-        print(
-            "Image application host is ready. Make sure to run the "
-            "independent services separately.",
-            flush=True,
+        _print_wrapped(
+            "Image application host is ready. Start the report and dashboard "
+            "services separately."
         )
+        _print_wrapped(
+            "Copy this command into each terminal that connects to this "
+            "application:"
+        )
+        print(flush=True)
         print(
             f"export {BUS_CONTACT_URI_VARIABLE}={shlex.quote(descriptor)}",
             flush=True,
         )
-        _wait_for_services_to_stop(processes)
+        print(flush=True)
+        _wait_for_services_to_stop(
+            processes, shutdown_receiver, independent_stopped_receiver
+        )
     except KeyboardInterrupt:
         pass
     finally:
@@ -140,8 +176,18 @@ def _wait_for_services(
 
 def _wait_for_services_to_stop(
     processes: list[tuple[str, subprocess.Popen[bytes]]],
+    shutdown_receiver: Receiver,
+    independent_stopped_receiver: Receiver,
 ) -> None:
     while True:
+        for message in shutdown_receiver.receive_available():
+            if message.payload == APPLICATION_SHUTDOWN_TARGET:
+                print("Image application host is stopping.", flush=True)
+                _wait_for_independent_services_to_stop(
+                    independent_stopped_receiver
+                )
+                return
+
         stopped = [
             module
             for module, process in processes
@@ -155,6 +201,18 @@ def _wait_for_services_to_stop(
             )
 
         time.sleep(0.25)
+
+
+def _wait_for_independent_services_to_stop(stopped_receiver: Receiver) -> None:
+    waiting = set(_INDEPENDENT_SERVICE_PRODUCERS)
+    deadline = time.monotonic() + _INDEPENDENT_SERVICE_STOP_TIMEOUT_SECONDS
+
+    while waiting and time.monotonic() < deadline:
+        for message in stopped_receiver.receive_available():
+            waiting.discard(message.msg_producer)
+
+        if waiting:
+            time.sleep(0.05)
 
 
 def _stop_process(process: subprocess.Popen[bytes]) -> None:

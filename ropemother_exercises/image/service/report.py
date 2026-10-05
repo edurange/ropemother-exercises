@@ -4,16 +4,20 @@
 """Run the full-size reconstruction report service."""
 
 import collections.abc
+import sys
 
 from ropemother.capture import HistoryClient
 from ropemother.format import JSON_PORTABLE_FORMAT
 from ropemother.service import (
+    BUS_CONTACT_URI_VARIABLE,
+    MissingBusContactEnvironmentError,
     connect_message_bus,
     preconfigured_history_client,
 )
 
 from ropemother_exercises.image.events import (
     ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER,
+    APPLICATION_SHUTDOWN_TARGET,
     RECONSTRUCTION_REPORT_CLIENT_MSG_PRODUCER,
     RECONSTRUCTION_REPORT_MSG_TYPE,
     RECONSTRUCTION_REPORT_REQUEST_MSG_TYPE,
@@ -69,7 +73,9 @@ def serve_reconstruction_report_requests(
                 shutdown_receiver, responder.request_receiver
             )
             if receiver is shutdown_receiver:
-                if message.payload == "reconstruction-report":
+                if message.payload in (
+                    "reconstruction-report", APPLICATION_SHUTDOWN_TARGET
+                ):
                     lifecycle.stopping(None)
                     lifecycle.stopped(None)
                     break
@@ -104,4 +110,13 @@ def _algebraic_reconstruction_report(
 
 
 if __name__ == "__main__":
-    run_reconstruction_report_service()
+    try:
+        run_reconstruction_report_service()
+    except MissingBusContactEnvironmentError:
+        print(
+            f"{BUS_CONTACT_URI_VARIABLE} is not set. Start the image "
+            "application host and run the export command it prints in this "
+            "terminal before starting this program.",
+            file=sys.stderr,
+        )
+        raise SystemExit(2) from None

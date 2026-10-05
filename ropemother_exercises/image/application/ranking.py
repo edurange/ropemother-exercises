@@ -10,7 +10,12 @@ from ropemother_exercises.image.tomography.images import Cell
 
 
 def reconstruction_smoothness(reconstruction: ImageObservation) -> float:
-    """Return average similarity between neighboring reconstruction cells."""
+    """Return average similarity between neighboring reconstruction cells.
+
+    Args:
+        reconstruction: Reconstruction whose neighboring intensities should be
+            compared.
+    """
     frame = reconstruction.frame
     image = reconstruction.intensity_image
     differences = []
@@ -32,7 +37,12 @@ def reconstruction_smoothness(reconstruction: ImageObservation) -> float:
 
 
 def reconstruction_contrast(reconstruction: ImageObservation) -> float:
-    """Return the population intensity spread of a reconstruction."""
+    """Return the population intensity spread of a reconstruction.
+
+    Args:
+        reconstruction: Reconstruction whose cell intensities should be
+            compared.
+    """
     values = [
         reconstruction.intensity_image.get(cell, 0.0)
         for cell in reconstruction.frame.cells()

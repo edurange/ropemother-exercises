@@ -125,6 +125,14 @@ def render_bitmap(
     cell_columns: int = 1,
     palette: collections.abc.Sequence[str] = BLOCK_FILL_SHADES,
 ) -> str:
+    """Render a bitmap as terminal text.
+
+    Args:
+        bitmap: Filled-or-empty image to render.
+        value: Intensity assigned to filled cells for rendering.
+        cell_columns: Number of terminal columns used for each image cell.
+        palette: Characters ordered from lower to higher displayed intensity.
+    """
     renderer = TerminalRenderer(
         frame=bitmap.frame, palette=palette, cell_columns=cell_columns
     )
@@ -132,6 +140,11 @@ def render_bitmap(
 
 
 def render_quadrant_bitmap(bitmap: Bitmap) -> str:
+    """Render a bitmap with one quadrant character for each 2-by-2 cell block.
+
+    Args:
+        bitmap: Binary image to render compactly.
+    """
     rows = []
 
     for y in range(0, bitmap.frame.height, 2):
@@ -197,6 +210,16 @@ def render_intensity_image(
     palette: collections.abc.Sequence[str] = BLOCK_FILL_SHADES,
     display_maximum: float | None = None,
 ) -> str:
+    """Render graded image intensities as terminal text.
+
+    Args:
+        image: Intensity value associated with each represented image cell.
+        frame: Image dimensions to render.
+        cell_columns: Number of terminal columns used for each image cell.
+        palette: Characters ordered from lower to higher displayed intensity.
+        display_maximum: Intensity represented by the strongest palette entry.
+            When omitted, the image's maximum intensity is used.
+    """
     if display_maximum is None:
         display_maximum = maximum_intensity(image)
 
@@ -210,6 +233,11 @@ def render_intensity_image(
 
 
 def render_reconstructions(*reconstructions: ImageObservation) -> str:
+    """Render reconstructions using one shared intensity scale.
+
+    Args:
+        *reconstructions: Reconstruction observations to render together.
+    """
     display_maximum = maximum_intensity(
         *(reconstruction.intensity_image for reconstruction in reconstructions)
     )

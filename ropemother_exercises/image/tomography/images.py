@@ -25,6 +25,12 @@ IntensityImage: typing.Final = dict[Cell, float]
 # Is this a leaky abstraction? Would it be better served as a NamedTuple?
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class ImageFrame:
+    """Describe the rectangular grid occupied by an image.
+
+    Args:
+        width: Number of image cells across the horizontal axis.
+        height: Number of image cells across the vertical axis.
+    """
     width: int
     height: int
 
@@ -62,6 +68,12 @@ class BinaryImage(abc.ABC):
 
 @dataclasses.dataclass(frozen=True, init=False)
 class Bitmap(BinaryImage):
+    """Binary image represented by a set of filled cells.
+
+    Args:
+        frame: Image frame containing the bitmap.
+        filled_cells: Cells that should be filled; all other cells are empty.
+    """
     frame: ImageFrame
     filled_cells: CellSet
 
@@ -128,6 +140,14 @@ def threshold_intensity_image_by_fraction(
     image: IntensityImage,
     threshold_fraction: float = 0.5,
 ) -> Bitmap:
+    """Convert graded image intensities to a filled-or-empty bitmap.
+
+    Args:
+        frame: Frame of the resulting bitmap.
+        image: Graded cell intensities to threshold.
+        threshold_fraction: Fraction of the image's strongest intensity used
+            as the cutoff, from 0.0 through 1.0.
+    """
     if not 0.0 <= threshold_fraction <= 1.0:
         raise ValueError("threshold_fraction must be between 0.0 and 1.0")
 

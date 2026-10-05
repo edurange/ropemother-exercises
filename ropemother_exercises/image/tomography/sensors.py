@@ -67,6 +67,11 @@ class Sensor(abc.ABC):
     """Describe an image sensor configuration."""
 
     def show_bins(self, frame: ImageFrame) -> None:
+        """Display how this sensor groups cells in an image frame.
+
+        Args:
+            frame: Image frame whose cells should be grouped and displayed.
+        """
         regions = self._bin_regions(frame)
         print(_render_sensor_bins(frame, regions))
 
@@ -109,7 +114,15 @@ class SensorSource(abc.ABC):
         run_id: RunID | None = None,
         seed: int | None = None,
     ) -> None:
-        """Measure a target and publish the resulting observation."""
+        """Measure a target and publish the resulting observation.
+
+        Args:
+            target: Image target to measure.
+            observation_id: Label identifying this measurement within its run.
+            run_id: Explicit reconstruction run to receive the measurement.
+                Omit it to use the current implicit run.
+            seed: Random seed for repeatable simulated sampling.
+        """
 
     def _measurement_run_id(self, run_id: RunID | None) -> RunID:
         if run_id is not None:
@@ -136,7 +149,15 @@ class SensorSource(abc.ABC):
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class AngularSensor(Sensor):
-    """Describe an angular projection sensor."""
+    """Describe an angular projection sensor.
+
+    Args:
+        sensor_name: Name used to identify the sensor as a message producer.
+        angle_degrees: Viewing angle in degrees.
+        edge_bin_count: Number of projection bins spanning one image-edge
+            length.
+        sample_count: Number of target-cell samples taken per measurement.
+    """
 
     sensor_name: str
     angle_degrees: float
@@ -151,6 +172,11 @@ class AngularSensor(Sensor):
         object.__setattr__(self, "detector_bin_count", detector_bin_count)
 
     def attach(self, bus: MessageEndpointFactory) -> "AngularSensorSource":
+        """Attach this sensor to message endpoints and return its source.
+
+        Args:
+            bus: Message endpoint factory for the running application.
+        """
         return AngularSensorSource(bus, sensor=self)
 
     def describe(self) -> AngularSensorDescription:
@@ -202,6 +228,15 @@ class AngularSensorSource(SensorSource):
         run_id: RunID | None = None,
         seed: int | None = None,
     ) -> None:
+        """Measure a target and publish the resulting observation.
+
+        Args:
+            target: Image target to measure.
+            observation_id: Label identifying this measurement within its run.
+            run_id: Explicit reconstruction run to receive the measurement.
+                Omit it to use the current implicit run.
+            seed: Random seed for repeatable simulated sampling.
+        """
         run_id = self._measurement_run_id(run_id)
         projection = measure_angular_projection(
             run_id=run_id,
@@ -221,7 +256,24 @@ class AngularSensorSource(SensorSource):
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class PerspectiveSensor(Sensor):
-    """Describe a perspective projection sensor."""
+    """Describe a perspective sensor at an arbitrary planar viewpoint.
+
+    Args:
+        sensor_name: Name used to identify the sensor as a message producer.
+        viewpoint: Sensor position in coordinates interpreted using
+            coordinate_scale.
+        bin_count: Number of angular bins across the field of view.
+        sample_count: Number of target-cell samples taken per measurement.
+        coordinate_scale: Reference length used for viewpoint and distance
+            coordinates.
+        heading_degrees: Direction the sensor faces. Zero degrees points along
+            positive x and 90 degrees points along positive y.
+        field_of_view_degrees: Angular field of view, up to 360 degrees.
+        minimum_distance: Nearest observable distance from the viewpoint, in
+            coordinate_scale units.
+        maximum_distance: Farthest observable distance from the viewpoint, in
+            coordinate_scale units.
+    """
 
     sensor_name: str
     viewpoint: Point2D
@@ -234,6 +286,11 @@ class PerspectiveSensor(Sensor):
     maximum_distance: float = math.inf
 
     def attach(self, bus: MessageEndpointFactory) -> "PerspectiveSensorSource":
+        """Attach this sensor to message endpoints and return its source.
+
+        Args:
+            bus: Message endpoint factory for the running application.
+        """
         return PerspectiveSensorSource(bus, sensor=self)
 
     def describe(self) -> PerspectiveSensorDescription:
@@ -301,6 +358,15 @@ class PerspectiveSensorSource(SensorSource):
         run_id: RunID | None = None,
         seed: int | None = None,
     ) -> None:
+        """Measure a target and publish the resulting observation.
+
+        Args:
+            target: Image target to measure.
+            observation_id: Label identifying this measurement within its run.
+            run_id: Explicit reconstruction run to receive the measurement.
+                Omit it to use the current implicit run.
+            seed: Random seed for repeatable simulated sampling.
+        """
         run_id = self._measurement_run_id(run_id)
         sensor = self._sensor
         geometry = sensor._geometry(target.frame)
@@ -358,6 +424,14 @@ def angular_sensors_for_angles(
     edge_bin_count: int,
     sample_count: int,
 ) -> tuple[AngularSensor, ...]:
+    """Create angular sensors for the supplied viewing angles.
+
+    Args:
+        sensor_name_prefix: Prefix for the generated sensor names.
+        angles_degrees: Viewing angle for each sensor.
+        edge_bin_count: Projection resolution shared by the sensors.
+        sample_count: Number of target-cell samples taken by each sensor.
+    """
     sensors = []
 
     for sensor_number, angle_degrees in enumerate(angles_degrees, start=1):
@@ -382,6 +456,17 @@ def perspective_sensors_for_bearings(
     coordinate_scale: ReferenceLength = PIXEL_UNIT_LENGTH,
     field_of_view_degrees: float = 60.0,
 ) -> tuple[PerspectiveSensor, ...]:
+    """Create inward-facing perspective sensors around the image origin.
+
+    Args:
+        sensor_name_prefix: Prefix for the generated sensor names.
+        bearings_degrees: Bearings at which to place the viewpoints.
+        viewpoint_distance: Distance of each viewpoint from the origin.
+        bin_count: Number of angular bins across each field of view.
+        sample_count: Number of target-cell samples taken by each sensor.
+        coordinate_scale: Reference length used for viewpoint_distance.
+        field_of_view_degrees: Angular field of view shared by the sensors.
+    """
     sensors = []
 
     for sensor_number, bearing_degrees in enumerate(bearings_degrees, start=1):
@@ -407,6 +492,12 @@ def perspective_sensors_for_bearings(
 
 
 def ruler_fraction_group(depth: int) -> tuple[fractions.Fraction, ...]:
+    """Return one midpoint-refinement group between zero and one.
+
+    Args:
+        depth: Refinement group to return. Depth zero contains the starting
+            value; later depths contain the newly introduced midpoints.
+    """
     zero = fractions.Fraction(0)
     one = fractions.Fraction(1)
 
@@ -417,6 +508,11 @@ def ruler_fraction_group(depth: int) -> tuple[fractions.Fraction, ...]:
 
 
 def ruler_angle_group(depth: int) -> tuple[float, ...]:
+    """Return one midpoint-refinement group of viewing angles.
+
+    Args:
+        depth: Refinement group to return across the 0-to-180-degree span.
+    """
     fraction_group = ruler_fraction_group(depth)
     return tuple(float(fraction * 180) for fraction in fraction_group)
 
@@ -435,9 +531,19 @@ def subdivision_midpoints(
 
 
 def evenly_spaced_angles(
-    view_count: int, *, start_degrees: float = 0.0, span_degrees: float = 180.0
+    view_count: int,
+    *,
+    start_degrees: float = 0.0,
+    span_degrees: float = 180.0,
 ) -> tuple[float, ...]:
-    """Return evenly spaced angles, excluding the end of the span."""
+    """Return evenly spaced viewing angles across a span.
+
+    Args:
+        view_count: Number of angles to return.
+        start_degrees: First viewing angle in degrees.
+        span_degrees: Angular span across which the views are distributed. The
+            endpoint is excluded so it is not duplicated by a full-circle span.
+    """
     if view_count <= 0:
         raise InvalidSensorConfigurationError("view_count must be positive")
 

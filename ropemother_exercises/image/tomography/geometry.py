@@ -13,6 +13,12 @@ Coordinate = tuple[float, ...]
 
 
 class Point2D(typing.NamedTuple):
+    """Point in a two-dimensional coordinate plane.
+
+    Args:
+        x: Horizontal coordinate.
+        y: Vertical coordinate.
+    """
     x: float
     y: float
 
@@ -34,6 +40,12 @@ IMAGE_RADIUS_SCALE: typing.Final = GeometryScale(name="image-radius")
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class ReferenceLength:
+    """Reference length used to interpret geometry coordinates.
+
+    Args:
+        magnitude: Size of one reference length.
+        scale: Coordinate scale in which that length is expressed.
+    """
     magnitude: float
     scale: GeometryScale
 

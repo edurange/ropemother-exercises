@@ -4,15 +4,19 @@
 """Prepared request service for participant-authored image dashboards."""
 
 import collections.abc
+import sys
 
 from ropemother.capture import HistoryClient
 from ropemother.service import (
+    BUS_CONTACT_URI_VARIABLE,
+    MissingBusContactEnvironmentError,
     connect_message_bus,
     preconfigured_history_client,
 )
 
 from ropemother_exercises.image.dashboard import dashboard_report
 from ropemother_exercises.image.events import (
+    APPLICATION_SHUTDOWN_TARGET,
     DASHBOARD_REPLY_MSG_TOPIC,
     DASHBOARD_REPORT_MSG_TYPE,
     DASHBOARD_REPORT_REQUEST_MSG_TYPE,
@@ -61,7 +65,9 @@ def serve_dashboard_requests(report_function: DashboardReportFunction) -> None:
                 responder.request_receiver,
             )
             if receiver is shutdown_receiver:
-                if message.payload == "dashboard-report":
+                if message.payload in (
+                    "dashboard-report", APPLICATION_SHUTDOWN_TARGET
+                ):
                     lifecycle.stopping(None)
                     lifecycle.stopped(None)
                     break
@@ -79,4 +85,13 @@ def run_dashboard_report_service() -> None:
 
 
 if __name__ == "__main__":
-    run_dashboard_report_service()
+    try:
+        run_dashboard_report_service()
+    except MissingBusContactEnvironmentError:
+        print(
+            f"{BUS_CONTACT_URI_VARIABLE} is not set. Start the image "
+            "application host and run the export command it prints in this "
+            "terminal before starting this program.",
+            file=sys.stderr,
+        )
+        raise SystemExit(2) from None

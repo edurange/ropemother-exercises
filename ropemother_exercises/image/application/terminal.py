@@ -11,6 +11,8 @@ from ropemother.broker import Receiver
 from ropemother.capture import HistoryClient
 from ropemother.client import MessageEndpointFactory, RequestClient
 from ropemother.service import (
+    BUS_CONTACT_URI_VARIABLE,
+    MissingBusContactEnvironmentError,
     connect_message_bus,
     preconfigured_history_client,
 )
@@ -31,6 +33,7 @@ from ropemother_exercises.image.application.render import (
 from ropemother_exercises.image.events import (
     ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER,
     ANGULAR_PROJECTION_OBSERVED_MSG_TYPE,
+    APPLICATION_SHUTDOWN_TARGET,
     DASHBOARD_REPLY_MSG_TOPIC,
     DASHBOARD_REPORT_MSG_TYPE,
     DASHBOARD_REPORT_REQUEST_MSG_TYPE,
@@ -192,6 +195,8 @@ class ExperimentTerminal:
                     print(f"Invalid Target Key: {target_value}")
                 else:
                     self._run(value, target=target_key)
+            case ["shutdown", "application"] | ["stop", "application"]:
+                self._shutdown_application()
             case ["shutdown", service_name] | ["stop", service_name]:
                 self._shutdown_service(service_name)
             case _:
@@ -203,8 +208,8 @@ class ExperimentTerminal:
             "instrument [instrument-id], instruments, experiment "
             "[experiment-id], experiments, report [run-id], reports, "
             "dashboard, silhouette [target-key], target, keys [target-key], "
-            "reveal [target-key], listen, shutdown report|dashboard, stop "
-            "report|dashboard"
+            "reveal [target-key], listen, shutdown "
+            "report|dashboard|application, stop report|dashboard|application"
         )
 
     def _display_experiments(self) -> None:
@@ -458,6 +463,15 @@ class ExperimentTerminal:
         if inner_image_key is not None and inner_image_key != target_key:
             print(f"Inner image key: {inner_image_key}")
 
+    def _shutdown_application(self) -> None:
+        emitter = self._bus.register_emitter(
+            msg_topic=SERVICE_CONTROL_MSG_TOPIC,
+            msg_producer="experiment-terminal",
+            msg_type=SERVICE_SHUTDOWN_MSG_TYPE,
+        )
+        emitter.emit(APPLICATION_SHUTDOWN_TARGET)
+        print("Image application stop requested.")
+
     def _shutdown_service(self, service_name: str) -> None:
         service_producer = _SHUTDOWN_SERVICE_PRODUCERS.get(service_name)
 
@@ -586,4 +600,13 @@ def _display_completion(
 
 
 if __name__ == "__main__":
-    run_image_command_utility(*sys.argv[1:])
+    try:
+        run_image_command_utility(*sys.argv[1:])
+    except MissingBusContactEnvironmentError:
+        print(
+            f"{BUS_CONTACT_URI_VARIABLE} is not set. Start the image "
+            "application host and run the export command it prints in this "
+            "terminal before running this command.",
+            file=sys.stderr,
+        )
+        raise SystemExit(2) from None

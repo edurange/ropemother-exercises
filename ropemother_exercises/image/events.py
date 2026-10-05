@@ -22,6 +22,7 @@ from ropemother_exercises.image.tomography.images import (
 
 type TrialDescription = InstrumentDescription | ExperimentDescription
 
+APPLICATION_SHUTDOWN_TARGET: typing.Final[str] = "application"
 ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER: typing.Final[str] = (
     "algebraic-reconstruction"
 )
@@ -111,6 +112,17 @@ class TargetKey(str):
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class ImageObservation:
+    """Image-shaped evidence associated with one reconstruction run.
+
+    Args:
+        run_id: Reconstruction run to which the image belongs.
+        observation_id: Identifier for this observation or reconstruction.
+        frame: Image grid represented by the observation.
+        intensity_image: Reconstructed or observed intensity by image cell.
+        coverage_image: Measurement coverage associated with each image cell.
+        reconstruction_evidence: Optional detailed evidence retained for
+            reconstruction processing.
+    """
     run_id: RunID
     observation_id: str
     frame: ImageFrame

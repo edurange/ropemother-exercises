@@ -1,9 +1,9 @@
 # `ropemother-exercises`
 
 
-## Orientation and Setup
+## Getting Started
 
-These are hands-on exercises with the `ropemother` Python package. The first section is a guided image-reconstruction exercise and can be completed on its own. Later sections work through the messaging model in more detail with smaller examples in which participants send, receive, and process messages directly.
+These hands-on exercises use the `ropemother` Python package to explore message-based software design in several settings. The opening image-reconstruction section can be completed on its own. Later sections work directly with messaging operations in text processing, recorded terminal activity, graph reachability, image reconstruction, and software architecture.
 
 ### Prerequisites
 
@@ -25,51 +25,106 @@ You should be comfortable with:
 
 ### Repository and Python
 
-Open a terminal in the top-level `ropemother-exercises` directory. You should see files and directories like these:
+If you already completed the setup steps in [README.md](README.md), your repository and virtual environment are ready. You can skip to [What the Exercises Cover](#what-the-exercises-cover).
 
-```text
-ropemother-exercises/
-├── EXERCISES.md
-├── README.md
-├── image
-├── pyproject.toml
-└── ropemother_exercises/
+If you opened this document directly, first make a local copy of the repository.
+
+If Git is already installed and you are comfortable using it, clone the repository:
+
+```sh
+git clone https://github.com/edurange/ropemother-exercises.git
+cd ropemother-exercises
 ```
 
-Unless an exercise says otherwise, run its commands from this directory.
+If you do not have Git available or prefer not to use it, open the repository on GitHub, choose **Code > Download ZIP** and extract the ZIP.
 
-The exercises require Python 3.13 or newer. Check the version used by your `python` command:
+After either download route, open a terminal in the top-level repository directory: the directory that contains `EXERCISES.md`, `README.md`, and `pyproject.toml`. Unless an instruction says otherwise, keep your terminal in this directory while working through the exercises.
+
+The exercises require Python 3.13 or newer. Check whether `python` runs a supported version:
 
 ```sh
 python --version
 ```
 
-Create a virtual environment inside the repository and activate it:
+If that command is unavailable or reports an older version, try:
+
+```sh
+python3 --version
+```
+
+Some systems install individual Python versions under commands such as `python3.13` or `python3.14`. If necessary, try the command for the version you installed.
+
+Create a virtual environment using whichever command reported Python 3.13 or newer. For example, if `python` worked:
 
 ```sh
 python -m venv .venv
+```
+
+If `python3` worked instead:
+
+```sh
+python3 -m venv .venv
+```
+
+A versioned command works the same way. For example:
+
+```sh
+python3.14 -m venv .venv
+```
+
+Activate the environment:
+
+```sh
 source .venv/bin/activate
 ```
 
-Install the current developer release of `ropemother` with:
+Once the virtual environment is active in a terminal, `python` runs the Python version used to create that environment. The remaining instructions therefore use `python`.
+
+Check the version once more:
 
 ```sh
-pip install --pre ropemother
+python --version
 ```
 
-The `ropemother_exercises` package runs directly from this repository and does not need to be installed. The shell commands in these exercises use a POSIX-style shell such as `bash` or `zsh`.
+It should report Python 3.13 or newer.
 
-The exercises use more than one terminal. In each new terminal, return to the top-level `ropemother-exercises` directory and run `source .venv/bin/activate` before beginning.
+Install `ropemother`:
 
-[README.md](README.md) contains fuller repository setup and project information. The instructions here contain the setup needed to begin the introductory activity.
+```sh
+python -m pip install --pre ropemother
+```
 
-### What You Will Do
+Some WSL networking configurations can prevent DNS resolution inside WSL even when Windows can reach the same sites. This is a WSL networking issue rather than a problem with `ropemother` or these exercises. If PyPI or another site cannot be reached or resolved, see [WSL Network Troubleshooting](README.md#wsl-network-troubleshooting) in the [README](README.md).
 
-In the opening activity, you run a small image-reconstruction program. It simulates partial observations of a hidden black-and-white image and combines them into an estimate you can inspect. You add sensor sources, complete runs and request reports, inspect the same completed work from a separate command, then edit and restart one reporting service without restarting the rest.
+Confirm that `ropemother` is available:
 
-The following section moves to a much smaller text-processing program. There you will send and receive simple messages yourself and connect small pieces of processing through `ropemother`.
+```sh
+python -c "import ropemother; print(ropemother.__version__)"
+```
 
-The TTY processing exercises use one recorded terminal interaction to derive several different kinds of information. The graph reachability exercises use messages to explore work that can create more work and still finish reliably. Later, you return to image reconstruction and work with different sensor arrangements and reporting behavior. The final section compares the examples and names the software-design relationships they share.
+The command should print a version number without an error or traceback.
+
+The `ropemother_exercises` package itself runs directly from this repository and does not need to be installed. The shell commands in these exercises use a POSIX-style shell such as `bash` or `zsh`.
+
+The exercises use more than one terminal. Open each new terminal in the same top-level repository directory and activate the environment:
+
+```sh
+source .venv/bin/activate
+```
+
+### What the Exercises Cover
+
+Section I uses image reconstruction to make communication between independently running parts of an application visible. Measurements from different viewing directions contribute to the same reconstruction. The activity shows how new information reaches the parts that need it, how work produced earlier can be used elsewhere in the application, and how one reporting component can be changed without interrupting the rest of the running application.
+
+Section II uses word-count processing to focus on the messaging operations themselves: sending information, receiving it, and connecting processing steps through messages.
+
+In Section III, recorded terminal activity provides one source from which several different kinds of information can be derived.
+
+In Section IV, a graph-reachability problem shows a different pattern: processing one message can discover new facts that lead to more messages, while the overall computation still reaches a stopping point.
+
+Section V returns to image reconstruction with more opportunities to vary sensing, reconstruction, and reporting behavior.
+
+Section VI compares the examples and brings together the message-based design relationships that recur across them.
 
 ## I. Introduction: Image Reconstruction
 
@@ -77,150 +132,209 @@ The concealed target in this exercise is a small black-and-white bitmap. Each ap
 
 > A **reconstruction** is the application's current estimate of the concealed image, formed from the sensor measurements collected so far.
 
-This is a small example of a broader kind of problem: producing a useful result from partial or imperfect evidence. The application also separates sensor input, reconstruction, and reporting, so later changes can show which parts of the program must change together and which can remain unchanged.
+This is one example of a broader kind of problem: producing a useful result from partial or imperfect evidence.
 
-Open two terminal windows or tabs.
+Open two terminal windows or tabs. Keep both in the top-level repository directory with the virtual environment active.
 
-- Use the **application terminal** for the host and reporting services that remain running, and for the short `./image` commands used later.
-- Use the **workspace terminal** for the interactive Python session used to make sensor measurements.
+- Use the **application terminal** to start the application processes that remain running in the background and to run shell commands later.
+- Use the **workspace terminal** for the interactive Python session where measurements are added and results are inspected.
 
 ### 1. Start the Image Application
 
-The image application makes three related roles visible at startup. The **host** is the long-running program that starts the application's message-bus broker and its core reconstruction services. The **broker** accepts published messages and delivers them to matching subscribers. A **service** is a long-running application participant that performs one job while communicating through that broker.
+The image application is split across several independently running parts. The host starts the message bus and the reconstruction processes that remain available throughout the activity. Inside the host, the broker receives messages and delivers each one to parts of the application waiting for that kind of message.
 
 > A **message bus** is a shared communication path through which parts of an application exchange messages without requiring senders to call their recipients directly.
 
-The reconstruction-report and dashboard services are deliberately started separately from the host. Either reporting service can therefore be stopped and restarted while the host, broker, and reconstruction services remain in place.
+The reconstruction-report and dashboard services are started separately from the host. They use the same message bus, but either reporting service can later be stopped and restarted without interrupting the host or the reconstruction work.
 
-In the application terminal, start the host in the background. The host prints its readiness message and a complete export command:
+In the application terminal, start the host in the background:
 
-```console
-$ python -m ropemother_exercises.image.application.host &
-Image application host is ready. Make sure to run the independent services separately.
-export ROPEMOTHER_CONNECTION_DESCRIPTOR='ropemother+unix:///...'
+```sh
+python -m ropemother_exercises.image.application.host &
 ```
 
-The trailing `&` leaves the host process running in the background and returns the shell prompt. The module path names that role directly: `application.host` starts the application host. Wait for the host's readiness message, `Image application host is ready. Make sure to run the independent services separately.`
+The trailing `&` lets the host keep running while the shell returns to a prompt. Because the background process and the shell both write to the same terminal, the prompt may reappear before the host prints its readiness text. Wait for:
 
-The following line contains a **connection descriptor**, the address-like value another process uses to connect to this running application. Run the complete `export ROPEMOTHER_CONNECTION_DESCRIPTOR=...` command printed by the host so programs started from this shell can use that connection.
+```text
+Image application host is ready. Start the report and dashboard services separately.
+Copy this command into each terminal that connects to this application:
 
-Start the two reporting services. Each `service.*` module starts one independently running application service:
+export ROPEMOTHER_CONNECTION_DESCRIPTOR=ropemother+unix:///...
+```
+
+The exact descriptor after `=` will be different. If the readiness text appears after or beside a shell prompt, that is harmless; press Enter without typing another command to redraw a clean prompt.
+
+The `export` line contains the **connection descriptor**, which tells another program how to reach this running message bus. Copy the complete `export ROPEMOTHER_CONNECTION_DESCRIPTOR=...` line printed by the host and run it in the application terminal.
+
+`export` makes the descriptor available to programs started from that terminal. It normally prints nothing when it succeeds.
+
+Still in the application terminal, start the two reporting services:
 
 ```sh
 python -m ropemother_exercises.image.service.report &
 python -m ropemother_exercises.image.service.dashboard &
 ```
 
-Wait until both services have printed `Reconstruction report service is ready.` and `Dashboard report service is ready.` The two services run independently, so those messages may appear in either order.
+Wait until both services have printed:
 
-Leave these processes running and switch to the workspace terminal.
+```text
+Reconstruction report service is ready.
+Dashboard report service is ready.
+```
 
-Run the same complete `export ROPEMOTHER_CONNECTION_DESCRIPTOR=...` command in the workspace terminal. Each terminal has its own shell, so the descriptor must also be available there before starting a program that connects to the application.
+The two services start independently, so these lines can appear in either order. Their output may also appear after a shell prompt; if so, press Enter to redraw a clean prompt.
+
+If a service instead reports that `ROPEMOTHER_CONNECTION_DESCRIPTOR` is not set, run the `export` command printed by the host in that terminal and start the service again.
+
+Leave the host and both reporting services running in the background. Switch to the workspace terminal and run the same complete `export ROPEMOTHER_CONNECTION_DESCRIPTOR=...` command there. Each terminal has its own shell, so the descriptor must be exported separately in the workspace terminal. As before, a successful `export` prints no output.
 
 ### 2. Open the Interactive Image Workspace
 
-The interactive workspace provides the sensing side of the running application: it prepares two sensor sources, starts a reconstruction run, and leaves the Python prompt connected so additional measurements can be made.
+The workspace opens an interactive Python prompt connected to the running application. A simulated sensor views the hidden bitmap from one side and produces a one-dimensional measurement. One viewing direction does not contain enough information to reveal the image, so measurements from different directions can be combined into a reconstruction.
 
-In the workspace terminal, start the prepared workspace:
+The prepared workspace begins with measurements from two perpendicular viewing directions, 0° and 90°, and displays the reconstruction supported by those two measurements. In the workspace terminal, start it with:
 
 ```sh
-python -i -m ropemother_exercises.image.workspace
+python -m ropemother_exercises.image.workspace
 ```
 
-The `-i` option runs the workspace setup and then leaves the Python interpreter open at a `>>>` prompt. The setup prepares sensors at 0° and 90°, orthogonal (or perpendicular) directions, and makes one measurement with each. The workspace first prints the stable key for this session's hidden target, then the reconstruction from those two sensor views. The key appears after `Hidden target:`; the exact compact value varies with the selected target.
+When setup is complete, the workspace opens a `>>>` Python prompt. Its output begins with a line such as `Hidden target: c...`, followed by `Orthogonal reconstruction from the prepared 0° and 90° sensors:` and a rendering of the initial image reconstruction.
 
-A target key names a supported target reproducibly without displaying the bitmap. Keep the key if you want to return to the same target later or compare work with another participant; a fresh application can deliberately load the same target by key.
+The value after `Hidden target:` is a short identifier for the concealed image. It gives the hidden image a name that the different parts of the application can share without identifying the contents of the image itself. The exact value will vary from one target image to another.
 
-Before adding another sensor, look at the hidden target's silhouette:
+To give the reconstruction a visual point of reference, display the outline of the hidden image:
 
-```pycon
->>> print(render_bitmap(target.silhouette))
+```python
+print(render_bitmap(target.silhouette))
 ```
 
-The silhouette shows the target's outer shape while the image inside remains hidden. The objective is to identify that hidden image from one-dimensional projections taken from different angles, like a simplified form of tomography or X-ray imaging.
+The silhouette reveals the target's outer shape while leaving its interior concealed.
 
-> A **run** is one reconstruction attempt built from a group of sensor measurements.
+Imagine each simulated sensor standing beside the image and looking across its surface, rather than looking down at it from above. From that position, cells line up behind one another. The sensor summarizes what lies along those lines into a one-dimensional measurement.
 
-The prepared run remains open when the `>>>` prompt appears, so further measurements join the same reconstruction attempt.
+The workspace saved a text rendering of what each prepared sensor could reconstruct on its own. First look at the 0° result:
 
-The workspace is connected to the same message bus as the services started above. Its `bus` object represents that connection and is used when new sensor sources join the running application. The next section examines those messaging relationships directly.
-
-Leave the interpreter open. At any point, `show_workspace()` lists the prepared objects and helpers available at the prompt, including `target_key` if you need to retrieve the hidden target's key again:
-
-```pycon
->>> show_workspace()
+```python
+print(sensor_0_rendering)
 ```
+
+Then compare the 90° result:
+
+```python
+print(sensor_90_rendering)
+```
+
+Neither result is a complete reconstruction of the concealed image. Each viewing direction leaves different parts of the image uncertain.
+
+The sensors can also show how they group the image cells when making those measurements:
+
+```python
+sensor_0.show_bins(frame)
+```
+
+Then compare the other prepared angle:
+
+```python
+sensor_90.show_bins(frame)
+```
+
+These patterns show how the sensor groups the image cells; the repeating shades do not represent the brightness of the hidden image. At 0°, the cells are grouped into vertical strips. At 90°, they are grouped into horizontal strips.
+
+Changing the sensor's angle changes which cells line up from its point of view. A measurement from another angle therefore supplies different information about where the concealed signal could be.
+
+The reconstruction printed when the workspace opened combines measurements from the prepared 0° and 90° sensors. Comparing it with the two single-view results shows what becomes possible when evidence from different viewing directions is combined. The result is still intentionally incomplete because it uses only two viewing directions.
+
+Leave this Python prompt open for the following steps. For a reminder of what is available in the session, run:
+
+```python
+show_workspace()
+```
+
+`show_workspace()` prints a short reference to the useful variables, sensor objects, and helper functions that are already available in this Python session.
 
 ### 3. Add a 45° Sensor
 
-The workspace already has `bus`, the connection this interpreter uses to join the running application's message bus. Passing that connection to `sensor.attach(bus)` connects a sensor to the same application.
+The prepared sensors look across the image from 0° and 90°. Add another sensor halfway between those directions.
 
-`AngularSensor` describes a sensor's direction and measurement settings. Calling `attach(bus)` combines that sensor definition with the bus connection and returns a **sensor source** through which measurements can be made and sent to the application.
+A sensor object describes how a measurement should be made. The workspace already contains `edge_bin_count` and `samples_per_sensor`, the same settings used by the prepared sensors. `edge_bin_count` controls how finely the view is divided into strips, while `samples_per_sensor` controls how many samples the simulated sensor takes. Reusing both values leaves the viewing angle as the main change.
 
-Each measurement produces sensor data called an **observation**. The sensor source sends that observation to the application.
-
-The prepared 0° and 90° sensors use `frame.width` for `edge_bin_count` and `samples_per_sensor` for `sample_count`. Use those same values for the 45° sensor so that the viewing direction changes while the edge resolution and number of samples remain the same. The supplied `seed` makes the simulated sampling repeatable.
-
-At the `>>>` prompt, create and attach a 45° sensor:
+Create the 45° sensor:
 
 ```python
 sensor_45 = AngularSensor(
     sensor_name="sensor-45",
     angle_degrees=45.0,
-    edge_bin_count=frame.width,
+    edge_bin_count=edge_bin_count,
     sample_count=samples_per_sensor,
 )
+```
+
+See how the new angle groups the image cells:
+
+```python
+sensor_45.show_bins(frame)
+```
+
+The strips now cross the image diagonally.
+
+Attach the sensor to the running application:
+
+```python
 sensor_45_source = sensor_45.attach(bus)
 ```
 
-Make one measurement:
+The attached **sensor source** is a producer: it can make measurements and publish their results through the message bus. In this application, a sensor measurement becomes an **observation**, the sensor's contribution of evidence about the concealed image. The reconstruction processor receives observations and combines them without the sensor source calling that processor directly.
 
-```pycon
->>> sensor_45_source.measure(
-...     target=target,
-...     observation_id="45-degrees",
-...     seed=13,
-... )
+Make the 45° measurement:
+
+```python
+sensor_45_source.measure(
+    target=target,
+    observation_id="45-degrees",
+    seed=13,
+)
 ```
 
-The sensor source measures the concealed target using the 45° sensor settings and sends the resulting observation through the message bus. The reconstruction processor is already receiving sensor observations there, so the new evidence contributes to the open reconstruction run.
+The simulated measurement uses randomized sampling. `seed=13` makes that randomness repeatable for this example. The call itself does not display the reconstruction; its result travels through the running application.
 
-The prepared `run_receiver` waits for reconstruction results. Receive the next result and inspect the three labels attached to its message:
+The prepared `run_receiver` receives reconstruction results from the reconstruction processor. Receive the next result:
 
-```pycon
->>> message = run_receiver.receive()
->>> message.msg_topic
-'image.reconstruction'
->>> message.msg_producer
-'algebraic-reconstruction'
->>> message.msg_type
-'image-reconstructed'
+```python
+reconstruction = run_receiver.receive().payload
 ```
 
-For this message, the **topic** `image.reconstruction` groups it with reconstruction traffic, the **producer** `algebraic-reconstruction` identifies the processor that sent it, and the **message type** `image-reconstructed` identifies it as an updated reconstruction. Those are the values `run_receiver` uses to wait for this reconstruction traffic rather than unrelated application messages.
+Display it:
 
-The reconstruction result is carried as the message's **payload**:
-
-```pycon
->>> reconstruction = message.payload
->>> print(render_intensity_image(reconstruction.intensity_image, frame))
+```python
+print(render_reconstructions(reconstruction))
 ```
 
-At this point, the useful distinction is concrete: the topic, producer, and message type identify the reconstruction message that arrived, while the payload contains the reconstruction itself.
-
-Adding the 45° measurement changed the sensing side of the running application: another sensor definition and source were added, and another observation entered the run. The reconstruction processor was neither edited nor restarted. It was already receiving this kind of sensor evidence through the message bus, so accepting evidence from the new sensor did not require a corresponding change to the reconstruction code.
+The reconstruction now combines evidence from 0°, 45°, and 90°. Adding the 45° source did not require changing or restarting the reconstruction processor; the new source participated through the same observation messages as the prepared sensors.
 
 ### 4. Add the Other Diagonal
 
-Apply the same sensor settings at 135°:
+Add a 135° sensor using the same settings:
 
 ```python
 sensor_135 = AngularSensor(
     sensor_name="sensor-135",
     angle_degrees=135.0,
-    edge_bin_count=frame.width,
+    edge_bin_count=edge_bin_count,
     sample_count=samples_per_sensor,
 )
+```
+
+See how this angle groups the image cells:
+
+```python
+sensor_135.show_bins(frame)
+```
+
+The strips cross the image along the other diagonal.
+
+Attach the sensor and make its measurement:
+
+```python
 sensor_135_source = sensor_135.attach(bus)
 
 sensor_135_source.measure(
@@ -228,104 +342,120 @@ sensor_135_source.measure(
     observation_id="135-degrees",
     seed=14,
 )
-message = run_receiver.receive()
-reconstruction = message.payload
-print(render_intensity_image(reconstruction.intensity_image, frame))
 ```
 
-The open run now contains observations from 0°, 45°, 90°, and 135°. The 135° source participates in the same way as the 45° source: it sends another sensor observation through the message bus, and the unchanged reconstruction processor incorporates that observation into another reconstruction.
+Receive the updated reconstruction:
+
+```python
+reconstruction = run_receiver.receive().payload
+```
+
+Display it:
+
+```python
+print(render_reconstructions(reconstruction))
+```
+
+The reconstruction now combines evidence from 0°, 45°, 90°, and 135°. The second diagonal joined the application through the same steps as the first: construct a sensor, attach it to the bus, make a measurement, and receive the reconstruction that follows.
 
 ### 5. Complete the Four-Angle Run
 
-The application has produced an updated reconstruction after each measurement, but the most recent result *so far* is not automatically the final one. A pause in arriving messages does not prove that no more measurements will be sent.
+The reconstruction has been updated after every measurement, but a pause in new messages does not say whether another measurement is still coming. When other parts of the application need to know that a group of measurements is finished, that fact has to be communicated explicitly.
 
-Tell the application explicitly that no more sensor input belongs to this run, then wait for the corresponding completion message:
+Close the current run:
 
-```pycon
->>> close_run_input(bus)
->>> message = run_receiver.receive()
->>> message.msg_type
-'reconstruction-completed'
->>> completion = message.payload
+```python
+close_run()
 ```
 
-`close_run_input(bus)` establishes the end of the run's input. It also records which target the run used; because no target is named here, that is the session's hidden target identified by `target_key`. The `'reconstruction-completed'` message then identifies the reconstruction that belongs to that finished run. This explicit end matters whenever later work needs to distinguish “nothing else has arrived yet” from “nothing else belongs to this activity.” Later exercises return to that distinction in other problem domains.
+`close_run()` does not display anything. It tells the running application that no more sensor measurements belong to this run.
+
+Now wait to receive the completed result, and keep its completion information for the reporting step:
+
+```python
+completion = run_receiver.receive().payload
+```
+
+The four-angle run is complete. The explicit completion lets the application distinguish finished work from work that is merely waiting for another measurement.
 
 ### 6. Ask the Report Service About the Completed Run
 
-The workspace already has `report_client`, a prepared object for making requests to the reconstruction-report service. Request a report for the completed run:
+So far, the workspace has displayed reconstruction results directly. The application also has a separate reporting service that can make a report from completed reconstruction work. This is a different use of the result: the reconstruction processor produces the reconstruction, while the reporting service prepares that completed work for browsing or presentation.
 
-```pycon
->>> reply = report_client.call(completion)
->>> reply.msg_type
-'reconstruction-report'
->>> four_angle_report = reply.payload
->>> print(four_angle_report.rendering)
+The workspace already has `report_client` connected to that service. Request a report for the completed four-angle run:
+
+```python
+four_angle_report = report_client.call(completion).payload
 ```
 
-Here `call()` sends the completed-run information to the reporting service and waits for the corresponding answer. The reply payload is the completed reconstruction report.
+Display the report:
 
-The report begins with the run identifier, the concealed target key, and the reconstruction identifier, followed by the full reconstruction rendering. The target key should be the same value shown as `target_key` in the workspace, so the report carries enough identity to associate this result with the concealed target without revealing that target.
+```python
+print(four_angle_report.rendering)
+```
 
-The exact run identifier, target key, reconstruction identifier, and rendered pixels vary with the current application session and selected target.
+The report contains the completed four-angle reconstruction, but it reached the workspace differently from the reconstructions displayed earlier. Those were rendered directly from a `reconstruction` object in the workspace; this presentation was produced by the separately running reporting service in response to a request.
+
+The reporting service did not make the sensor measurements or calculate the reconstruction. It uses completed reconstruction work to produce its own result.
 
 ### 7. Prepare Four Additional Sensor Angles
 
-The first completed run used four viewing directions: 0°, 45°, 90°, and 135°. The second run will keep those directions and add the four directions between them, giving eight evenly spaced views. The comparison uses the same sensor measurement settings while gathering observations from a broader set of directions. Repeating the same construction and attachment pattern for four more sensors also makes a practical question visible: how much of that routine messaging setup has to be written out individually?
+The four-angle run used viewing directions at 0°, 45°, 90°, and 135°. The next run will keep those directions and add one between each neighboring pair. Keep `edge_bin_count` and `samples_per_sensor` unchanged so that the viewing directions are what change.
 
-The image exercise provides `ruler_angle_group()` for calculating these regularly spaced viewing directions. The groups used so far follow this pattern:
+The image exercise groups these angles like successively finer marks on a ruler. Group 0 contains 0°. Group 1 adds 90°. Group 2 adds 45° and 135°, halfway between the earlier directions. Group 3 fills those gaps again with 22.5°, 67.5°, 112.5°, and 157.5°. Together, groups 0 through 3 give eight viewing directions spaced 22.5° apart.
 
-|  `N` | `ruler_fraction_group(N)` | `ruler_angle_group(N)`       |
-| ---: | ------------------------- | ---------------------------- |
-|  `0` | `(0,)`                    | `(0.0,)`                     |
-|  `1` | `(1/2,)`                  | `(90.0,)`                    |
-|  `2` | `(1/4, 3/4)`              | `(45.0, 135.0)`              |
-|  `3` | `(1/8, 3/8, 5/8, 7/8)`    | `(22.5, 67.5, 112.5, 157.5)` |
-
-Groups 0 through 2 together supply the four viewing directions used in the first run. Group 3 supplies the four directions between those existing views: 22.5°, 67.5°, 112.5°, and 157.5°. Combining groups 0 through 3 gives eight evenly spaced viewing directions.
-
-The fraction column shows how the angle values are derived: `ruler_angle_group(N)` multiplies the fractions from `ruler_fraction_group(N)` by 180°.
-
-Use the eighths group for the four additional sensors:
+Get the four angles from group 3:
 
 ```python
 eighths_angle_group = ruler_angle_group(3)
+eighths_angle_group
 ```
 
-The 45° and 135° sensors were constructed individually even though they shared the same measurement settings. The four additional sensors have the same repeated shape, so `angular_sensors_for_angles()` can construct the group from the angles and shared settings.
+The result is:
+
+```pycon
+>>> eighths_angle_group = ruler_angle_group(3)
+>>> eighths_angle_group
+(22.5, 67.5, 112.5, 157.5)
+```
+
+The 45° and 135° sensors were short enough to construct individually. Writing four more `AngularSensor` constructors would repeat the same structure while changing mostly the angle and sensor name. The image exercise provides `angular_sensors_for_angles()` to construct that repeated group:
 
 ```python
 additional_sensors = angular_sensors_for_angles(
     sensor_name_prefix="additional-angle",
     angles_degrees=eighths_angle_group,
-    edge_bin_count=frame.width,
+    edge_bin_count=edge_bin_count,
     sample_count=samples_per_sensor,
 )
+```
 
+The helper constructs sensor objects; it does not attach them to the message bus. Attach each sensor with the same operation used for the earlier sensors:
+
+```python
 additional_sources = []
+
 for sensor in additional_sensors:
     additional_sources.append(sensor.attach(bus))
 ```
 
-`angular_sensors_for_angles()` is image-application support code rather than part of the `ropemother` messaging API. It packages the repeated construction of ordinary `AngularSensor` objects. The loop then applies the same `sensor.attach(bus)` operation used for the earlier sensors to each member of the new group.
-
-Message-based applications commonly provide this kind of support for repeated participant setup. Helpers and ordinary application code can construct and connect groups of participants without changing the messaging relationships those participants use.
+Each call to `sensor.attach(bus)` returns the sensor source that can make measurements through the running application. `additional_sources` now contains the four newly attached sources.
 
 ### 8. Reuse the Existing Sources in an Eight-Angle Run
 
-The four sensor sources used in the first run are still attached to the bus, and the previous step attached four more. The second run can use all eight sources together without replacing or reconfiguring the original four. Collect the existing and additional sources into one tuple:
+The four sources from the previous run are still attached to the bus, and `additional_sources` contains the four sources just added. Collect them for the eight-angle run:
 
 ```python
-eight_angle_sources = (
+eight_angle_sources = [
     sensor_0_source,
     sensor_45_source,
     sensor_90_source,
     sensor_135_source,
-    *additional_sources,
-)
+]
+eight_angle_sources.extend(additional_sources)
 ```
 
-Every object in `eight_angle_sources` provides the same `measure()` operation. Instead of writing eight separate measurement calls, use an ordinary Python loop to trigger each source in turn:
+Each item in `eight_angle_sources` is an attached sensor source, so the same `measure()` call can be used for each one. Make one measurement through each source:
 
 ```python
 sensor_number = 1
@@ -339,26 +469,34 @@ for sensor_source in eight_angle_sources:
     sensor_number += 1
 ```
 
-The loop is ordinary application code; each `measure()` call still causes that sensor source to send its observation through the messaging connection it already has. Once all eight observations have been sent, close the run input just as in the four-angle run.
+The counter gives each observation its own label and repeatable sampling seed. Each call publishes that sensor's observation through its existing connection to the message bus.
 
-The reconstruction processor may already have published intermediate reconstruction updates for some of those measurements. Receive messages until the explicit completion message arrives, then request the report for that completed run.
+Because the eight measurements were made without receiving each reconstruction update as it arrived, several updates may now be waiting for `run_receiver`. Close the run:
 
 ```python
-close_run_input(bus)
+close_run()
+```
 
+For this receiver, reconstruction updates can arrive before the completion message. Receive messages until the completion message appears:
+
+```python
 message = run_receiver.receive()
+
 while message.msg_type != "reconstruction-completed":
     message = run_receiver.receive()
 
 completion = message.payload
+```
+
+Here `message.msg_type` has a specific job: it distinguishes an intermediate reconstruction update from the completion message the next step needs. The loop consumes whichever reconstruction updates are waiting and stops when the completed run arrives.
+
+Request its report using the same pattern as the four-angle run:
+
+```python
 eight_angle_report = report_client.call(completion).payload
 ```
 
-The receive loop accounts for any reconstruction updates that arrive before completion. When it reaches `'reconstruction-completed'`, `message.payload` identifies the finished run, and `report_client.call(completion)` requests its completed reconstruction report.
-
-**Compare the completed reconstructions**
-
-Display both completed reports together:
+Display the two reports together:
 
 ```python
 print("Four-angle run")
@@ -368,132 +506,473 @@ print("Eight-angle run")
 print(eight_angle_report.rendering)
 ```
 
-The first report used four viewing directions; the second used eight. The edge resolution and number of samples per sensor stayed the same, so the main experimental change is the additional viewing directions. Compare corresponding parts of the two renderings and look for places where the added views change the reconstructed shape or intensity.
+Both runs used the same `edge_bin_count` and `samples_per_sensor`. The eight-angle run added the four viewing directions between the original four. Compare the reconstructed shape and intensity in the two reports and see what changed when those additional views contributed evidence.
 
-The second run reused the four sensor sources that were already attached and added four more alongside them. The reconstruction processor continued receiving the same kind of sensor-observation messages, so adding sources did not require a corresponding change to the reconstruction processor. The helper and loops reduced repeated setup and triggering; they did not change how those sources communicate with reconstruction.
+The eight-angle run reused four sensor sources that were already attached and added four more alongside them. All eight sources contributed observations through the same message path; the reconstruction processor did not need to be replaced or reconfigured for the larger arrangement.
 
 ### 9. Inspect the Completed Work from Another Client
 
-Leave the Python interpreter open in the workspace terminal. No further command is needed there for this comparison; switch to the application terminal.
+Leave the Python interpreter open in the workspace terminal and switch to the application terminal.
 
-Earlier, `report_client` was a prepared client object inside the workspace interpreter. The repository also provides `./image`, a standalone command-line client for the same running image application. Each invocation starts a new Python program, connects to the application, performs one requested operation, prints the result, and exits. That new process does not share the variables or Python objects in the workspace interpreter.
+The repository provides `./image`, a standalone command-line client for the same running image application. In a shell, `./` means to run the file named `image` from the current directory. Each invocation starts a new Python program, connects to the running application, performs one requested operation, prints the result, and exits. That new process does not share the variables or Python objects in the workspace interpreter; it reaches the running application through the message bus.
 
-In the workspace, `render_bitmap(target.silhouette)` rendered the silhouette for the current target. The standalone client provides the same view, along with commands for retrieving the target's key information:
-
-```sh
-./image silhouette
-./image target
-./image keys
-```
-
-`silhouette` renders the target's outer shape. `target` prints the current session's target key. `keys` prints the target key and, when there is one, its related inner-image key without displaying either image.
-
-If you have another target key—for example, one saved from an earlier session or received from another participant—you can supply it to commands that accept a target key:
-
-```sh
-./image silhouette TARGET_KEY
-./image keys TARGET_KEY
-```
-
-> **Optional spoiler:** After comparing the reconstructions, `./image reveal` displays the exact hidden target. `./image reveal TARGET_KEY` displays another supported target whose key you already have.
-
-The workspace created both completed reconstruction runs. Now ask the running application for that completed work from a process that did not create either run. Run the combined report command:
-
-```console
-$ ./image report
-```
-
-The command prints the individual completed reconstruction reports followed by a dashboard that summarizes the collection. Both completed runs from the workspace are available even though this `./image` process started after the runs had finished.
-
-This is a small example of independently started clients interacting with the same running services through messaging rather than through shared Python objects. The workspace and `./image` do not share local program state; they can still reach the same application and work with the same completed activity.
-
-The combined `report` command is composed of reports on individual reconstructions and a dashboard that helps navigate and summarize the collection. The same pieces can also be requested separately:
-
-```console
-$ ./image report trial-1
-$ ./image reports
-$ ./image dashboard
-```
-
-`report trial-1` asks for the report for one completed run, `reports` asks for the individual reconstruction reports, and `dashboard` asks for the summary of the collection. Each command again starts a fresh client process, prints its result, and exits.
-
-The completed work remains available to these later clients because the running application retained the relevant message activity.
-
-> **History** is a retained record of earlier messages that connected parts of an application can query later.
-
-The image host provides the history service for this application. The reporting services can use retained messages about the completed runs and reconstructions when a new client asks for a report. The results are therefore not stored in the local variables of the workspace that made the measurements, and viewing them again does not require repeating those measurements.
-
-For this exercise, that history lasts for the lifetime of the image application host. It is kept in memory rather than saved as persistent run data on the filesystem, so stopping the host clears it. That lifetime is a choice made by this exercise application's setup, not a general property of `ropemother`, message history, or message-based design.
-
-### 10. Change and Restart the Dashboard
-
-Suppose someone using the report wants the completed runs listed in the opposite order. That changes how the existing results are presented, not how the sensor measurements are made or how the reconstructions are computed. The next step changes only the dashboard and tests whether the rest of the application and its completed work can remain in place.
-
-Open `ropemother_exercises/image/dashboard.py`. At lines 44–52, `render_dashboard()` asks `dashboard_entries()` for the completed reconstruction entries and passes them to `render_dashboard_index()`:
-
-```python
-def render_dashboard(history: HistoryClient) -> str:
-    entries = dashboard_entries(
-        history, reconstruction_producer=ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER
-    )
-
-    if not entries:
-        return "No reconstructions are available."
-
-    return render_dashboard_index(*entries)
-```
-
-The final line passes the entries in their current order. Change only that call so `render_dashboard_index()` receives `reversed(entries)` instead.
-
-After the edit, lines 44–52 should read:
-
-```python
-def render_dashboard(history: HistoryClient) -> str:
-    entries = dashboard_entries(
-        history, reconstruction_producer=ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER
-    )
-
-    if not entries:
-        return "No reconstructions are available."
-
-    return render_dashboard_index(*reversed(entries))
-```
-
-Save the file. The dashboard service that is already running does not automatically reload Python source after the file changes; it is still executing the code it loaded when it started. Restart that service so the edited function becomes part of the running application.
-
-In the application terminal, stop only the dashboard service:
-
-```console
-$ ./image stop dashboard
-dashboard service stopped.
-```
-
-The image host and reconstruction-report service remain running. The history service is provided by the host, so stopping the dashboard does not remove the messages that describe the earlier completed runs.
-
-Start the dashboard service again and wait for its readiness line:
-
-```console
-$ python -m ropemother_exercises.image.service.dashboard &
-Dashboard report service is ready.
-```
-
-Request the dashboard again:
+Start with the dashboard:
 
 ```sh
 ./image dashboard
 ```
 
-The dashboard now lists the same completed runs in the opposite order. No new sensor measurement or reconstruction was needed. The restarted dashboard queried the retained application history and applied the new ordering rule to work that had already been completed; preserving that work did not depend on the previous dashboard process remaining alive.
+The dashboard summarizes the completed reconstruction runs with their reconstruction identifiers, numbers of contributing sensors, and measurement counts. The collection includes three prepared examples together with any runs completed in earlier steps.
+
+This client process started after those measurements and reconstructions had already finished. It can still ask the running dashboard service about that earlier work because the application retained the relevant message activity.
+
+> **History** is a retained record of earlier messages that connected parts of an application can query later.
+
+The image host provides the history service for this application. The dashboard and reconstruction-report services use that history when later requests need information about completed work. They do not depend on the local variables in the workspace that originally made the measurements.
+
+The dashboard supplies run identifiers that can be used to request one reconstruction report. Replace `RUN_ID` with one of the run values shown in the dashboard:
+
+```sh
+./image report RUN_ID
+```
+
+The reconstruction-report service obtains the completed reconstruction from the retained application history and prepares its report for this newly started client.
+
+The complete collection can also be browsed with `./image reports`. The combined `./image report` form prints all of those reconstruction reports followed by the dashboard; with several completed runs, that form produces substantially more output.
+
+For this exercise, history is kept in memory for the lifetime of the image application host. Stopping the host clears it. Other applications can choose different retention or persistence policies.
+
+### 10. Change and Restart the Dashboard
+
+Suppose someone using the report wants the completed runs listed in the opposite order. That changes how the existing results are presented, not how the sensor measurements are made or how the reconstructions are computed. The next step changes only the dashboard and tests whether the rest of the application and its completed work can remain in place.
+
+Open `ropemother_exercises/image/dashboard.py` and find `render_dashboard()`. Its final line is:
+
+```python
+    return render_dashboard_index(*entries)
+```
+
+Change only that line to:
+
+```python
+    return render_dashboard_index(*reversed(entries))
+```
+
+Save the file.
+
+The running dashboard service is still executing the version of the module that it loaded when it started. Stop only that service:
+
+```sh
+./image stop dashboard
+```
+
+Wait for:
+
+```text
+dashboard service stopped.
+```
+
+The host, reconstruction-report service, and retained history remain in place.
+
+Start the dashboard service again:
+
+```sh
+python -m ropemother_exercises.image.service.dashboard &
+```
+
+Wait for its readiness message, then request the dashboard again:
+
+```sh
+./image dashboard
+```
+
+The same completed runs now appear in the opposite order. No sensor measurements or reconstructions were repeated. The restarted dashboard queried the retained history and applied the edited presentation rule to work that had already been completed.
 
 ### 11. Open Exploration
 
-The required route is complete. The running application can now be used for further reconstruction or reporting experiments. These are useful starting points:
+The running application and workspace can be reused for additional experiments. `show_workspace()` lists the prepared objects and helpers. Python's `help()` can show the signature and a short description of a helper when its arguments are needed; for example:
 
-- In the still-open workspace, reuse the attached sensor sources for another reconstruction, or construct another `AngularSensor` while varying `angle_degrees`, `edge_bin_count`, or `sample_count` to explore viewing direction, projection resolution, or measurement depth.
-- Make another change in `ropemother_exercises/image/dashboard.py`, then stop and restart only the dashboard service and request the dashboard again.
-- Change the presentation of one reconstruction in `ropemother_exercises/image/report.py`, restart only the reconstruction-report service, and request an earlier run again.
+```python
+help(evenly_spaced_angles)
+```
 
-The workspace also includes optional helpers for inspecting which cells carry the strongest reconstructed signal. `threshold_intensity_image_by_fraction()` converts the continuous intensities into a binary `Bitmap`. Its `threshold_fraction` is relative to that reconstruction's maximum intensity: lower values keep more cells, while higher values keep only stronger cells. For example:
+These are some possible directions:
+
+- **Add more viewing angles:** add the next ruler group and build a 16-angle reconstruction.
+- **Change measurement depth:** keep the viewing direction fixed while changing how many samples one sensor gathers.
+- **Try perspective sensing:** add a sensor whose projection fans outward from a viewpoint instead of using parallel strips.
+- **Change reporting:** edit either the dashboard or one-reconstruction report and restart only the corresponding service.
+- **Rank or analyze completed reconstructions:** compare contrast and smoothness, add analysis values to reports or the dashboard, or use one of them to order the completed runs.
+- **Add a thumbnail image:** keep the stronger reconstructed cells and display them with a compact block-character renderer.
+
+#### a. Add More Viewing Angles
+
+The next ruler group adds eight directions between the eight already used:
+
+```python
+sixteenths_angle_group = ruler_angle_group(4)
+sixteenths_angle_group
+```
+
+Construct and attach those eight sensors:
+
+```python
+sixteenths_sensors = angular_sensors_for_angles(
+    sensor_name_prefix="sixteenths",
+    angles_degrees=sixteenths_angle_group,
+    edge_bin_count=edge_bin_count,
+    sample_count=samples_per_sensor,
+)
+
+sixteenths_sources = []
+
+for sensor in sixteenths_sensors:
+    sixteenths_sources.append(sensor.attach(bus))
+```
+
+Combine them with the eight sources already attached:
+
+```python
+sixteen_angle_sources = list(eight_angle_sources)
+sixteen_angle_sources.extend(sixteenths_sources)
+```
+
+Make one measurement through each source:
+
+```python
+sensor_number = 1
+
+for sensor_source in sixteen_angle_sources:
+    sensor_source.measure(
+        target=target,
+        observation_id=f"sixteen-angle-{sensor_number}",
+        seed=40 + sensor_number,
+    )
+    reconstruction = run_receiver.receive().payload
+    sensor_number += 1
+```
+
+Complete the run and request its report:
+
+```python
+close_run()
+completion = run_receiver.receive().payload
+report = report_client.call(completion).payload
+print(report.rendering)
+```
+
+This extends the same arrangement from eight evenly spaced views to sixteen without changing the reconstruction processor. Try thirty-two or sixty-four views.
+
+`evenly_spaced_angles()` can construct arrangements with other sizes, starting directions, and angular spans. `help(evenly_spaced_angles)` shows the available parameters. For example, construct six views beginning at 15° and distributed across a 180° span:
+
+```python
+custom_angles = evenly_spaced_angles(
+    6,
+    start_degrees=15.0,
+    span_degrees=180.0,
+)
+custom_angles
+```
+
+The result is:
+
+```pycon
+>>> custom_angles
+(15.0, 45.0, 75.0, 105.0, 135.0, 165.0)
+```
+
+The end of the span is not repeated, so six views across 180° are spaced 30° apart. Specific angles can also be supplied directly when an evenly spaced arrangement is not wanted.
+
+#### b. Change Measurement Depth
+
+The prepared sensors use the quantity `samples_per_sensor` samples for each measurement. A new sensor can use the same viewing direction and projection resolution while gathering fewer samples:
+
+```python
+lower_sample_sensor = AngularSensor(
+    sensor_name="lower-sample-0",
+    angle_degrees=0.0,
+    edge_bin_count=edge_bin_count,
+    sample_count=samples_per_sensor // 2,
+)
+lower_sample_source = lower_sample_sensor.attach(bus)
+```
+
+Make one measurement and inspect its reconstruction:
+
+```python
+lower_sample_source.measure(
+    target=target,
+    observation_id="lower-sample-0",
+    seed=50,
+)
+reconstruction = run_receiver.receive().payload
+print(render_reconstructions(reconstruction))
+```
+
+Compare it with the prepared 0° result:
+
+```python
+print(sensor_0_rendering)
+```
+
+Close the run and receive its completion:
+
+```python
+close_run()
+completion = run_receiver.receive().payload
+```
+
+Keeping `completion` makes the finished run available for another report with `report_client.call(completion)`.
+
+Other sample counts can be tried by changing the `sample_count=` expression while leaving the other sensor settings unchanged. Try higher sample counts, and perhaps compare more samples from the same sensors against adding more sensors at the same depth.
+
+#### c. Try Perspective Sensing
+
+The angular sensors group the image into parallel strips. A `PerspectiveSensor` instead observes the plane from a particular point and divides a fan-shaped field of view into bins.
+
+Perspective sensors can be placed directly at any point in the two-dimensional plane. Import the sensor and point types:
+
+```python
+from ropemother_exercises.image import PerspectiveSensor, Point2D
+```
+
+The constructor parameters are available at the prompt:
+
+```python
+help(PerspectiveSensor)
+```
+
+Create a sensor at an offset position:
+
+```python
+perspective_sensor = PerspectiveSensor(
+    sensor_name="perspective-offset",
+    viewpoint=Point2D(x=-0.75, y=1.25),
+    coordinate_scale=IMAGE_RADIUS_UNIT_LENGTH,
+    heading_degrees=300.0,
+    field_of_view_degrees=90.0,
+    bin_count=frame.width,
+    sample_count=samples_per_sensor,
+)
+```
+
+With `coordinate_scale=IMAGE_RADIUS_UNIT_LENGTH`, the viewpoint coordinates are expressed relative to the image radius, with the image centered at the origin. `viewpoint` controls where the sensor is placed, while `heading_degrees` controls the direction it faces. Those values are independent, so a perspective sensor may be placed inside or outside the image and aimed in any direction.
+
+The viewpoint may be outside the image, on its boundary, or inside it. For example, `Point2D(x=0.0, y=0.0)` places the sensor at the image center. `field_of_view_degrees` can range up to 360°. Narrower fields observe only a fan centered on the sensor's heading; at 360° the sensor can observe in every direction around its viewpoint.
+
+Changing `viewpoint`, `heading_degrees`, and `field_of_view_degrees` independently makes arrangements possible that cannot be described only as sensors placed around the image and pointed inward.
+
+Inspect the resulting geometry:
+
+```python
+perspective_sensor.show_bins(frame)
+```
+
+Attach it:
+
+```python
+perspective_source = perspective_sensor.attach(bus)
+```
+
+For arrangements where several sensors should sit at a common distance around the image and point toward its center, `perspective_sensors_for_bearings()` performs that repeated geometry:
+
+```python
+bearing_sensors = perspective_sensors_for_bearings(
+    sensor_name_prefix="perspective-ring",
+    bearings_degrees=(45.0,),
+    viewpoint_distance=1.5,
+    coordinate_scale=IMAGE_RADIUS_UNIT_LENGTH,
+    field_of_view_degrees=90.0,
+    bin_count=frame.width,
+    sample_count=samples_per_sensor,
+)
+bearing_sensor = bearing_sensors[0]
+```
+
+The direct constructor permits arbitrary placement and orientation; the bearing helper supplies a convenient centered arrangement.
+
+Start a new reconstruction with the prepared 0° and 90° angular sources, then add the directly configured perspective measurement:
+
+```python
+sensor_0_source.measure(
+    target=target,
+    observation_id="mixed-angular-0",
+    seed=61,
+)
+run_receiver.receive()
+
+sensor_90_source.measure(
+    target=target,
+    observation_id="mixed-angular-90",
+    seed=62,
+)
+run_receiver.receive()
+
+perspective_source.measure(
+    target=target,
+    observation_id="mixed-perspective",
+    seed=63,
+)
+reconstruction = run_receiver.receive().payload
+```
+
+Display the mixed reconstruction:
+
+```python
+print(render_reconstructions(reconstruction))
+```
+
+Then close the run:
+
+```python
+close_run()
+completion = run_receiver.receive().payload
+```
+
+Keeping `completion` makes the finished run available for another report with `report_client.call(completion)`.
+
+The reconstruction processor accepts the perspective sensor's observation through the same path used by the angular sensors. Changing the viewpoint, heading, field of view, or distance from the image provides several additional experiments without changing that reconstruction path.
+
+#### d. Change Reporting
+
+For another dashboard experiment, edit `render_dashboard()` in `ropemother_exercises/image/dashboard.py`. After saving the change, stop and restart only the dashboard service:
+
+```sh
+./image stop dashboard
+python -m ropemother_exercises.image.service.dashboard &
+```
+
+Wait for:
+
+```text
+Dashboard report service is ready.
+```
+
+Then inspect the result:
+
+```sh
+./image dashboard
+```
+
+For a change to the presentation of one completed reconstruction, edit `render_reconstruction_report()` in `ropemother_exercises/image/report.py`. Stop and restart only the reconstruction-report service:
+
+```sh
+./image stop report
+python -m ropemother_exercises.image.service.report &
+```
+
+Wait for:
+
+```text
+Reconstruction report service is ready.
+```
+
+The dashboard can supply a completed `RUN_ID` for inspecting one report, or the complete report can be requested:
+
+```sh
+./image dashboard
+./image report RUN_ID
+./image report
+```
+
+Neither reporting experiment requires the sensor measurements or reconstructions to be repeated — the reporting services are the only running components that need to change.
+
+#### e. Rank or Analyze Completed Reconstructions
+
+The repository also provides two analysis values that can be calculated from a reconstruction:
+
+- **Contrast** describes how widely the reconstructed cell intensities are spread. A larger value means a wider spread.
+- **Smoothness** compares neighboring cells. A larger value means neighboring reconstructed intensities are more similar on average.
+
+They ask different questions about the same reconstruction. Neither value says whether a reconstruction is correct or identifies an objectively best result.
+
+They can be tried directly in the workspace:
+
+```python
+from ropemother_exercises.image import (
+    reconstruction_contrast,
+    reconstruction_smoothness,
+)
+
+reconstruction_contrast(reconstruction)
+reconstruction_smoothness(reconstruction)
+```
+
+Each expression displays a floating-point value for the given `reconstruction` argument.
+
+The same calculations can be used when presenting completed work. In `ropemother_exercises/image/report.py`, `render_reconstruction_report()` receives the reconstruction used for one detailed report, so a quality such as smoothness or contrast can be calculated there and added to the report text.
+
+In `ropemother_exercises/image/dashboard.py`, every `DashboardEntry` contains its reconstruction in `entry.reconstruction`. That makes several experiments possible:
+
+- add contrast, smoothness, or both as dashboard columns;
+- order the entries by contrast instead of their existing order;
+- order them by smoothness and compare that ordering with the contrast ordering;
+- use one of those orderings to create a shortlist of top-ranked reconstructions, and perhaps print the best according to that ranking;
+- calculate another reconstruction property and use it as a column, ordering rule, or summary.
+
+For an ordering experiment, `render_dashboard()` is the natural place to arrange the entries before passing them to `render_dashboard_index()`.
+
+For a contrast or smoothness ranking, import the supplied analysis functions in `ropemother_exercises/image/dashboard.py`:
+
+```python
+from ropemother_exercises.image import (
+    reconstruction_contrast,
+    reconstruction_smoothness,
+)
+```
+
+Section 10 changed the final return in `render_dashboard()` to reverse the entries. Replace that final return with the ranking operation and a return of the newly ordered entries:
+
+```python
+    entries = sorted(
+        entries,
+        key=lambda entry: reconstruction_contrast(entry.reconstruction),
+        reverse=True,
+    )
+    return render_dashboard_index(*entries)
+```
+
+The `key=` argument tells `sorted()` what value to calculate for each entry. Here the `lambda` is a short function: for each dashboard entry, it returns that entry's reconstruction contrast. `reverse=True` places the largest values first.
+
+To rank by smoothness instead, change `reconstruction_contrast` in the `lambda` to `reconstruction_smoothness`. The two rankings need not agree, and in practice they often disagree. “Top-ranked” therefore means highest according to the selected analysis rule, not best in an absolute sense.
+
+The complete ranking can be displayed, or the result passed to `render_dashboard_index()` can be sliced to make a shortlist. For example, `entries[:3]` selects the first three entries after ranking.
+
+The values can also become part of the presentation rather than only controlling its order. `render_reconstruction_report()` already receives the reconstruction for one detailed report, so contrast or smoothness can be calculated there and included in the report text. `render_dashboard_index()` builds the dashboard headings and rows from each `DashboardEntry`; an analysis value can likewise become another dashboard column.
+
+After a dashboard ranking or analysis change, restart the dashboard service:
+
+```sh
+./image stop dashboard
+python -m ropemother_exercises.image.service.dashboard &
+```
+
+Wait for `Dashboard report service is ready.`, then request the dashboard again:
+
+```sh
+./image dashboard
+```
+
+After changing `render_reconstruction_report()`, restart the reconstruction-report service instead:
+
+```sh
+./image stop report
+python -m ropemother_exercises.image.service.report &
+```
+
+Wait for `Reconstruction report service is ready.`, then request an individual or complete report.
+
+A selected high-ranking reconstruction can also be given a compact visual summary. The next subsection combines thresholding with the block-character bitmap renderer for that purpose.
+
+#### f. Make a Thresholded Block-Character Thumbnail
+
+A reconstruction's `intensity_image` associates image cells with graded reconstructed intensities. Thresholding turns that graded image into a `Bitmap`, where each cell is simply filled or empty.
+
+`threshold_intensity_image_by_fraction()` accepts a value from 0.0 to 1.0. Lower threshold values retain more reconstructed cells; higher values retain only stronger cells.
+
+`render_quadrant_bitmap()` displays the resulting bitmap compactly. Each Unicode quadrant character represents a 2×2 group of bitmap cells, so a 32×32 bitmap becomes a 16×16 block-character thumbnail.
+
+For example:
 
 ```python
 thresholded = threshold_intensity_image_by_fraction(
@@ -504,77 +983,54 @@ thresholded = threshold_intensity_image_by_fraction(
 print(render_quadrant_bitmap(thresholded))
 ```
 
-Because the thresholded result is a `Bitmap`, `render_quadrant_bitmap()` can pack each 2-by-2 group of binary cells into one block-drawing character without changing the bitmap's logical frame. Thresholding changes this inspection view; it does not change the measurements or the fusion result.
+Try changing `threshold_fraction` and compare the resulting shapes.
 
-For dashboard work, the same lifecycle remains:
+Thresholding changes only this derived inspection view. It does not change the measurements or the reconstruction itself.
 
-```sh
-./image stop dashboard
-# edit ropemother_exercises/image/dashboard.py
-python -m ropemother_exercises.image.service.dashboard &
-./image dashboard
-```
+A useful extension combines this view with the ranking experiment. After ordering the dashboard entries by contrast, smoothness, or another analysis rule, `entries[:3]` selects the first three results. Each selected `entry.reconstruction.intensity_image` can be thresholded and rendered with `render_quadrant_bitmap()` to make a compact summary of the session's highest-ranked reconstructions.
 
-For reconstruction-report work:
+That pattern has a common application analogue: a collection view can rank many results, select a few according to a chosen criterion, and give those selected results a richer visual preview without changing the process that originally produced them.
+
+If the earlier workspace interpreter has been closed, it can be reopened without creating another set of prepared startup runs:
 
 ```sh
-./image stop report
-# edit ropemother_exercises/image/report.py
-python -m ropemother_exercises.image.service.report &
-./image report trial-1
+python -m ropemother_exercises.image.workspace -j
 ```
 
-If the earlier interpreter was closed, re-enter the running application without starting another prepared 0°/90° run:
-
-```sh
-python -i -m ropemother_exercises.image.workspace -j
-```
-
-`-j`, or `--join-only`, reconnects the workspace and recreates its prepared sensor definitions and sources without measuring them. If the earlier workspace is still open, continue using it instead.
+`-j`, or `--join-only`, reconnects to the running application and recreates the prepared sensor definitions and sources without making measurements.
 
 ### 12. Review What the Exercise Showed
 
-Before stopping the application, look back at what you observed:
-
-- Adding 45° and 135° sensor sources did not require editing or restarting the reconstruction processor.
-- The same attached sensor sources could be reused in another reconstruction run.
-- Finishing a run required an explicit action rather than guessing that the most recent intermediate result was final.
-- A separately started client could retrieve work that had been completed earlier.
-- Restarting the dashboard did not erase the completed measurements or require the reconstruction to be repeated.
-- Changing the dashboard changed the current report without changing the sensing or reconstruction work that had already happened.
-
 **Vocabulary review**
 
-- **Reconstruction:** an image estimate built from sensor measurements.
-- **Run:** one reconstruction attempt.
-- **Message bus:** the shared path for application messages.
-- **History:** earlier messages retained for later queries.
+- **Producer:** an attached sensor source that published observations.
+- **Processor:** the reconstruction processor that received observations and produced reconstruction results.
+- **Message bus:** the shared communication path used by those participants.
+- **History:** earlier messages retained so they can be queried later.
 
-During a run, sensor sources sent observations through the message bus and the reconstruction processor used that growing evidence to produce reconstructions. Closing the run explicitly distinguished an intermediate reconstruction from the result belonging to a finished attempt.
+Adding the 45° and 135° sensors, and later the four intermediate views, changed the set of producers without requiring the reconstruction processor to be rewritten or restarted. Whether sensors were constructed individually or from a group of angles, each attached source participated through the same message path.
 
-The later client and dashboard work used the same application without depending on the Python workspace that originally made the measurements. History kept the earlier messages available, so a new client could request completed work and a restarted dashboard could present that work differently. First the sensing setup changed while the reconstruction processor stayed in place; later, the presentation changed while the completed sensing and reconstruction work stayed in place.
+History made the application's results available beyond the process that originally produced them. The standalone `./image` client started after the measurements had already been made, and the restarted dashboard had discarded its earlier process state. Both could still work with the completed reconstruction activity because the application retained the relevant messages.
 
-The sensor helper illustrates another practical point about working with message-based applications. A message boundary does not mean that every participant must be constructed and connected by hand each time it is used. Once repeated setup has a clear shape, ordinary application helpers can construct and attach bus participants while the rest of the code works with operations such as adding another group of sensors. Mature message-based applications commonly provide this kind of support so that routine messaging setup does not dominate the application code.
+Changing the dashboard then altered a downstream interpretation of that retained work without repeating the sensing or reconstruction that produced it. The message boundaries did not eliminate dependencies or make every change free; they provided places where new producers and new downstream behavior could participate without requiring unrelated parts of the application to change with them.
 
-The next section rebuilds these relationships in a much smaller program and gives the messaging operations more precise names.
+The next section focuses on the core communication relationships in a program with fewer parts, and gives the messaging operations more precise terminology.
 
 ### 13. Stop the Local Image Application
 
-Return to the application terminal, which contains the background application jobs.
+At the end of the image activity, leave the interactive workspace first. In the workspace terminal, run:
 
-Inspect them if needed:
-
-```sh
-jobs
+```python
+exit()
 ```
 
-After the entire image session is finished, stop the remaining jobs in that terminal:
+Then return to the application terminal and ask the image application to shut down:
 
 ```sh
-kill -INT $(jobs -p)
+./image stop application
 ```
 
-`jobs -p` supplies the process IDs of the background jobs started in this terminal, and `kill -INT` asks those processes to stop as if they had been interrupted with Ctrl-C. Closing the terminal would normally also end its remaining background jobs, often after a warning from the terminal application; the explicit command is useful when you want to stop the application while keeping the terminal open.
+The reporting services and the host will stop cleanly. The host also stops the core application services it started. The shell may print background-job completion notices as those processes exit.
 
 ## II. Basic Messaging
 
@@ -663,6 +1119,17 @@ The call to `subscribe()` describes the publications the receiver wants: message
 
 Publish one string, receive the matching publication, and inspect the resulting message:
 
+```python
+emitter.emit("foo bar baz")
+message = receiver.receive()
+message.msg_topic
+message.msg_producer
+message.msg_type
+message.payload
+```
+
+The expected output is:
+
 ```pycon
 >>> emitter.emit("foo bar baz")
 >>> message = receiver.receive()
@@ -750,6 +1217,18 @@ Return to the interpreter and reuse the existing `bus` and `receiver`. Keeping t
 
 Import `TextSource`, create one with the existing bus, and submit another value:
 
+```python
+from ropemother_exercises.basic.source import TextSource
+
+source = TextSource(bus)
+source.emit_text("qux quux corge grault")
+message = receiver.receive()
+message.msg_type
+message.payload
+```
+
+The result should be:
+
 ```pycon
 >>> from ropemother_exercises.basic.source import TextSource
 >>> source = TextSource(bus)
@@ -827,8 +1306,8 @@ In `run()`, `_receiver.receive()` waits until a matching submitted-text message 
 
 At this point `WordCountProcessor` is defined in `processors.py`, but no processor instance is running. The interpreter still contains the temporary `DirectMessageBus`, receiver, emitter, and `TextSource` from the earlier checks. Exit the interpreter:
 
-```pycon
->>> exit()
+```python
+exit()
 ```
 
 Exiting closes that temporary in-process bus and its endpoints. It does not stop a word-count processor, because none has been started yet. The next file will be the startup program that creates `WordCountProcessor` with a connection to the freestanding broker.
@@ -5052,25 +5531,46 @@ python
 
 Create `A`…`B` and `B`→`C`, then call the new function:
 
+```python
+from ropemother_exercises.graph.events import ArcDeclared, PathFound
+from ropemother_exercises.graph.reachability import extend_path_over_arc
+
+path_ab = PathFound(
+    run_id="rule-check",
+    graph_id="g",
+    source="A",
+    target="B",
+    hop_count=1,
+)
+arc_bc = ArcDeclared(
+    run_id="rule-check",
+    graph_id="g",
+    source="B",
+    target="C",
+)
+extended = extend_path_over_arc(path_ab, arc_bc)
+```
+
+Inspect the path that the rule produced:
+
+```python
+type(extended).__name__
+extended.source
+extended.target
+extended.hop_count
+```
+
+The `PathFound` object returned by `extend_path_over_arc` should show two hops from `A` to `C`:
+
 ```pycon
->>> from ropemother_exercises.graph.events import ArcDeclared, PathFound
->>> from ropemother_exercises.graph.reachability import extend_path_over_arc
->>> path_ab = PathFound(
-...     run_id="rule-check",
-...     graph_id="g",
-...     source="A",
-...     target="B",
-...     hop_count=1,
-... )
->>> arc_bc = ArcDeclared(
-...     run_id="rule-check",
-...     graph_id="g",
-...     source="B",
-...     target="C",
-... )
->>> extended = extend_path_over_arc(path_ab, arc_bc)
->>> (type(extended).__name__, extended.source, extended.target, extended.hop_count)
-('PathFound', 'A', 'C', 2)
+>>> type(extended).__name__
+'PathFound'
+>>> extended.source
+'A'
+>>> extended.target
+'C'
+>>> extended.hop_count
+2
 ```
 
 Exit the interpreter after the check:
@@ -5133,15 +5633,23 @@ python
 
 Create the graph and a fresh runtime, then publish the three source arcs:
 
-```pycon
->>> from ropemother_exercises.graph.run_paths import create_reachability_graph
->>> from ropemother_exercises.graph.runner import create_graph_runtime, derive_direct_path
->>> graph = create_reachability_graph()
->>> runtime = create_graph_runtime()
->>> run_started = runtime.source.emit_graph(run_id="receive-check", graph=graph)
+```python
+from ropemother_exercises.graph.run_paths import create_reachability_graph
+from ropemother_exercises.graph.runner import create_graph_runtime, derive_direct_path
+
+graph = create_reachability_graph()
+runtime = create_graph_runtime()
+run_started = runtime.source.emit_graph(run_id="receive-check", graph=graph)
 ```
 
-No direct-path operation has run yet. Ask `GraphFacts` which paths have been established, then convert each path to the short string form used throughout this section:
+Ask `GraphFacts` which paths have been established, then convert each path to the short string form used throughout this section:
+
+```python
+paths = runtime.graph_facts.paths_for_run("receive-check", graph.graph_id)
+[str(path) for path in paths]
+```
+
+No direct-path operation has run yet, so the partial reachability result is empty:
 
 ```pycon
 >>> paths = runtime.graph_facts.paths_for_run("receive-check", graph.graph_id)
@@ -5149,9 +5657,15 @@ No direct-path operation has run yet. Ask `GraphFacts` which paths have been est
 []
 ```
 
-The partial reachability result is empty.
-
 Call `derive_direct_path()` once, then inspect the result again:
+
+```python
+derive_direct_path(runtime)
+paths = runtime.graph_facts.paths_for_run("receive-check", graph.graph_id)
+[str(path) for path in paths]
+```
+
+`derive_direct_path()` finds one new direct reachability fact at a time:
 
 ```pycon
 >>> derive_direct_path(runtime)
@@ -6476,7 +6990,13 @@ The principal terms now describe stages of that calculation:
 
 The opening activity used this same measurement problem while concentrating on operating the running application. Here the calculation itself provides the starting point: sensor measurements become projections, projections become image-shaped observations, and several observations contribute to a reconstruction. The messaging relationships become relevant as those stages are separated into independently operating parts of the application.
 
-Run the reconstruction example. The fixed sensor seeds make the display reproducible:
+Run the reconstruction example:
+
+```sh
+python -m ropemother_exercises.image.examples.reconstruction
+```
+
+The fixed sensor seeds make the display reproducible:
 
 ```console
 $ python -m ropemother_exercises.image.examples.reconstruction
@@ -6814,12 +7334,19 @@ Later steps use this client to inspect saved configurations, repeat runs, reques
 Start the prepared workspace:
 
 ```sh
-python -i -m ropemother_exercises.image.workspace
+python -m ropemother_exercises.image.workspace
 ```
 
 As in the opening image exercise, the workspace begins with measurements from the prepared 0° and 90° sensors. When it starts, the reconstruction on the screen shows what those two views support so far. The next steps will add more viewing directions and let that reconstruction change as more evidence arrives.
 
-Before adding another direction, look at the resolution shared by the prepared sensors. The image frame is 32 cells wide, and `edge_bin_count` is also 32:
+Before adding another direction, look at the resolution shared by the prepared sensors:
+
+```python
+frame.width
+sensor_0.edge_bin_count
+```
+
+The image frame is 32 cells wide, and `edge_bin_count` is also 32:
 
 ```pycon
 >>> frame.width
@@ -6828,7 +7355,13 @@ Before adding another direction, look at the resolution shared by the prepared s
 32
 ```
 
-`edge_bin_count=32` means that the projection uses a bin width corresponding to one image cell along the longer edge of this 32×32 frame. It does not mean that the complete detector contains only 32 bins. At a diagonal viewing angle, the projection may need to cover the image's diagonal—the hypotenuse of a right triangle formed by the image width and height. The angular sensor therefore provides enough detector bins for that longer span while keeping the same bin width. The full detector size is derived rather than chosen separately:
+`edge_bin_count=32` means that the projection uses a bin width corresponding to one image cell along the longer edge of this 32×32 frame. It does not mean that the complete detector contains only 32 bins. At a diagonal viewing angle, the projection may need to cover the image's diagonal—the hypotenuse of a right triangle formed by the image width and height. The angular sensor therefore provides enough detector bins for that longer span while keeping the same bin width. Inspect the sensor's configuration:
+
+```python
+sensor_0.detector_bin_count
+```
+
+The full detector size is derived rather than chosen separately:
 
 ```pycon
 >>> sensor_0.detector_bin_count
@@ -6839,11 +7372,9 @@ The detector remains 46 bins wide at every angle. At 0° and 90°, the image occ
 
 `show_bins(frame)` gives another view of this relationship. It marks each cell of the image according to the projection bin that cell belongs to; it shows the partition of the image rather than drawing the entire 46-bin detector:
 
-```pycon
->>> sensor_0.show_bins(frame)
-...
->>> sensor_90.show_bins(frame)
-...
+```python
+sensor_0.show_bins(frame)
+sensor_90.show_bins(frame)
 ```
 
 For the 0° sensor, cells in the same vertical strip contribute to the same projection bin. For the 90° sensor, cells in the same horizontal strip do instead. The edge resolution has not changed; only the viewing direction has. `sample_count` describes a different part of a measurement, so keep the prepared value unchanged while first varying the viewing direction.
@@ -6908,8 +7439,16 @@ An updated reconstruction arrived after every measurement, including the 135° m
 
 Close the input and receive the message marking that boundary:
 
+```python
+close_run()
+message = run_receiver.receive()
+message.msg_type
+```
+
+A completion message should be waiting:
+
 ```pycon
->>> close_run_input(bus)
+>>> close_run()
 >>> message = run_receiver.receive()
 >>> message.msg_type
 'reconstruction-completed'
@@ -6930,6 +7469,13 @@ print(report.rendering)
 The four-angle run was manageable to build by writing the 45° and 135° sensor definitions individually. Filling the remaining gaps halfway between those four viewing directions would mean writing four more `AngularSensor(...)` definitions that differ mainly in their names and angles. Instead of copying the same constructor repeatedly, the differing angles can be represented as data while the settings shared by every sensor are stated once.
 
 The prepared angle helper numbers these successive refinements from 0: group 0 supplies 0°, group 1 adds 90°, group 2 adds 45° and 135°, and group 3 supplies the four directions halfway between the existing views. Ask for that next group:
+
+```python
+half_angles = ruler_angle_group(3)
+half_angles
+```
+
+The result is four new angles spaced evenly between the others:
 
 ```pycon
 >>> half_angles = ruler_angle_group(3)
@@ -6990,8 +7536,22 @@ Each measurement can produce an updated reconstruction, just as the individual 4
 
 Close the input now. Then receive messages until the explicit completion message arrives, counting the reconstruction messages encountered on the way:
 
+```python
+close_run()
+reconstruction_count = 0
+message = run_receiver.receive()
+
+while message.msg_type != RECONSTRUCTION_COMPLETED_MSG_TYPE:
+    reconstruction_count += 1
+    message = run_receiver.receive()
+
+reconstruction_count
+```
+
+The eight measurements produced eight updated reconstructions before the completion message arrived:
+
 ```pycon
->>> close_run_input(bus)
+>>> close_run()
 >>> reconstruction_count = 0
 >>> message = run_receiver.receive()
 >>> while message.msg_type != RECONSTRUCTION_COMPLETED_MSG_TYPE:
@@ -7002,7 +7562,7 @@ Close the input now. Then receive messages until the explicit completion message
 8
 ```
 
-The eight measurements produced eight updated reconstructions before the completion message arrived. The count makes visible why the receiver cannot simply assume that its next message after `close_run_input(bus)` is the completion: results that were already produced by the measurements are still ahead of it.
+The count makes visible why the receiver cannot simply assume that its next message after `close_run()` is the completion: results that were already produced by the measurements are still ahead of it.
 
 When the loop stops, `message` is the completion for the run. Use that completion to request and display the finished report:
 
@@ -7063,7 +7623,7 @@ sensor_90_source.measure(
     seed=42,
 )
 
-close_run_input(bus)
+close_run()
 message = run_receiver.receive()
 
 while message.msg_type != RECONSTRUCTION_COMPLETED_MSG_TYPE:
@@ -7086,7 +7646,7 @@ perspective_90_source.measure(
     seed=62,
 )
 
-close_run_input(bus)
+close_run()
 message = run_receiver.receive()
 
 while message.msg_type != RECONSTRUCTION_COMPLETED_MSG_TYPE:
@@ -7118,24 +7678,27 @@ Until now, changing a sensor has meant changing where or how it looks at the ima
 
 The prepared 0° sensor uses the workspace's normal sample count:
 
+```python
+samples_per_sensor
+```
+
+The provided default value is 512:
+
 ```pycon
 >>> samples_per_sensor
 512
 ```
 
-Make a second 0° sensor with the same angle and the same edge resolution, but half as many samples:
+Make a second 0° sensor with the same angle and the same edge resolution, but half as many samples. Create the lower-sample sensor and attach it:
 
-```pycon
->>> lower_sample_count = samples_per_sensor // 2
->>> lower_sample_count
-256
->>> lower_sample_sensor = AngularSensor(
-...     sensor_name="lower-sample-0",
-...     angle_degrees=sensor_0.angle_degrees,
-...     edge_bin_count=sensor_0.edge_bin_count,
-...     sample_count=lower_sample_count,
-... )
->>> lower_sample_source = lower_sample_sensor.attach(bus)
+```python
+lower_sample_sensor = AngularSensor(
+    sensor_name="lower-sample-0",
+    angle_degrees=sensor_0.angle_degrees,
+    edge_bin_count=sensor_0.edge_bin_count,
+    sample_count=samples_per_sensor // 2,
+)
+lower_sample_source = lower_sample_sensor.attach(bus)
 ```
 
 Using `sensor_0.angle_degrees` and `sensor_0.edge_bin_count` makes the intended comparison visible in the construction itself: the new sensor inherits those two settings from the prepared 0° definition, while `sample_count` is the only value changed for this comparison.
@@ -7149,7 +7712,7 @@ sensor_0_source.measure(
     seed=71,
 )
 
-close_run_input(bus)
+close_run()
 message = run_receiver.receive()
 
 while message.msg_type != RECONSTRUCTION_COMPLETED_MSG_TYPE:
@@ -7169,7 +7732,7 @@ lower_sample_source.measure(
     seed=71,
 )
 
-close_run_input(bus)
+close_run()
 message = run_receiver.receive()
 
 while message.msg_type != RECONSTRUCTION_COMPLETED_MSG_TYPE:
@@ -7186,7 +7749,7 @@ Display the two results one after the other:
 print(f"{samples_per_sensor} samples")
 print(normal_sample_report.rendering)
 
-print(f"{lower_sample_count} samples")
+print(f"{lower_sample_sensor.sample_count} samples")
 print(lower_sample_report.rendering)
 ```
 
@@ -7198,8 +7761,8 @@ The earlier angle experiments changed which directions supplied evidence, and th
 
 The sensor experiments in this Python workspace are finished. Exit the interpreter:
 
-```pycon
->>> exit()
+```python
+exit()
 ```
 
 Only this interactive client closes. The image application is still running in the other terminals, so the completed runs created here are still available when another client asks about them.
@@ -7968,7 +8531,7 @@ The guided sequence is finished. The application can stay running while the rema
 The earlier interactive Python process has ended, but the broker and application services are still running. Start another Python client without asking the workspace to perform its prepared opening run:
 
 ```sh
-python -i -m ropemother_exercises.image.workspace -j
+python -m ropemother_exercises.image.workspace -j
 ```
 
 Keep another terminal available for `./image` commands.
@@ -8015,7 +8578,7 @@ The source turns its measurement into an image observation and sends it through 
 A run may contain one source or many. Once every intended measurement for that attempt has been sent, close its input:
 
 ```python
-close_run_input(bus)
+close_run()
 ```
 
 The application can then identify the final reconstruction for that run. From the interaction terminal, completed work can be inspected through the report and dashboard commands.
@@ -8197,30 +8760,21 @@ The process boundaries made the same separation visible while the application wa
 
 ### 16. Stop the Image Application When Finished
 
-When the exploration is finished, return to the terminal that has been running the application processes.
+When the exploration is finished, leave the interactive workspace if it is still open:
 
-The reconstruction-report and dashboard services were started independently of the application host. Stop them through the same terminal client used when they were restarted during the reporting exercises:
-
-```sh
-./image stop dashboard
-./image stop report
+```python
+exit()
 ```
 
-Now inspect the background jobs in this terminal:
+Then return to the terminal that has been running the application processes and ask the image application to shut down:
 
 ```sh
-jobs
+./image stop application
 ```
 
-The report and dashboard jobs should finish after receiving their stop requests. The image application host should remain as the long-running background job.
+The reconstruction-report and dashboard services will stop along with the host. The host also stops the reconstruction, Instrument, and trial services that it started, then shuts down the broker. Its temporary application directory, including the history accumulated during this image session, is removed when the host exits.
 
-Send an interrupt to the remaining background job:
-
-```sh
-kill -INT $(jobs -p)
-```
-
-The host handles that interrupt by stopping the reconstruction, Instrument, and trial services that it started and then shutting down the broker. Its temporary application directory, including the history accumulated during this image session, is removed when the host exits.
+Your shell may print background-job completion notices as those processes finish.
 
 ## VI. Messaging Architecture
 
