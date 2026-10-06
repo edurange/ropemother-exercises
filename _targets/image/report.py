@@ -5,9 +5,7 @@
 
 from ropemother.capture import HistoryClient
 
-from ropemother_exercises.image.application.ranking import (
-    reconstruction_smoothness,
-)
+from ropemother_exercises.image import reconstruction_smoothness
 from ropemother_exercises.image.application.render import (
     render_intensity_image,
     render_run_id,
@@ -50,6 +48,12 @@ def reconstruction_report(
 def render_reconstruction_report(
     reconstruction: ImageObservation, target_key: TargetKey
 ) -> str:
+    """Render one completed reconstruction report.
+
+    Args:
+        reconstruction: Completed reconstruction to display.
+        target_key: Concealed target associated with the reconstruction.
+    """
     run_label = render_run_id(reconstruction.run_id)
     identity = (
         f"{run_label}  -  target key: {target_key}  "

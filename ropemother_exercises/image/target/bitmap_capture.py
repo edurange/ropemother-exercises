@@ -493,7 +493,9 @@ def _render_captured_glyph(glyph: str, bitmap: Bitmap) -> str:
     height = bitmap.frame.height
     cell_count = len(bitmap.filled_cells)
     heading = f"{description}  {width} x {height}  {cell_count} cells"
-    rendering = render_bitmap(bitmap, palette=_BINARY_RENDER_PALETTE)
+    rendering = render_bitmap(
+        bitmap, cell_columns=1, palette=_BINARY_RENDER_PALETTE
+    )
     return f"{heading}\n{rendering}"
 
 

@@ -23,9 +23,7 @@ from ropemother_exercises.image.tomography.images import (
 type TrialDescription = InstrumentDescription | ExperimentDescription
 
 APPLICATION_SHUTDOWN_TARGET: typing.Final[str] = "application"
-ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER: typing.Final[str] = (
-    "algebraic-reconstruction"
-)
+ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER: typing.Final[str] = "algebraic"
 IDENTITY_CLIENT_MSG_PRODUCER: typing.Final[str] = "image-identity-client"
 IDENTITY_SERVICE_MSG_PRODUCER: typing.Final[str] = "image-identity-service"
 IMAGE_CLIENT_MSG_PRODUCER: typing.Final[str] = "image-client"
@@ -126,9 +124,11 @@ class ImageObservation:
     run_id: RunID
     observation_id: str
     frame: ImageFrame
-    intensity_image: IntensityImage
-    coverage_image: IntensityImage
-    reconstruction_evidence: ReconstructionEvidence | None = None
+    intensity_image: IntensityImage = dataclasses.field(repr=False)
+    coverage_image: IntensityImage = dataclasses.field(repr=False)
+    reconstruction_evidence: ReconstructionEvidence | None = dataclasses.field(
+        default=None, repr=False
+    )
 
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
@@ -219,6 +219,14 @@ class ExperimentCatalogEntry:
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class ReconstructionCompletion:
+    """Describe the completed result of one reconstruction run.
+
+    Args:
+        run_id: Reconstruction run that has completed.
+        target_key: Concealed target used by the run.
+        reconstruction_id: Identifier of the completed reconstruction, or
+            None when no reconstruction was produced.
+    """
     run_id: RunID
     target_key: TargetKey
     reconstruction_id: str | None
@@ -226,6 +234,14 @@ class ReconstructionCompletion:
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class ReconstructionReport:
+    """Present one completed reconstruction.
+
+    Args:
+        run_id: Reconstruction run represented by the report.
+        target_key: Concealed target associated with the run.
+        reconstruction_id: Identifier of the represented reconstruction.
+        rendering: Text presentation of the completed reconstruction.
+    """
     run_id: RunID
     target_key: TargetKey
     reconstruction_id: str

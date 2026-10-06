@@ -7,9 +7,7 @@ import dataclasses
 
 from ropemother.capture import HistoryClient, MessageHistoryEntry
 
-from ropemother_exercises.image.application.ranking import (
-    reconstruction_contrast,
-)
+from ropemother_exercises.image import reconstruction_contrast
 from ropemother_exercises.image.application.render import (
     render_run_id,
     render_text_table,
@@ -30,8 +28,16 @@ from ropemother_exercises.image.events import (
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class DashboardEntry:
-    """Collect the ordinary evidence used to describe one reconstruction."""
+    """Collect the values used to summarize one completed reconstruction.
 
+    Args:
+        run_id: Reconstruction run represented by the entry.
+        target_key: Concealed target associated with the run.
+        reconstruction_id: Identifier of the completed reconstruction.
+        reconstruction: Completed reconstruction available for further analysis.
+        sensor_count: Number of distinct sensors that contributed to the run.
+        measurement_count: Total number of samples contributed to the run.
+    """
     run_id: RunID
     target_key: TargetKey
     reconstruction_id: str
@@ -45,6 +51,12 @@ def dashboard_report(history: HistoryClient) -> DashboardReport:
 
 
 def render_dashboard(history: HistoryClient) -> str:
+    """Render a dashboard from completed reconstruction history.
+
+    Args:
+        history: History service client used to find completed reconstruction
+            work.
+    """
     entries = dashboard_entries(
         history, reconstruction_producer=ALGEBRAIC_RECONSTRUCTION_MSG_PRODUCER
     )
@@ -52,8 +64,8 @@ def render_dashboard(history: HistoryClient) -> str:
     if not entries:
         return "No reconstructions are available."
 
-    ranked_entries = sorted(entries, key=contrast_for, reverse=True)
-    index = render_dashboard_index(*ranked_entries)
+    entries = sorted(entries, key=contrast_for, reverse=True)
+    index = render_dashboard_index(*entries)
     return f"Completed reconstructions\n\n{index}"
 
 
@@ -62,6 +74,12 @@ def contrast_for(entry: DashboardEntry) -> float:
 
 
 def render_dashboard_index(*entries: DashboardEntry) -> str:
+    """Render dashboard rows for completed reconstruction entries.
+
+    Args:
+        *entries: Completed reconstruction summaries to display, in display
+            order.
+    """
     first_line_headings = (
         "run",
         "reconstruction",

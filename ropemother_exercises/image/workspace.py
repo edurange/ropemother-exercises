@@ -4,7 +4,6 @@
 """Run the participant-facing image reconstruction workspace."""
 
 import argparse
-import code
 import shutil
 import sys
 import textwrap
@@ -243,8 +242,6 @@ if __name__ == "__main__":
             reconstruction = run_receiver.receive().payload
 
             _print_prepared_reconstruction(reconstruction, frame, target_key)
-
-        code.interact(banner="", exitmsg="", local=globals())
     except MissingBusContactEnvironmentError:
         print(
             f"{BUS_CONTACT_URI_VARIABLE} is not set. Start the image "

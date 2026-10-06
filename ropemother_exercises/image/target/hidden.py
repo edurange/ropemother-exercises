@@ -19,7 +19,6 @@ from ropemother_exercises.image.tomography.images import (
 
 class HiddenTarget:
     """A concealed runtime target for the reconstruction exercise."""
-
     _frame: ImageFrame
     _silhouette: Bitmap
     _target_start: int
@@ -39,10 +38,12 @@ class HiddenTarget:
 
     @property
     def frame(self) -> ImageFrame:
+        """Return the image frame shared by the concealed target."""
         return self._frame
 
     @property
     def silhouette(self) -> Bitmap:
+        """Return the target outline available without revealing its interior."""
         return self._silhouette
 
 

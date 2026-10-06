@@ -451,7 +451,7 @@ class ExperimentTerminal:
         resolved_target = resolve_target_reference(target)
         description = target_source_description(resolved_target.key)
         bitmap = decode_hidden_target(resolved_target.target)
-        rendering = render_bitmap(bitmap, cell_columns=2)
+        rendering = render_bitmap(bitmap)
         self._print_target_keys(resolved_target.key)
         print(f"Catalog description: {description}\n")
         print(rendering)

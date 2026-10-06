@@ -101,8 +101,10 @@ class ImageFusionProcessor:
         )
         coverage_image = average_coverage(observation.frame, *run_observations)
 
-        reconstruction_number = len(run_observations)
-        reconstruction_id = f"{self._processor_name}-{reconstruction_number}"
+        observation_count = len(run_observations)
+        reconstruction_id = (
+            f"{self._processor_name}-{observation_count}-measurement"
+        )
         reconstruction = ImageObservation(
             run_id=observation.run_id,
             observation_id=reconstruction_id,
@@ -119,9 +121,9 @@ class ImageFusionProcessor:
 
         reconstruction_id = None
         if run_observations:
-            reconstruction_number = len(run_observations)
+            observation_count = len(run_observations)
             reconstruction_id = (
-                f"{self._processor_name}-{reconstruction_number}"
+                f"{self._processor_name}-{observation_count}-measurement"
             )
 
         completion = ReconstructionCompletion(

@@ -146,6 +146,7 @@ def _result_block(
     image = render_intensity_image(
         reconstruction.intensity_image,
         reconstruction.frame,
+        cell_columns=1,
         display_maximum=display_maximum,
     )
     return f"{title}\n{parameters}\n{budget}\n{image}"

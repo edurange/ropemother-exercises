@@ -47,6 +47,12 @@ def reconstruction_report(
 def render_reconstruction_report(
     reconstruction: ImageObservation, target_key: TargetKey
 ) -> str:
+    """Render one completed reconstruction report.
+
+    Args:
+        reconstruction: Completed reconstruction to display.
+        target_key: Concealed target associated with the reconstruction.
+    """
     run_label = render_run_id(reconstruction.run_id)
     identity = (
         f"{run_label}  -  target key: {target_key}  "

@@ -109,19 +109,27 @@ def run_reconstruction_explanation(target: Bitmap | None = None) -> None:
         profile_90_top_to_bottom, display_maximum=evidence_maximum
     )
     back_projection_0 = render_intensity_image(
-        observation_0.intensity_image, frame, display_maximum=evidence_maximum
+        observation_0.intensity_image,
+        frame,
+        cell_columns=1,
+        display_maximum=evidence_maximum,
     )
     back_projection_90 = render_intensity_image(
-        observation_90.intensity_image, frame, display_maximum=evidence_maximum
+        observation_90.intensity_image,
+        frame,
+        cell_columns=1,
+        display_maximum=evidence_maximum,
     )
     orthogonal_rendering = render_intensity_image(
         orthogonal_reconstruction,
         frame,
+        cell_columns=1,
         display_maximum=reconstruction_maximum,
     )
     four_angle_rendering = render_intensity_image(
         four_angle_reconstruction,
         frame,
+        cell_columns=1,
         display_maximum=reconstruction_maximum,
     )
 

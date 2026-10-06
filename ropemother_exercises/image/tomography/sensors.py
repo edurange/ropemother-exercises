@@ -13,7 +13,10 @@ import typing
 from ropemother.broker import Emitter
 from ropemother.client import MessageEndpointFactory
 
-from ropemother_exercises.image.application.render import BLOCK_FILL_SHADES
+from ropemother_exercises.image.application.render import (
+    BLOCK_FILL_SHADES,
+    DEFAULT_IMAGE_CELL_COLUMNS,
+)
 from ropemother_exercises.image.events import (
     ANGULAR_PROJECTION_OBSERVED_MSG_TYPE,
     IMAGE_OBSERVED_MSG_TYPE,
@@ -92,11 +95,13 @@ class SensorSource(abc.ABC):
     """Publish observations made by an attached image sensor."""
 
     _bus: MessageEndpointFactory
+    _sensor: Sensor
     _sensor_description: SensorDescription
     _contribution_emitter: Emitter
 
     def __init__(self, bus: MessageEndpointFactory, *, sensor: Sensor) -> None:
         self._bus = bus
+        self._sensor = sensor
         self._sensor_description = sensor.describe()
         self._contribution_emitter = bus.register_emitter(
             msg_topic=RUN_MSG_TOPIC,
@@ -104,6 +109,9 @@ class SensorSource(abc.ABC):
             msg_type=SENSOR_CONTRIBUTION_MSG_TYPE,
             payload_format=SENSOR_CONTRIBUTION_FORMAT,
         )
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(sensor={self._sensor!r})"
 
     @abc.abstractmethod
     def measure(
@@ -206,7 +214,6 @@ class AngularSensorSource(SensorSource):
         self, bus: MessageEndpointFactory, *, sensor: AngularSensor
     ) -> None:
         super().__init__(bus, sensor=sensor)
-        self._sensor = sensor
         self._projection_emitter = bus.register_emitter(
             msg_topic=PROJECTION_MSG_TOPIC,
             msg_producer=sensor.sensor_name,
@@ -336,7 +343,6 @@ class PerspectiveSensorSource(SensorSource):
         self, bus: MessageEndpointFactory, *, sensor: PerspectiveSensor
     ) -> None:
         super().__init__(bus, sensor=sensor)
-        self._sensor = sensor
         self._projection_emitter = bus.register_emitter(
             msg_topic=PROJECTION_MSG_TOPIC,
             msg_producer=sensor.sensor_name,
@@ -569,6 +575,7 @@ def _render_sensor_bins(
     *,
     no_bin: str | None = None,
     palette: str | None = None,
+    cell_columns: int = DEFAULT_IMAGE_CELL_COLUMNS,
 ) -> str:
     _no_bin = _NO_BIN_CHARACTER
     if no_bin is not None and len(no_bin) > 0:
@@ -589,7 +596,8 @@ def _render_sensor_bins(
 
     for y in range(frame.height):
         row = "".join(
-            characters_by_cell[Cell(x, y)] for x in range(frame.width)
+            characters_by_cell[Cell(x, y)] * cell_columns
+            for x in range(frame.width)
         )
         rows.append(row)
 

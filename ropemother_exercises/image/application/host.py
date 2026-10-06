@@ -112,6 +112,7 @@ def _run_application_services(host: MessageBusHost) -> None:
             processes.append((module, process))
         _wait_for_services(ready_receiver, processes)
         descriptor = host.connection_descriptor().to_uri()
+        print(flush=True)
         _print_wrapped(
             "Image application host is ready. Start the report and dashboard "
             "services separately."

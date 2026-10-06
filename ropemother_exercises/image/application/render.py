@@ -21,12 +21,7 @@ from ropemother_exercises.image.tomography.images import (
 type TextTableLine = tuple[str, ...]
 type TextTableGroup = tuple[TextTableLine, ...]
 
-_MYSTERY_FILL_SEED: typing.Final[int] = 7
-
-_MARKER_CHAR: typing.Final[str] = "#"
-_MYSTERY_FILL_CHARACTERS: typing.Final[str] = "?!¿¡;՞؟፧᥅‼‽⁇⁈⁉⸮𞥟⍰"
-
-_QUADRANT_GLYPHS: typing.Final[str] = " ▘▝▀▖▌▞▛▗▚▐▜▄▙▟█"
+DEFAULT_IMAGE_CELL_COLUMNS: typing.Final[int] = 2
 
 SHADED_BLOCKS: typing.Final[str] = "░▒▓█"
 BLOCK_FILL_SHADES: typing.Final[str] = " " + SHADED_BLOCKS
@@ -81,12 +76,20 @@ ANSI_DEEP_LIGHT_BACKGROUND_SHADES: typing.Final[tuple[str, ...]] = (
     "\033[30m█\033[0m",
 )
 
+_MYSTERY_FILL_SEED: typing.Final[int] = 7
+
+_MARKER_CHAR: typing.Final[str] = "#"
+_MYSTERY_FILL_CHARACTERS: typing.Final[str] = "?!¿¡;՞؟፧᥅‼‽⁇⁈⁉⸮𞥟⍰"
+
+_QUADRANT_GLYPHS: typing.Final[str] = " ▘▝▀▖▌▞▛▗▚▐▜▄▙▟█"
+_VERTICAL_HALF_GLYPHS: typing.Final[str] = " ▀▄█"
+
 
 @dataclasses.dataclass(frozen=True, kw_only=True)
 class TerminalRenderer:
     frame: ImageFrame
     palette: collections.abc.Sequence[str] = BLOCK_FILL_SHADES
-    cell_columns: int = 1
+    cell_columns: int = DEFAULT_IMAGE_CELL_COLUMNS
     display_maximum: float = 1.0
 
     def render(self, image: IntensityImage) -> str:
@@ -122,7 +125,7 @@ def render_bitmap(
     bitmap: Bitmap,
     value: float = 1.0,
     *,
-    cell_columns: int = 1,
+    cell_columns: int = DEFAULT_IMAGE_CELL_COLUMNS,
     palette: collections.abc.Sequence[str] = BLOCK_FILL_SHADES,
 ) -> str:
     """Render a bitmap as terminal text.
@@ -139,20 +142,27 @@ def render_bitmap(
     return renderer.render_bitmap(bitmap, value)
 
 
-def render_quadrant_bitmap(bitmap: Bitmap) -> str:
-    """Render a bitmap with one quadrant character for each 2-by-2 cell block.
+def render_quadrant_bitmap(bitmap: Bitmap, *, double_wide: bool = False) -> str:
+    """Render a bitmap with block characters representing pairs of rows.
 
     Args:
         bitmap: Binary image to render compactly.
+        double_wide: Use one terminal column for each logical image column
+            instead of packing each two-column pair into one quadrant glyph.
     """
     rows = []
 
     for y in range(0, bitmap.frame.height, 2):
         characters = []
 
-        for x in range(0, bitmap.frame.width, 2):
-            character = _quadrant_glyph(bitmap, x, y)
-            characters.append(character)
+        if double_wide:
+            for x in range(bitmap.frame.width):
+                character = _vertical_half_glyph(bitmap, x, y)
+                characters.append(character)
+        else:
+            for x in range(0, bitmap.frame.width, 2):
+                character = _quadrant_glyph(bitmap, x, y)
+                characters.append(character)
 
         rows.append("".join(characters))
 
@@ -206,7 +216,7 @@ def render_mystery_bitmap(
 def render_intensity_image(
     image: IntensityImage,
     frame: ImageFrame,
-    cell_columns: int = 1,
+    cell_columns: int = DEFAULT_IMAGE_CELL_COLUMNS,
     palette: collections.abc.Sequence[str] = BLOCK_FILL_SHADES,
     display_maximum: float | None = None,
 ) -> str:
@@ -355,6 +365,17 @@ def _quadrant_glyph(bitmap: Bitmap, x: int, y: int) -> str:
         glyph_index += 8
 
     return _QUADRANT_GLYPHS[glyph_index]
+
+
+def _vertical_half_glyph(bitmap: Bitmap, x: int, y: int) -> str:
+    glyph_index = 0
+
+    if bitmap.is_filled(Cell(x, y)):
+        glyph_index += 1
+    if bitmap.is_filled(Cell(x, y + 1)):
+        glyph_index += 2
+
+    return _VERTICAL_HALF_GLYPHS[glyph_index]
 
 
 def _padded_text_column(lines: list[str], row_count: int) -> list[str]:
