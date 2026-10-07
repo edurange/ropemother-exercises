@@ -180,6 +180,12 @@ class _ImageMessageBusClient(SensorMessageEndpointFactory):
 
         return self._implicit_run_id
 
+    def _adopt_implicit_run_id(self, run_id: RunID) -> None:
+        if self._implicit_run_id is not None:
+            raise ImageClientRunError("there is already an implicit run input")
+
+        self._implicit_run_id = run_id
+
     def _close_run_input(
         self,
         run_id: RunID | None = None,
@@ -250,6 +256,16 @@ def create_image_identity_client(
         request_payload_format=EXPERIMENT_DESCRIPTION_FORMAT,
     )
     return ImageIdentityClient(run_ids, instruments, experiments)
+
+
+def adopt_implicit_run_id(bus: MessageEndpointFactory, run_id: RunID) -> None:
+    """Adopt an existing run ID for unqualified sensor input."""
+    if not isinstance(bus, _ImageMessageBusClient):
+        raise ImageClientRunError(
+            "adopt_implicit_run_id requires a prepared image message-bus client"
+        )
+
+    bus._adopt_implicit_run_id(run_id)
 
 
 def close_run_input(

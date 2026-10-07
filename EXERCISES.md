@@ -134,6 +134,8 @@ The concealed target in this exercise is a small black-and-white bitmap image. E
 
 This is one example of a broader kind of problem: producing a useful result from partial or imperfect evidence.
 
+The reconstruction also provides a visible application to change while it is running. As new sensors, reporting behavior, and analyses are introduced, pay attention to which parts of the application have to change with each new requirement and which parts can remain in place.
+
 Open two terminal windows or tabs. Keep both in the top-level repository directory with the virtual environment active.
 
 - Use one to start and manage the application processes and to run shell commands later: we will call this the **shell terminal**.
@@ -199,6 +201,8 @@ The prepared workspace begins with measurements from two perpendicular viewing d
 ```sh
 python -i -m ropemother_exercises.image.workspace
 ```
+
+The `-i` option tells Python to leave the interactive interpreter open after the module finishes its setup. Keep it in this command: the workspace checks for interactive mode before it connects or makes measurements, so omitting `-i` prints the supported startup forms and exits without changing the running application.
 
 When setup is complete, the workspace opens a `>>>` Python prompt. Its output begins with a line such as `Hidden target: c...`, followed by `Orthogonal reconstruction from the prepared 0° and 90° sensors:` and a rendering of the initial image reconstruction.
 
@@ -317,7 +321,7 @@ Display it:
 print(render_reconstructions(reconstruction))
 ```
 
-The reconstruction now combines evidence from 0°, 45°, and 90°. Adding the 45° source did not require changing or restarting the reconstruction processor; the new source participated through the same observation messages as the prepared sensors.
+The reconstruction now combines evidence from 0°, 45°, and 90°. `sensor_45_source` did not call the reconstruction processor directly; it published the same kind of observation as the prepared sources. The processor did not need a new direct connection or a sensor-specific code change for `sensor_45`, so adding the producer did not require changing or restarting the reconstruction processor.
 
 ### 4. Add the Other Diagonal
 
@@ -523,37 +527,47 @@ Leave the Python interpreter open in the workspace terminal and switch to the sh
 
 The repository provides `./image`, a standalone command-line client for the same running image application. In a shell, `./` means to run the file named `image` from the current directory. Each invocation starts a new Python program, connects to the running application, performs one requested operation, prints the result, and exits. That new process does not share the variables or Python objects in the workspace interpreter; it reaches the running application through the message bus.
 
-Start with the dashboard:
+Start with the application's complete report:
+
+```sh
+./image report
+```
+
+The command prints the individual completed reconstruction reports followed by the dashboard report. The collection includes the completed startup examples together with the runs completed in the earlier steps.
+
+This client process started after those measurements and reconstructions had already finished. It can still request reports about that earlier work because the application retained the relevant message activity.
+
+> **History** is a retained record of earlier messages that connected parts of an application can query later.
+
+The image host provides the history service for this application. The reconstruction-report and dashboard services use that history when a later client asks for the current report. They do not depend on the local variables in the workspace that originally made the measurements.
+
+During development, the two parts of the report can also be inspected separately. To see only the collection dashboard, run:
 
 ```sh
 ./image dashboard
 ```
 
-The dashboard summarizes the completed reconstruction runs with their reconstruction identifiers, numbers of contributing sensors, and measurement counts. The collection includes three startup examples together with any runs completed in earlier steps.
-
-This client process started after those measurements and reconstructions had already finished. It can still ask the running dashboard service about that earlier work because the application retained the relevant message activity.
-
-> **History** is a retained record of earlier messages that connected parts of an application can query later.
-
-The image host provides the history service for this application. The dashboard and reconstruction-report services use that history when later requests need information about completed work. They do not depend on the local variables in the workspace that originally made the measurements.
-
-The dashboard supplies run identifiers that can be used to request one reconstruction report. `trial-1` can be replaced with any of the run values shown in the dashboard:
+The dashboard summarizes the completed reconstruction runs with their reconstruction identifiers, numbers of contributing sensors, and measurement counts. It also supplies run identifiers that can be used to request one detailed reconstruction report. For example:
 
 ```sh
 ./image report trial-1
 ```
 
-Any other run identifier shown by `./image dashboard` can be substituted to inspect a different completed reconstruction.
+`trial-1` can be replaced with any run identifier shown in the dashboard.
 
-The reconstruction-report service obtains the completed reconstruction from the retained application history and prepares its report for this newly started client.
+To request all of the individual reconstruction reports without the dashboard, run:
 
-The complete collection can also be browsed with `./image reports`. The combined `./image report` form prints all of those reconstruction reports followed by the dashboard report; with several completed runs, these forms produce substantially more output than `./image dashboard`.
+```sh
+./image reports
+```
+
+These separate commands make the constituent reporting behavior convenient to inspect while developing the application. They are different views into the same report feature rather than separate application features.
 
 For this exercise, history is kept in memory for the lifetime of the image application host. Stopping the host clears it. Other applications can choose different retention or persistence policies.
 
-### 10. Change and Restart the Dashboard
+### 10. Change One Part of the Report
 
-Suppose someone using the report wants the completed runs listed differently; for the sake of simplicity, say in the opposite order. That changes how the existing results are presented, but not how the sensor measurements are made or how the reconstructions are computed or stored. The next step changes only the dashboard and demonstrates how the rest of the application and its completed work can remain in place while an alteration is made.
+Suppose someone using the report wants the completed runs listed differently; for the sake of simplicity, say in the opposite order. This changes the collection summary, but not the detailed reconstruction reports, the sensor measurements, or the reconstructions themselves. The dashboard is produced by its own running service, so this requirement can be addressed where that part of the report is constructed.
 
 In your editor, open `ropemother_exercises/image/dashboard.py`. Find `render_dashboard()` at lines 52–66. Its final line, line 66, is:
 
@@ -589,13 +603,25 @@ Start the dashboard service again:
 python -m ropemother_exercises.image.service.dashboard &
 ```
 
-Wait for its readiness message, then request the dashboard again:
+Wait for its readiness message, then request the complete report again:
+
+```sh
+./image report
+```
+
+The individual reconstruction reports still describe the same completed work. At the end of the report, the dashboard contains the same completed runs in the opposite order.
+
+No sensor measurements or reconstructions were repeated, and the reconstruction-report service was not restarted. The outward report is still requested in the same way; only the service responsible for its dashboard portion was changed.
+
+To inspect that changed portion by itself, run:
 
 ```sh
 ./image dashboard
 ```
 
-The same completed runs now appear in the opposite order. No sensor measurements or reconstructions were repeated. The restarted dashboard queried the retained history and applied the edited presentation rule to work that had already been completed.
+The reordered rows appear without the individual reconstruction reports.
+
+The visible consequence is that a new presentation requirement was handled without requiring corresponding changes to sensing or reconstruction. The dashboard still depends on retained reconstruction evidence and on the application's message contracts; those dependencies have not disappeared. The reporting boundary keeps the new presentation rule local to the part of the application responsible for that view.
 
 ### 11. Open Exploration
 
@@ -925,7 +951,7 @@ The dashboard can supply the ID of a completed run, such as `trial-1`, for inspe
 ./image report
 ```
 
-Neither reporting experiment requires the sensor measurements or reconstructions to be repeated — the reporting services are the only running components that need to change.
+Both experiments give the same completed reconstruction work a new downstream presentation or analysis. Neither requires the sensor measurements or reconstructions to be repeated — the corresponding reporting service is the only running component that needs to change.
 
 #### e. Rank or Analyze Completed Reconstructions
 
@@ -935,6 +961,8 @@ The repository also provides two analysis values that can be calculated from a r
 - **Smoothness** compares neighboring cells. A larger value means neighboring reconstructed intensities are more similar on average.
 
 They ask different questions about the same reconstruction. Neither value says whether a reconstruction is correct or identifies an objectively best result.
+
+Because contrast and smoothness are calculated from a reconstruction, they can be introduced after that reconstruction already exists. The sensing and reconstruction path did not have to anticipate which of these later questions would be asked.
 
 In the workspace terminal, at the Python interpreter `>>>` prompt, try both values on the current reconstruction:
 
@@ -1079,13 +1107,13 @@ A useful extension could combine this view with the ranking experiment. After or
 
 That pattern has a common application analogue: a collection view can rank many results, select a few according to a chosen criterion, and give those selected results a richer visual preview without changing the process that originally produced them.
 
-If the earlier workspace interpreter has been closed, it can be reopened without creating another set of prepared startup runs:
+If the earlier workspace interpreter has been closed, rejoin the running application without creating another set of prepared startup runs:
 
 ```sh
 python -i -m ropemother_exercises.image.workspace -j
 ```
 
-`-j`, or `--join-only`, reconnects to the running application and recreates the prepared sensor definitions and sources without making measurements.
+`-j`, or `--join-only`, uses the application's retained history to recover useful workspace context without repeating measurements. In this exercise, the completed startup examples provide the prior work needed to rejoin. The familiar 0° and 90° sensors, saved single-sensor views, and latest reconstruction are recovered when their recorded evidence is available. If one still-open reconstruction run can be identified unambiguously, unqualified sensor measurements continue that run; otherwise the next such measurement begins a new run. Run `show_workspace()` to see which names were recovered into the new interpreter.
 
 ### 12. Review What the Exercise Showed
 
@@ -1100,7 +1128,7 @@ Adding the 45° and 135° sensors, and later the four intermediate views, change
 
 History made the application's results available beyond the process that originally produced them. The standalone `./image` client started after the measurements had already been made, and the restarted dashboard had discarded its earlier process state. Both could still work with the completed reconstruction activity because the application retained the relevant messages.
 
-Changing the dashboard then altered a downstream interpretation of that retained work without repeating the sensing or reconstruction that produced it. The message boundaries did not eliminate dependencies or make every change free; they provided places where new producers and new downstream behavior could participate without requiring unrelated parts of the application to change with them.
+Changing the dashboard altered how the same retained work was presented without repeating the sensing or reconstruction that produced it. The optional reporting and analysis experiments extend the same pattern: completed reconstructions can support new summaries, derived values, rankings, and previews after the original work already exists. The message boundaries did not eliminate dependencies or make every change free; they provided places where new producers and new downstream behavior could participate without requiring unrelated parts of the application to change with them.
 
 The next section focuses on the core communication relationships in a narrowly focused program with fewer parts, and gives the messaging operations more precise terminology.
 
@@ -1799,7 +1827,7 @@ From a user's point of view, a shell command can look like one action: type a li
 
 A **byte stream** is a sequence of bytes observed in order over time rather than one already-complete value. The exercise observes input and program output on separate byte streams.
 
-In canonical input mode, the terminal does not immediately deliver each typed byte to the program. Its **line discipline**—the input-handling layer between typed input and the program—collects input for a line, applies editing such as erase or backspace, and delivers the edited line after a line-ending input such as Enter completes it. The bytes observed while the line is being entered and the completed line are therefore related evidence, but they are not necessarily identical.
+In canonical input mode, the terminal does not immediately deliver each typed byte to the program. Its **line discipline** — the input-handling layer between typed input and the program — collects input for a line, applies editing such as erase or backspace, and delivers the edited line after a line-ending input such as Enter completes it. The bytes observed while the line is being entered and the completed line are therefore related evidence, but they are not necessarily identical.
 
 The command a person recognizes does not arrive from the terminal as one already-complete source record. Reconstructing that command requires relating observations that describe different parts of the same interaction.
 
@@ -2822,7 +2850,7 @@ Back in `_add_interval()`, lines 186–201 use that `True` or `False` result to 
                 )
 ```
 
-When the candidate fits, those candidate values become the new pending span. When it does not fit—as with `350 ms` following the three `100 ms` intervals—the processor publishes the span it had already assembled and starts a new pending span with the interval that did not fit.
+When the candidate fits, those candidate values become the new pending span. When it does not fit — as with `350 ms` following the three `100 ms` intervals — the processor publishes the span it had already assembled and starts a new pending span with the interval that did not fit.
 
 That failed-fit case has a later interval to tell the processor where the preceding span ends. The final pending span has no later interval to provide that signal. `InputTimingCompleted` supplies the missing boundary: it states that the timing stream for this session is finished, so no later interval can extend the pending span.
 
@@ -3963,7 +3991,7 @@ After those two additions, the processor-and-result region should read:
     regex_results = bus.subscribe(msg_topic=REGEX_MSG_TOPIC)
 ```
 
-The new participant therefore has the same outward shape as the earlier processors—receive messages, derive something, publish messages—but it occupies a different place in the message graph: reconstructed commands are its input, and regex configuration/results are its output.
+The new participant therefore has the same outward shape as the earlier processors — receive messages, derive something, publish messages — but it occupies a different place in the message graph: reconstructed commands are its input, and regex configuration/results are its output.
 
 The existing `try`/`finally` region is current lines 56–73:
 
@@ -4289,7 +4317,7 @@ def reconcile_input(
 
 `_reads_for()` begins by asking `_previous_line_observation_index()` for the lower boundary of the search. The current canonical line supplies the upper boundary through `line.observation_index`.
 
-`self._history` is the processor's history client on the bus, so `select_all()` is a request/reply operation. It sends a history request through the bus to the running history service, which selects retained messages matching the raw-read contract—the raw-read topic and message type produced by the TTY source—and returns those entries in its reply. The capture and history objects assembled when the local host started remain on the service side of that exchange. At this point, `entries` may contain raw reads from different completed lines or terminal sessions; the history request has selected the kind of message, not yet the particular reads associated with this line.
+`self._history` is the processor's history client on the bus, so `select_all()` is a request/reply operation. It sends a history request through the bus to the running history service, which selects retained messages matching the raw-read contract — the raw-read topic and message type produced by the TTY source — and returns those entries in its reply. The capture and history objects assembled when the local host started remain on the service side of that exchange. At this point, `entries` may contain raw reads from different completed lines or terminal sessions; the history request has selected the kind of message, not yet the particular reads associated with this line.
 
 The loop makes that second selection. A read from another `session_id` is skipped. A read at or before `previous_line_index` belongs outside the interval for the current line, and a read at or after the current line's observation index is also outside it. Only raw reads from the same session and strictly between those two boundaries are appended to `reads`.
 
@@ -7445,7 +7473,7 @@ The image frame is 32 cells wide, and `edge_bin_count` is also 32:
 32
 ```
 
-`edge_bin_count=32` means that the projection uses a bin width corresponding to one image cell along the longer edge of this 32×32 frame. It does not mean that the complete detector contains only 32 bins. At a diagonal viewing angle, the projection may need to cover the image's diagonal—the hypotenuse of a right triangle formed by the image width and height. The angular sensor therefore provides enough detector bins for that longer span while keeping the same bin width. Inspect the sensor's configuration:
+`edge_bin_count=32` means that the projection uses a bin width corresponding to one image cell along the longer edge of this 32×32 frame. It does not mean that the complete detector contains only 32 bins. At a diagonal viewing angle, the projection may need to cover the image's diagonal — the hypotenuse of a right triangle formed by the image width and height. The angular sensor therefore provides enough detector bins for that longer span while keeping the same bin width. Inspect the sensor's configuration:
 
 ```python
 sensor_0.detector_bin_count
@@ -7575,7 +7603,7 @@ The result is four new angles spaced evenly between the others:
 
 For this exercise, those four angles are the useful result: they describe the new viewing directions that need sensor definitions. There is no need to work through the intermediate ruler fractions in order to create those sensors.
 
-`angular_sensors_for_angles()` creates one ordinary `AngularSensor` for each value in `half_angles`. The arguments below state once what those sensors share—the name prefix, edge resolution, and sample count—while the tuple supplies the four differing viewing directions:
+`angular_sensors_for_angles()` creates one ordinary `AngularSensor` for each value in `half_angles`. The arguments below state once what those sensors share — the name prefix, edge resolution, and sample count — while the tuple supplies the four differing viewing directions:
 
 ```python
 half_angle_sensors = angular_sensors_for_angles(
@@ -7865,14 +7893,14 @@ The Python workspace that assembled the earlier sensor arrangements is closed. F
 ./image instruments
 ```
 
-The application gives each reusable sensor arrangement an **Instrument** identity. In the fresh session used by these instructions, the first two entries correspond to:
+The application gives each reusable sensor arrangement an **instrument** identity. In the fresh session used by these instructions, the first two entries correspond to:
 
 - `instrument-1`: `sensor-0`, `sensor-90`, `sensor-45`, and `sensor-135`
 - `instrument-2`: `sensor-0`, `sensor-45`, `sensor-90`, `sensor-135`, and the four `half-angle` sensors
 
-The first Instrument is the four-angle arrangement assembled by hand earlier. The second is the eight-angle arrangement built after the additional angles were generated from data. The terminal can name both even though the Python client that created their sensor sources has exited.
+The first instrument is the four-angle arrangement assembled by hand earlier. The second is the eight-angle arrangement built after the additional angles were generated from data. The terminal can name both even though the Python client that created their sensor sources has exited.
 
-Inspect the first Instrument:
+Inspect the first instrument:
 
 ```sh
 ./image instrument instrument-1
@@ -7885,7 +7913,7 @@ Its listing identifies `instrument-1` and the four Angular sensors in the arrang
 - `sensor-45 (Angular)`
 - `sensor-135 (Angular)`
 
-A **run** and an **Instrument** therefore identify different things. A run is one reconstruction attempt made from particular measurements. An Instrument describes the sensor arrangement that can be used to make such an attempt. Test the distinction instead of only naming it.
+A **run** and an **instrument** therefore identify different things. A run is one reconstruction attempt made from particular measurements. An instrument describes the sensor arrangement that can be used to make such an attempt. Test the distinction instead of only naming it.
 
 Ask the terminal to use `instrument-1` again:
 
@@ -7893,9 +7921,9 @@ Ask the terminal to use `instrument-1` again:
 ./image run instrument-1
 ```
 
-Watch the output for a new `trial-N` run identifier. The command makes fresh measurements with the four sensors described by `instrument-1`, waits for that new run to finish, and then displays its reconstruction report and the updated dashboard. The Instrument identity remains `instrument-1`; the run identity is new because this is another reconstruction attempt.
+Watch the output for a new `trial-N` run identifier. The command makes fresh measurements with the four sensors described by `instrument-1`, waits for that new run to finish, and then displays its reconstruction report and the updated dashboard. The instrument identity remains `instrument-1`; the run identity is new because this is another reconstruction attempt.
 
-A target key you already have can also be used for a new run with the same Instrument:
+A target key you already have can also be used for a new run with the same instrument:
 
 ```sh
 ./image run instrument-1 TARGET_KEY
@@ -7903,7 +7931,7 @@ A target key you already have can also be used for a new run with the same Instr
 
 The application session keeps its own assigned target; the explicit key applies only to this run.
 
-The important reuse is the **arrangement**, not an old reconstruction or an old set of random measurements. The terminal did not recreate `sensor_0_source`, `sensor_45_source`, and the other Python objects by hand. It named the recorded Instrument, and the running application was able to perform that arrangement again. A sensor setup found useful in one exploratory client can therefore become something another client can inspect and repeat without reproducing the original setup sequence.
+The important reuse is the **arrangement**, not an old reconstruction or an old set of random measurements. The terminal did not recreate `sensor_0_source`, `sensor_45_source`, and the other Python objects by hand. It named the recorded instrument, and the running application was able to perform that arrangement again. A sensor setup found useful in one exploratory client can therefore become something another client can inspect and repeat without reproducing the original setup sequence.
 
 ### 11. View the Completed Work Through a Report
 
@@ -8618,19 +8646,29 @@ The guided sequence is finished. The application can stay running while the rema
 
 #### a. Re-enter the Running Application
 
-The earlier interactive Python process has ended, but the broker and application services are still running. Start another Python client without asking the workspace to perform its prepared opening run:
+The earlier interactive Python process has ended, but the broker and application services are still running. There are two ways to open another Python workspace without performing the prepared opening run again.
+
+To rejoin prior work and recover useful context from the application's history, run:
 
 ```sh
 python -i -m ropemother_exercises.image.workspace -j
 ```
 
-Keep another terminal available for `./image` commands.
+`-j`, or `--join-only`, requires at least one completed reconstruction in the running application's history. It recovers whichever familiar workspace values can be established from that recorded work. If exactly one open reconstruction run can also be identified, the new client continues that run for unqualified sensor measurements.
 
-These two clients offer different ways into the same running application. The Python prompt is where sensor definitions can be constructed, attached to `bus`, and used to make measurements. The `./image` terminal can inspect completed runs and Instruments, repeat a recorded Instrument, and request the reports produced from the application's history.
+For a deliberately blank experimental workspace, run instead:
 
-The new Python process recreates the standard workspace names, including `frame`, `target`, `samples_per_sensor`, `sensor_0`, `sensor_90`, `sensor_0_source`, and `sensor_90_source`. Names created during the earlier interpreter session, such as the particular `sensor_45_source` or perspective-source variables, belonged to that Python process and are no longer present. The runs and Instruments created through them belonged to the application, so they remain visible from the terminal.
+```sh
+python -i -m ropemother_exercises.image.workspace --connect-only
+```
 
-The recreated workspace also exposes `threshold_intensity_image_by_fraction()` and `render_quadrant_bitmap()` for optional reconstruction inspection. The threshold fraction is relative to the reconstruction's maximum intensity, so a lower value keeps more cells and a higher value keeps only stronger cells:
+`--connect-only` connects to the same application and provides the common target, frame, bus, clients, settings, and helper functions, but it does not prepare sensors or recover an earlier reconstruction. This is useful when repeating the exercise from memory or designing a new experiment without the prepared sensor arrangement.
+
+Keep another terminal available for `./image` commands. The Python prompt is where sensor definitions can be constructed, attached to `bus`, and used to make measurements. The `./image` terminal can inspect completed runs and instruments, repeat a recorded instrument, and request the reports produced from the application's history.
+
+A rejoined workspace may recover standard names such as `sensor_0`, `sensor_90`, their attached sources, the saved single-sensor renderings, and `reconstruction` when history contains enough information for them. Names created only in an earlier interpreter, such as a particular `sensor_45_source` or perspective-source variable, are not reconstructed merely because the application retains the runs and instruments produced through them. A connect-only workspace omits all of that recovered experiment state. Run `show_workspace()` in either mode to see the names actually available in the current interpreter.
+
+If `show_workspace()` lists `reconstruction`, the recovered value can be used with `threshold_intensity_image_by_fraction()` and `render_quadrant_bitmap()` for optional inspection. The threshold fraction is relative to the reconstruction's maximum intensity, so a lower value keeps more cells and a higher value keeps only stronger cells:
 
 ```python
 thresholded = threshold_intensity_image_by_fraction(
@@ -8673,7 +8711,7 @@ close_run()
 
 The application can then identify the final reconstruction for that run. From the interaction terminal, completed work can be inspected through the report and dashboard commands.
 
-When a completed run establishes a sensor arrangement that the application has not seen before, that arrangement can also become an **Instrument**. The run is one particular attempt, with one particular set of sampled measurements. The Instrument is the reusable sensor arrangement. `./image instruments` and `./image instrument ...` inspect those recorded arrangements; `./image run ...` performs one of them again as a new run.
+When a completed run establishes a sensor arrangement that the application has not seen before, that arrangement can also become an **instrument**. The run is one particular attempt, with one particular set of sampled measurements. The instrument is the reusable sensor arrangement. `./image instruments` and `./image instrument ...` inspect those recorded arrangements; `./image run ...` performs one of them again as a new run.
 
 With those relationships back in view, the experiments below can be combined freely rather than treated as separate exercises.
 
@@ -8698,7 +8736,7 @@ There is no requirement to stop at sixteen views. The useful stopping point is w
 
 Another experiment leaves the sensor arrangement unchanged and changes `sample_count`.
 
-The earlier comparison used the same 0° geometry at 512 and 256 samples. That idea scales to an entire Instrument or angle arrangement. For example, the same four directions can be measured with 256, 512, and 1024 samples per sensor.
+The earlier comparison used the same 0° geometry at 512 and 256 samples. That idea scales to an entire instrument or angle arrangement. For example, the same four directions can be measured with 256, 512, and 1024 samples per sensor.
 
 These runs answer a different question from adding angles. The sensors look from the same directions and use the same projection resolution; each measurement simply gathers a different amount of evidence before producing its observation.
 
@@ -8754,11 +8792,11 @@ The earlier `perspective_sensors_for_bearings()` helper is useful when several s
 
 #### h. Mix Sensor Families
 
-An Instrument does not have to contain only one sensor family.
+An instrument does not have to contain only one sensor family.
 
 Angular and perspective sources can contribute to the same run because both eventually send `ImageObservation` evidence to the fusion processor. A mixed arrangement can therefore combine familiar angular views with perspective views chosen to examine parts of the image differently.
 
-One possible starting point is four angular directions plus two perspective viewpoints. Another is to begin with a familiar angular Instrument and add perspective sources until the resulting reconstruction suggests whether those extra views are contributing something visibly different.
+One possible starting point is four angular directions plus two perspective viewpoints. Another is to begin with a familiar angular instrument and add perspective sources until the resulting reconstruction suggests whether those extra views are contributing something visibly different.
 
 This is a good place to be less controlled than the earlier comparisons. Once the effects of angle, measurement depth, and resolution have been seen separately, combinations can be chosen because they look promising rather than because only one setting is allowed to change.
 
@@ -8766,7 +8804,7 @@ This is a good place to be less controlled than the earlier comparisons. Once th
 
 Sometimes the useful experiment is to leave the sensor configuration completely alone.
 
-Inspect the recorded Instruments from the interaction terminal:
+Inspect the recorded instruments from the interaction terminal:
 
 ```sh
 ./image instruments
@@ -8787,7 +8825,7 @@ Then run it more than once:
 
 Each command creates a fresh run using the same sensor arrangement. The random sampling is new, so the resulting evidence and reconstruction need not be identical.
 
-Comparing repeated runs makes the difference between an Instrument and a run visible in practice: the Instrument fixes the measurement arrangement, while each run is another use of that arrangement.
+Comparing repeated runs makes the difference between an instrument and a run visible in practice: the instrument fixes the measurement arrangement, while each run is another use of that arrangement.
 
 It can also be useful to repeat a configuration before and after changing reporting code. The sensing arrangement then remains familiar while the way its results are presented evolves.
 
@@ -8840,7 +8878,7 @@ The angular and perspective sensors also showed an important consequence of the 
 
 The experiments changed other aspects of sensing without changing that relationship. More viewing directions changed where evidence came from. `sample_count` changed how much evidence a sensor gathered from a view. Angular `edge_bin_count` changed the resolution of its projection. These could be explored separately, traded against one another under a fixed measurement budget, or combined once their individual effects were familiar.
 
-A sensor arrangement also proved to be different from one use of that arrangement. The interactive Python client that created the early sources eventually exited, but the terminal could still inspect the resulting Instrument and perform it again. Each repeated use produced a new run and fresh measurements while the recorded sensor arrangement stayed reusable. The useful result of exploration was therefore not confined to the lifetime of the Python objects that happened to construct it.
+A sensor arrangement also proved to be different from one use of that arrangement. The interactive Python client that created the early sources eventually exited, but the terminal could still inspect the resulting instrument and perform it again. Each repeated use produced a new run and fresh measurements while the recorded sensor arrangement stayed reusable. The useful result of exploration was therefore not confined to the lifetime of the Python objects that happened to construct it.
 
 Reporting exposed another kind of change. The contrast column appeared for runs that had been completed before the contrast code existed. The later smoothness edit could likewise add information to an earlier reconstruction. Those values were calculated from reconstructions retained in history, so the original sensor measurements and reconstruction work did not have to be performed again.
 
@@ -8862,13 +8900,13 @@ Then return to the terminal that has been running the application processes and 
 ./image stop application
 ```
 
-The reconstruction-report and dashboard services will stop along with the host. The host also stops the reconstruction, Instrument, and trial services that it started, then shuts down the broker. Its temporary application directory, including the history accumulated during this image session, is removed when the host exits.
+The reconstruction-report and dashboard services will stop along with the host. The host also stops the reconstruction, instrument, and trial services that it started, then shuts down the broker. Its temporary application directory, including the history accumulated during this image session, is removed when the host exits.
 
 Your shell may print background-job completion notices as those processes finish.
 
 ## VI. Messaging Architecture
 
-The exercises changed several applications in different ways. A new TTY interpretation was added. Graph facts were derived in different processing orders. Perspective sensors supplied evidence through a geometry the fusion processor had not seen before. Reports acquired information that did not exist when the underlying measurements were taken. The useful comparison is not simply that all of these examples used messages. It is what each change required—and what it did not require changing with it.
+The exercises changed several applications in different ways. A new TTY interpretation was added. Graph facts were derived in different processing orders. Perspective sensors supplied evidence through a geometry the fusion processor had not seen before. Reports acquired information that did not exist when the underlying measurements were taken. The useful comparison is not simply that all of these examples used messages. It is what each change required — and what it did not require changing with it.
 
 ### 1. What Changed, and What Stayed Local?
 

@@ -13,6 +13,7 @@ from ropemother_exercises.image.events import (
     ExperimentDescription,
     InstrumentDescription,
     PerspectiveSensorDescription,
+    SensorDescription,
 )
 from ropemother_exercises.image.exceptions import (
     UnsupportedSensorDescriptionError,
@@ -120,22 +121,27 @@ def describe_instrument(instrument: Instrument) -> InstrumentDescription:
     return InstrumentDescription(sensors=descriptions)
 
 
+def sensor_from_description(description: SensorDescription) -> Sensor:
+    if isinstance(description, AngularSensorDescription):
+        sensor = _angular_sensor_from_description(description)
+    elif isinstance(description, PerspectiveSensorDescription):
+        sensor = _perspective_sensor_from_description(description)
+    else:
+        description_type = type(description).__name__
+        raise UnsupportedSensorDescriptionError(
+            f"unsupported sensor description: {description_type}"
+        )
+
+    return sensor
+
+
 def instrument_from_description(
     description: InstrumentDescription,
 ) -> Instrument:
     sensors = []
 
     for sensor_description in description.sensors:
-        if isinstance(sensor_description, AngularSensorDescription):
-            sensor = _angular_sensor_from_description(sensor_description)
-        elif isinstance(sensor_description, PerspectiveSensorDescription):
-            sensor = _perspective_sensor_from_description(sensor_description)
-        else:
-            description_type = type(sensor_description).__name__
-            raise UnsupportedSensorDescriptionError(
-                f"unsupported sensor description: {description_type}"
-            )
-
+        sensor = sensor_from_description(sensor_description)
         sensors.append(sensor)
 
     return Instrument(*sensors)
