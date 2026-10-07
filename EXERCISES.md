@@ -625,6 +625,14 @@ The visible consequence is that a new presentation requirement was handled witho
 
 ### 11. Open Exploration
 
+The target has remained concealed throughout the guided reconstruction. If time is short, you are finished experimenting with sensor configurations, or you simply want to see what the hidden image is, reveal it from the application terminal:
+
+```sh
+./image reveal
+```
+
+The command displays the exact target selected for this application. You can then continue with any of the experiments below, or leave the target concealed and keep working from the reconstructions.
+
 Return to the workspace terminal. The application is still running, and the objects and helpers from the earlier reconstruction work are still available. `show_workspace()` lists the names that are ready to use. Python's `help()` can show the signature and a short description of a helper when its arguments are needed. At the Python interpreter `>>>` prompt:
 
 ```python
@@ -634,7 +642,7 @@ help(evenly_spaced_angles)
 Pose a question of your own, or choose one or more of these directions to explore:
 
 - **[Add more viewing angles](#a-add-more-viewing-angles):** add the next ruler group and build a 16-angle reconstruction.
-- **[Change measurement depth](#b-change-measurement-depth):** keep the viewing direction fixed while changing how many samples one sensor gathers.
+- **[Change measurement depth](#b-change-measurement-depth):** keep the eight viewing directions fixed while changing how many samples each sensor gathers.
 - **[Try perspective sensing](#c-try-perspective-sensing):** add a sensor whose projection fans outward from a viewpoint instead of using parallel strips.
 - **[Change reporting](#d-change-reporting):** change either the dashboard report or a reconstruction report and restart only the corresponding service.
 - **[Rank or analyze completed reconstructions](#e-rank-or-analyze-completed-reconstructions):** compare contrast and smoothness, add analysis values to a reconstruction report or the dashboard report, or use one of them to order the completed runs.
@@ -698,7 +706,22 @@ report = report_client.call(completion).payload
 print(report.rendering)
 ```
 
-This extends the same arrangement from eight evenly spaced views to sixteen without changing the reconstruction processor. Try thirty-two or sixty-four views.
+This extends the same arrangement from eight evenly spaced views to sixteen without changing the reconstruction processor.
+
+The ruler groups can also be accumulated from the beginning. To construct every viewing direction through group 4:
+
+```python
+last_ruler_group = 4
+ruler_angles = []
+
+for depth in range(last_ruler_group + 1):
+    ruler_angles.extend(ruler_angle_group(depth))
+
+ruler_angles.sort()
+len(ruler_angles)
+```
+
+Group 4 produces 16 viewing directions in total. Change `last_ruler_group` to `5` for 32 directions or `6` for 64. `sort()` places the accumulated directions in angular order before they are inspected or passed to `angular_sensors_for_angles()`.
 
 `evenly_spaced_angles()` can construct arrangements with other sizes, starting directions, and angular spans. `help(evenly_spaced_angles)` shows the available parameters. For example, construct six views beginning at 15° and distributed across a 180° span:
 
@@ -722,46 +745,78 @@ The end of the span is not repeated, so six views across 180° are spaced 30° a
 
 #### b. Change Measurement Depth
 
-The sensors used above take `samples_per_sensor` samples for each measurement. A new sensor can use the same viewing direction and projection resolution while gathering fewer samples. In the workspace terminal, at the Python interpreter `>>>` prompt, use:
+The prepared single-sensor results mainly show what can be reconstructed from one viewing direction. To see the effect of measurement depth more clearly, return to the eight viewing directions from Section 8 and change the number of samples gathered by each sensor.
+
+The earlier eight-angle run used `samples_per_sensor` samples for every sensor. Recreate the same eight evenly spaced viewing directions, then build another arrangement with one quarter of that sampling depth:
 
 ```python
-lower_sample_sensor = AngularSensor(
-    sensor_name="lower-sample-0",
-    angle_degrees=0.0,
+eight_angles = (
+    0.0,
+    45.0,
+    90.0,
+    135.0,
+) + ruler_angle_group(3)
+
+lower_sample_count = samples_per_sensor // 4
+
+lower_sample_sensors = angular_sensors_for_angles(
+    sensor_name_prefix="lower-sample",
+    angles_degrees=eight_angles,
     edge_bin_count=edge_bin_count,
-    sample_count=samples_per_sensor // 2,
+    sample_count=lower_sample_count,
 )
-lower_sample_source = lower_sample_sensor.attach(bus)
+
+lower_sample_sources = []
+
+for sensor in lower_sample_sensors:
+    lower_sample_sources.append(sensor.attach(bus))
 ```
 
-Make one measurement and inspect its reconstruction:
+Make the measurements with the same sequence of sampling seeds used for the earlier eight-angle run:
 
 ```python
-lower_sample_source.measure(
-    target=target,
-    observation_id="lower-sample-0",
-    seed=50,
-)
-reconstruction = run_receiver.receive().payload
-print(render_reconstructions(reconstruction))
+sensor_number = 1
+
+for sensor_source in lower_sample_sources:
+    sensor_source.measure(
+        target=target,
+        observation_id=f"lower-sample-{sensor_number}",
+        seed=20 + sensor_number,
+    )
+    reconstruction = run_receiver.receive().payload
+    sensor_number += 1
 ```
 
-Compare it with the prepared 0° result:
-
-```python
-print(sensor_0_rendering)
-```
-
-Close the run and receive its completion:
+Complete the run and request its report:
 
 ```python
 close_run()
 completion = run_receiver.receive().payload
+lower_sample_report = report_client.call(completion).payload
 ```
 
-Keeping `completion` makes the finished run available for another report with `report_client.call(completion)`.
+Compare it with the standard-depth eight-angle report from Section 8:
 
-Other sample counts can be tried by changing the `sample_count=` expression while leaving the other sensor settings unchanged. Try higher sample counts, and perhaps compare more samples from the same sensors against adding more sensors at the same depth.
+```python
+print(
+    f"Standard depth ({samples_per_sensor} samples/sensor)",
+    eight_angle_report.rendering,
+    "",
+    f"Lower depth ({lower_sample_count} samples/sensor)",
+    lower_sample_report.rendering,
+    sep="\n",
+)
+```
+
+The two runs use the same viewing directions, projection resolution, target, and sampling-seed sequence. Compare their reconstructed shapes and intensities, and look for places where the lower-depth result is less even or shows more background variation.
+
+Measurement depth can also be increased. Build another sensor arrangement with the same `eight_angles`, but use:
+
+```python
+higher_sample_count = samples_per_sensor * 2
+```
+
+Use `higher_sample_count` as the `sample_count` when constructing the new sensors. Compare that result with `eight_angle_report` as well. If the difference is difficult to see, try `samples_per_sensor * 4` and compare again.
 
 #### c. Try Perspective Sensing
 
