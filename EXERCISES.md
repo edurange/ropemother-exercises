@@ -648,7 +648,7 @@ Pose a question of your own, or choose one or more of these directions to explor
 - **[Rank or analyze completed reconstructions](#e-rank-or-analyze-completed-reconstructions):** compare contrast and smoothness, add analysis values to a reconstruction report or the dashboard report, or use one of them to order the completed runs.
 - **[Make a compact reconstruction preview](#f-make-a-compact-reconstruction-preview):** turn a reconstruction into a small visual summary that can be used when comparing several results.
 
-The line numbers below refer to the files after applying the changes described in Section 10; if another experiment has moved the code, use the named function as the main anchor.
+The line numbers below assume Section 10 has been completed and no other optional source edit has been applied. Within each direction, the line numbers follow the edits in the order shown. If another experiment has moved the code, use the named function as the main anchor.
 
 #### a. Add More Viewing Angles
 
@@ -961,19 +961,19 @@ Then inspect the result:
 
 Another possibility is to add a derived value to a reconstruction report. **Smoothness** compares neighboring reconstructed cell intensities; a larger value means neighboring values are more similar on average.
 
-In your editor, open `ropemother_exercises/image/report.py`. After the `HistoryClient` import on line 6, add:
+In your editor, open `ropemother_exercises/image/report.py`. At line 8, before the `application.render` import, add:
 
 ```python
 from ropemother_exercises.image import reconstruction_smoothness
 ```
 
-Before this edit, `render_reconstruction_report()` is at lines 47–64. After the construction of `image` at lines 61–63, add:
+After adding that import, `render_reconstruction_report()` is at lines 48–65. Its `image` construction is at lines 62–64. Add the smoothness calculation as line 65:
 
 ```python
     smoothness = reconstruction_smoothness(reconstruction)
 ```
 
-Then replace its final return, originally at line 64:
+The final return is now line 66. Replace it:
 
 ```python
     return f"{identity}\n\n{image}"
@@ -1027,15 +1027,15 @@ from ropemother_exercises.image import (
     reconstruction_smoothness,
 )
 
-reconstruction_contrast(reconstruction)
-reconstruction_smoothness(reconstruction)
+print(f"contrast: {reconstruction_contrast(reconstruction):.3f}")
+print(f"smoothness: {reconstruction_smoothness(reconstruction):.3f}")
 ```
 
-Each expression displays a floating-point value for the given `reconstruction` argument.
+The two print calls display the calculated values for the current `reconstruction`.
 
-The same calculations can be used when presenting completed work. In `ropemother_exercises/image/report.py`, `render_reconstruction_report()` receives the reconstruction used for one detailed report, so a quality such as smoothness or contrast can be calculated there and added to the report text.
+The same calculations can be used when presenting completed work. In `ropemother_exercises/image/report.py`, `render_reconstruction_report()` is at lines 47–64 and receives the reconstruction used for one detailed report, so a quality such as smoothness or contrast can be calculated there and added to the report text.
 
-In `ropemother_exercises/image/dashboard.py`, every `DashboardEntry` contains its reconstruction in `entry.reconstruction`. That makes several experiments possible:
+In `ropemother_exercises/image/dashboard.py`, `DashboardEntry` is at lines 29–45, and its `reconstruction` field is line 43. That makes several experiments possible:
 
 - add contrast, smoothness, or both as dashboard columns;
 - order the entries by contrast instead of their existing order;
@@ -1045,7 +1045,7 @@ In `ropemother_exercises/image/dashboard.py`, every `DashboardEntry` contains it
 
 For an ordering experiment, `render_dashboard()` is the natural place to arrange the entries before passing them to `render_dashboard_index()`. After applying the changes described in Section 10, `render_dashboard()` is at lines 52–66 and `render_dashboard_index()` begins at line 69.
 
-For a contrast or smoothness ranking, add the supplied analysis functions after the `HistoryClient` import on line 8 in `ropemother_exercises/image/dashboard.py`:
+For a contrast or smoothness ranking, the `HistoryClient` import is at line 8 in `ropemother_exercises/image/dashboard.py`. At line 10, before the `application.render` import, add:
 
 ```python
 from ropemother_exercises.image import (
@@ -1054,7 +1054,7 @@ from ropemother_exercises.image import (
 )
 ```
 
-Add a function for calculating the contrast of one dashboard entry. Place it after `render_dashboard()` and before `render_dashboard_index()`:
+After adding that import, `render_dashboard()` is at lines 56–70 and `render_dashboard_index()` begins at line 73. Add a function for calculating the contrast of one dashboard entry at line 73, before `render_dashboard_index()`. Leave two blank lines between the two top-level functions:
 
 ```python
 def contrast_for(entry: DashboardEntry) -> float:
@@ -1063,7 +1063,7 @@ def contrast_for(entry: DashboardEntry) -> float:
 
 Before changing the order, add the contrast value to the dashboard report so that the value used for the ordering is visible.
 
-In `render_dashboard_index()`, replace the `first_line_headings` assignment, originally at line 76, with:
+With the helper in place, `render_dashboard_index()` begins at line 77. Replace the `first_line_headings` assignment at line 84 with:
 
 ```python
     first_line_headings = (
@@ -1075,7 +1075,7 @@ In `render_dashboard_index()`, replace the `first_line_headings` assignment, ori
     )
 ```
 
-In the same function, add the contrast value to `first_line`, originally at lines 82–87, immediately after `str(entry.measurement_count)`:
+After replacing the headings, `first_line` is at lines 96–101. Its measurement-count entry is line 100. Add the contrast value immediately after it as line 101:
 
 ```python
             f"{contrast_for(entry):.3f}",
@@ -1096,7 +1096,7 @@ Wait for `Dashboard report service is ready.`, then request the dashboard:
 
 The `contrast` column now shows the value calculated for each completed reconstruction. The rows are still in the order established after applying the changes described in Section 10, so the values can be compared with that order before contrast is used to rearrange them.
 
-After applying the changes described in Section 10, the final return in `render_dashboard()`, at line 66, reverses the entries. Replace that final return with the ranking operation and a return of the newly ordered entries:
+The reversed return in `render_dashboard()` is still at line 70. Replace line 70 with the ranking operation and a return of the newly ordered entries:
 
 ```python
     entries = sorted(entries, key=contrast_for, reverse=True)
