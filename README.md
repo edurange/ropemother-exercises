@@ -48,7 +48,7 @@ python3 -m venv .venv
 A versioned command works the same way. For example:
 
 ```sh
-python3.14 -m venv .venv
+python3.13 -m venv .venv
 ```
 
 Activate the environment:
